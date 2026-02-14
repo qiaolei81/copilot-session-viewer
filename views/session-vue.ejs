@@ -803,8 +803,8 @@
           localStorage.setItem('sidebarCollapsed', newValue.toString());
         });
         
-        const expandedTools = ref(new Set());
-        const expandedContent = ref(new Set());
+        const expandedTools = ref({});
+        const expandedContent = ref({});
         const expandedVersion = ref(0); // Force re-render version
         const currentFilter = ref('all');
         const searchText = ref('');
@@ -1074,13 +1074,7 @@
         };
         
         const toggleTool = (toolId) => {
-          const newSet = new Set(expandedTools.value);
-          if (newSet.has(toolId)) {
-            newSet.delete(toolId);
-          } else {
-            newSet.add(toolId);
-          }
-          expandedTools.value = newSet;
+          expandedTools.value[toolId] = !expandedTools.value[toolId];
           expandedVersion.value++; // Force re-render
         };
         
@@ -1118,21 +1112,13 @@
         
         const toggleContent = (contentId) => {
           console.log('[toggleContent] Called with:', contentId);
-          console.log('[toggleContent] Before:', Array.from(expandedContent.value));
+          console.log('[toggleContent] Before:', Object.keys(expandedContent.value).filter(k => expandedContent.value[k]));
           
-          // Create new Set and modify it
-          const newSet = new Set(expandedContent.value);
-          if (newSet.has(contentId)) {
-            newSet.delete(contentId);
-          } else {
-            newSet.add(contentId);
-          }
-          
-          // Replace the entire ref value to trigger Vue reactivity
-          expandedContent.value = newSet;
+          // Toggle the state
+          expandedContent.value[contentId] = !expandedContent.value[contentId];
           expandedVersion.value++; // Force re-render
           
-          console.log('[toggleContent] After:', Array.from(expandedContent.value), 'version:', expandedVersion.value);
+          console.log('[toggleContent] After:', Object.keys(expandedContent.value).filter(k => expandedContent.value[k]), 'version:', expandedVersion.value);
         };
         
         const isContentTooLong = (text) => {
@@ -1471,9 +1457,9 @@
           <!-- DEBUG: Show expanded state -->
           <div style="position: fixed; bottom: 10px; right: 10px; background: #1c1c1c; border: 1px solid #ff0; color: #fff; padding: 10px; font-size: 11px; z-index: 9999; max-width: 300px;">
             <strong>🐛 Toggle Debug:</strong><br>
-            expandedContent.size: {{ expandedContent.size }}<br>
+            expandedContent.count: {{ Object.keys(expandedContent).filter(k => expandedContent[k]).length }}<br>
             expandedVersion: {{ expandedVersion }}<br>
-            expandedContent IDs: {{ Array.from(expandedContent).join(', ') }}
+            expandedContent IDs: {{ Object.keys(expandedContent).filter(k => expandedContent[k]).join(', ') }}
           </div>
           
           <div class="main-layout">
@@ -1614,7 +1600,7 @@
                   <DynamicScrollerItem
                     :item="item"
                     :active="active"
-                    :size-dependencies="[expandedVersion.value, (expandedTools.value?.size || 0), (expandedContent.value?.size || 0)]"
+                    :size-dependencies="[expandedVersion.value]"
                     :data-index="index"
                   >
                     <!-- Turn Start Divider -->
@@ -1699,7 +1685,7 @@
                           class="event-content"
                           v-html="highlightSearchText(
                             renderMarkdown(
-                              (expandedContent.value?.has(item.stableId) || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content))
+                              (expandedContent.value?.[item.stableId] || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content))
                                 ? (item.data?.message || item.data?.text || item.data?.content)
                                 : truncateContent(item.data?.message || item.data?.text || item.data?.content)
                             ),
@@ -1715,7 +1701,7 @@
                             :data-content-id="item.stableId"
                             style="background: none; border: 1px solid #30363d; color: #58a6ff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
                           >
-                            {{ expandedContent.value?.has(item.stableId) ? 'Show less ▲' : 'Show more ▼' }}
+                            {{ expandedContent.value?.[item.stableId] ? 'Show less ▲' : 'Show more ▼' }}
                           </button>
                         </div>
                       </div>
@@ -1731,14 +1717,14 @@
                             @click="toggleTool(item.stableId + '-' + idx)"
                           >
                             <span class="tool-connector">{{ idx === getToolGroups(item).length - 1 ? '└─' : '├─' }}</span>
-                            <span class="tool-expand-icon">{{ (expandedTools.value?.has(item.stableId + '-' + idx)) ? '▼' : '▶' }}</span>
+                            <span class="tool-expand-icon">{{ expandedTools.value?.[item.stableId + '-' + idx] ? '▼' : '▶' }}</span>
                             <span class="tool-name">🔧&nbsp;{{ group.start?.data?.toolName || group.tool || 'Tool' }}</span>
                             <span :class="getToolStatus(group).color" style="margin-left: 4px;">({{ getToolStatus(group).icon }}{{ getToolDuration(group) ? ' ' + getToolDuration(group) : '' }})</span>
                             <span v-if="getToolCommand(group)" style="color: #7d8590; margin-left: 8px;">{{ getToolCommand(group) }}</span>
                             <span v-if="getToolErrorMessage(group)" style="color: #ff7b72; margin-left: 8px;">{{ getToolErrorMessage(group).length > 80 ? getToolErrorMessage(group).substring(0, 80) + '...' : getToolErrorMessage(group) }}</span>
                           </div>
                           
-                          <div v-if="expandedTools.value?.has(item.stableId + '-' + idx)" class="tool-detail">
+                          <div v-if="expandedTools.value?.[item.stableId + '-' + idx]" class="tool-detail">
                             <div v-if="group.start?.data?.arguments" class="tool-detail-section">
                               <div class="tool-detail-title">Arguments:</div>
                               <div class="tool-detail-content">
