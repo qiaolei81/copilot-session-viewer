@@ -782,7 +782,16 @@
       setup() {
         const sessionId = ref(window.sessionData.sessionId);
         const metadata = ref(window.sessionData.metadata);
-        const sidebarCollapsed = ref(false);
+        // Load sidebar state from localStorage
+        const sidebarCollapsed = ref(
+          localStorage.getItem('sidebarCollapsed') === 'true'
+        );
+        
+        // Persist sidebar state to localStorage
+        watch(sidebarCollapsed, (newValue) => {
+          localStorage.setItem('sidebarCollapsed', newValue.toString());
+        });
+        
         const expandedTools = ref(new Set());
         const expandedContent = ref(new Set());
         const currentFilter = ref('all');
