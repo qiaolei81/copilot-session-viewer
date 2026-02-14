@@ -1443,8 +1443,9 @@
           });
         });
         
-        const isLastEvent = (index) => {
-          return index >= filteredEvents.value.length - 1;
+        const isLastEvent = (item) => {
+          // Check if this item is the last in filteredEvents
+          return item.virtualIndex >= filteredEvents.value.length - 1;
         };
         
         return {
@@ -1792,7 +1793,7 @@
                       </div>
                       
                       <!-- Separator (inside event for proper height calculation) -->
-                      <div v-if="!isLastEvent(index)" class="event-separator"></div>
+                      <div v-if="!isLastEvent(item)" class="event-separator"></div>
                     </div>
                   </DynamicScrollerItem>
                 </template>
