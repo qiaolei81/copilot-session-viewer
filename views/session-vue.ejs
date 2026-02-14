@@ -836,7 +836,11 @@
               e.type !== 'session.start'  // Filter out session.start (info shown in sidebar)
             )
             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-            .map((e, index) => ({ ...e, virtualIndex: index }));
+            .map((e, index) => ({ 
+              ...e, 
+              virtualIndex: index,
+              stableId: e.id || `${e.timestamp}-${e.type}-${index}`  // Stable ID for toggle state
+            }));
         });
         
         // Helper: check if event matches search
@@ -1695,7 +1699,7 @@
                           class="event-content"
                           v-html="highlightSearchText(
                             renderMarkdown(
-                              (expandedContent.value?.has(item.virtualIndex) || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content))
+                              (expandedContent.value?.has(item.stableId) || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content))
                                 ? (item.data?.message || item.data?.text || item.data?.content)
                                 : truncateContent(item.data?.message || item.data?.text || item.data?.content)
                             ),
@@ -1707,11 +1711,11 @@
                           style="margin-top: 8px; text-align: right;"
                         >
                           <button 
-                            @click="toggleContent(item.virtualIndex)"
-                            :data-content-id="item.virtualIndex"
+                            @click="toggleContent(item.stableId)"
+                            :data-content-id="item.stableId"
                             style="background: none; border: 1px solid #30363d; color: #58a6ff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
                           >
-                            {{ expandedContent.value?.has(item.virtualIndex) ? 'Show less ▲' : 'Show more ▼' }}
+                            {{ expandedContent.value?.has(item.stableId) ? 'Show less ▲' : 'Show more ▼' }}
                           </button>
                         </div>
                       </div>
@@ -1724,17 +1728,17 @@
                         >
                           <div 
                             class="tool-header-line"
-                            @click="toggleTool(item.virtualIndex + '-' + idx)"
+                            @click="toggleTool(item.stableId + '-' + idx)"
                           >
                             <span class="tool-connector">{{ idx === getToolGroups(item).length - 1 ? '└─' : '├─' }}</span>
-                            <span class="tool-expand-icon">{{ (expandedTools.value?.has(item.virtualIndex + '-' + idx)) ? '▼' : '▶' }}</span>
+                            <span class="tool-expand-icon">{{ (expandedTools.value?.has(item.stableId + '-' + idx)) ? '▼' : '▶' }}</span>
                             <span class="tool-name">🔧&nbsp;{{ group.start?.data?.toolName || group.tool || 'Tool' }}</span>
                             <span :class="getToolStatus(group).color" style="margin-left: 4px;">({{ getToolStatus(group).icon }}{{ getToolDuration(group) ? ' ' + getToolDuration(group) : '' }})</span>
                             <span v-if="getToolCommand(group)" style="color: #7d8590; margin-left: 8px;">{{ getToolCommand(group) }}</span>
                             <span v-if="getToolErrorMessage(group)" style="color: #ff7b72; margin-left: 8px;">{{ getToolErrorMessage(group).length > 80 ? getToolErrorMessage(group).substring(0, 80) + '...' : getToolErrorMessage(group) }}</span>
                           </div>
                           
-                          <div v-if="expandedTools.value?.has(item.virtualIndex + '-' + idx)" class="tool-detail">
+                          <div v-if="expandedTools.value?.has(item.stableId + '-' + idx)" class="tool-detail">
                             <div v-if="group.start?.data?.arguments" class="tool-detail-section">
                               <div class="tool-detail-title">Arguments:</div>
                               <div class="tool-detail-content">
