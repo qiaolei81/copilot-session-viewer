@@ -217,12 +217,12 @@
               <div class="session-id"><%= session.id %></div>
               <div class="session-info">
                 <div class="session-info-item">
-                  <span class="session-info-label">Events:</span>
-                  <span class="session-info-value"><%= session.eventCount || 0 %></span>
+                  <span class="session-info-label">Created:</span>
+                  <span class="session-info-value"><%= session.createdAt ? new Date(session.createdAt).toLocaleString() : 'unknown' %></span>
                 </div>
                 <div class="session-info-item">
-                  <span class="session-info-label"><%= session.updatedAt ? 'Updated:' : 'Created:' %></span>
-                  <span class="session-info-value"><%= session.updatedAt ? new Date(session.updatedAt).toLocaleString() : (session.createdAt ? new Date(session.createdAt).toLocaleString() : 'unknown') %></span>
+                  <span class="session-info-label">Events:</span>
+                  <span class="session-info-value"><%= session.eventCount || 0 %></span>
                 </div>
                 <% if (session.workspace && session.workspace.cwd) { %>
                 <div class="session-info-item" style="grid-column: 1 / -1;">
