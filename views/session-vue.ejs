@@ -460,13 +460,11 @@
     .event:nth-child(even) {
       background: #1c2128;
     }
-    /* Visual separator at event bottom */
-    .event::after {
-      content: '';
-      display: block;
+    /* Separator inside event (properly measured by virtual scroller) */
+    .event-separator {
       height: 3px;
       background: #0d1117;
-      margin-top: 0;
+      margin-top: 8px;
     }
     .event.turn-boundary {
       background: #1c2128;
@@ -1770,6 +1768,9 @@
                           </div>
                         </div>
                       </div>
+                      
+                      <!-- Separator (inside event for proper height calculation) -->
+                      <div class="event-separator"></div>
                     </div>
                   </DynamicScrollerItem>
                 </template>
