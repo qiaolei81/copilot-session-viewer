@@ -1385,9 +1385,12 @@
               const visibleCount = Math.ceil(clientHeight / avgItemHeight);
               const endIndex = Math.min(startIndex + visibleCount, filteredEvents.value.length);
               
+              const startPos = Math.max(1, startIndex + 1);
+              const endPos = Math.max(1, endIndex);
+              
               visibleRange.value = {
-                start: Math.max(1, startIndex + 1),
-                end: Math.max(1, endIndex)
+                start: Math.min(startPos, endPos), // Ensure start <= end
+                end: endPos
               };
             }
           };
@@ -1574,7 +1577,12 @@
                   </span>
                 </div>
                 <div class="content-toolbar-right">
-                  Showing {{ visibleRange.start || 1 }}-{{ visibleRange.end || Math.min(filteredEvents.length, 100) }} / {{ filteredEvents.length }}
+                  <span v-if="filteredEvents.length <= 200">
+                    Showing all {{ filteredEvents.length }} events
+                  </span>
+                  <span v-else>
+                    Showing {{ visibleRange.start }}-{{ visibleRange.end }} / {{ filteredEvents.length }}
+                  </span>
                 </div>
               </div>
               
