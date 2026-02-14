@@ -451,9 +451,8 @@
     .event {
       background: #161b22;
       border-left: 3px solid #30363d;
-      border-bottom: 1px solid #21262d;
       padding: 6px 12px;
-      margin: 0;
+      margin-bottom: 2px;
       border-radius: 3px;
       font-size: 14px;
     }
@@ -690,27 +689,31 @@
       display: flex;
       align-items: center;
       color: #8250df;
-      margin: 0;
-      padding: 0;
+      margin: 8px 0;
+      padding: 8px 0;
       position: relative;
       z-index: 1000;
       background: #0d1117;
     }
     .turn-divider-line-left {
       flex: 1;
-      height: 1px;
+      height: 2px;
       background: linear-gradient(to right, transparent, #8250df, #8250df);
+      opacity: 0.6;
     }
     .turn-divider-text {
-      padding: 0 12px;
+      padding: 0 16px;
       font-size: 13px;
       font-weight: 600;
       white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .turn-divider-line-right {
       flex: 1;
-      height: 1px;
+      height: 2px;
       background: linear-gradient(to left, transparent, #8250df, #8250df);
+      opacity: 0.6;
     }
     
     /* Subagent divider */
