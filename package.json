@@ -11,13 +11,18 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:all": "npm test && npm run test:e2e"
   },
   "dependencies": {
     "ejs": "^3.1.9",
     "express": "^4.18.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/jest": "^30.0.0",
     "jest": "^30.2.0",
     "nodemon": "^3.0.1"
