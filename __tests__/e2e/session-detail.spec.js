@@ -64,7 +64,7 @@ test.describe('Session Detail Page', () => {
     await expect(events).not.toHaveCount(0);
   });
 
-  test.skip('should filter events by search', async ({ page }) => {
+  test('should filter events by search', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
     
     // Wait for Vue to mount and events to load
@@ -100,7 +100,7 @@ test.describe('Session Detail Page', () => {
     expect(counterText).toMatch(/\d+ results?|No matches/);
   });
 
-  test.skip('should clear search filter', async ({ page }) => {
+  test('should clear search filter', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
     await page.waitForSelector('.event', { timeout: 10000 });

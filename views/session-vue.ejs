@@ -840,9 +840,10 @@
         
         // Helper: check if event matches search
         const matchesSearch = (e) => {
-          if (!debouncedSearchText.value.trim()) return true;
+          // Use immediate searchText for instant filtering
+          if (!searchText.value.trim()) return true;
           
-          const search = debouncedSearchText.value.toLowerCase();
+          const search = searchText.value.toLowerCase();
           // Only search in event.data fields, not type
           const content = [
             e.data?.message,
