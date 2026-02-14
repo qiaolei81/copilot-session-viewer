@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const SessionRepository = require('./src/sessionRepository');
+const { parseYAML } = require('./src/fileUtils');
 
 const app = express();
 
@@ -9,6 +11,9 @@ const app = express();
 const PORT = process.env.PORT || 3838;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const SESSION_DIR = process.env.SESSION_DIR || path.join(os.homedir(), '.copilot', 'session-state');
+
+// Initialize session repository
+const sessionRepository = new SessionRepository(SESSION_DIR);
 
 // Set view engine
 app.set('view engine', 'ejs');
@@ -43,105 +48,12 @@ function getSafeSessionPath(sessionId) {
 
 // Helper: Get all sessions (async)
 async function getAllSessions() {
-  const sessions = [];
-  
-  try {
-    const entries = await fs.promises.readdir(SESSION_DIR);
-    
-    for (const entry of entries) {
-      if (entry === '.DS_Store') continue;
-      
-      const fullPath = path.join(SESSION_DIR, entry);
-      const stats = await fs.promises.stat(fullPath);
-      
-      if (stats.isDirectory()) {
-        // Directory-based session
-        const workspaceFile = path.join(fullPath, 'workspace.yaml');
-        const eventsFile = path.join(fullPath, 'events.jsonl');
-        
-        try {
-          await fs.promises.access(workspaceFile);
-          const workspace = await parseWorkspaceYAML(workspaceFile);
-          
-          // Count events
-          let eventCount = 0;
-          let hasEvents = false;
-          try {
-            await fs.promises.access(eventsFile);
-            hasEvents = true;
-            const content = await fs.promises.readFile(eventsFile, 'utf-8');
-            eventCount = content.trim().split('\n').filter(line => line.trim()).length;
-          } catch (err) {
-            // Events file doesn't exist
-          }
-          
-          sessions.push({
-            id: entry,
-            type: 'directory',
-            workspace: workspace,
-            createdAt: workspace?.created_at || stats.birthtime,
-            updatedAt: workspace?.updated_at || stats.mtime,
-            summary: workspace?.summary || 'No summary',
-            hasEvents: hasEvents,
-            eventCount: eventCount
-          });
-        } catch (err) {
-          // workspace.yaml doesn't exist, skip this directory
-        }
-      } else if (entry.endsWith('.jsonl')) {
-        // Single-file session
-        const sessionId = entry.replace('.jsonl', '');
-        
-        // Count events
-        let eventCount = 0;
-        try {
-          const content = await fs.promises.readFile(fullPath, 'utf-8');
-          eventCount = content.trim().split('\n').filter(line => line.trim()).length;
-        } catch (err) {
-          console.error('Error counting events:', err);
-        }
-        
-        sessions.push({
-          id: sessionId,
-          type: 'file',
-          createdAt: stats.birthtime,
-          updatedAt: stats.mtime,
-          summary: 'Legacy session',
-          hasEvents: true,
-          eventCount: eventCount
-        });
-      }
-    }
-  } catch (err) {
-    console.error('Error reading sessions:', err);
-  }
-  
-  // Sort by updated time (newest first)
-  sessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-  
-  return sessions;
+  const sessions = await sessionRepository.findAll();
+  return sessions.map(s => s.toJSON());
 }
 
-// Helper: Parse workspace.yaml (async)
-async function parseWorkspaceYAML(filePath) {
-  try {
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    const lines = content.split('\n');
-    const workspace = {};
-    
-    for (const line of lines) {
-      const match = line.match(/^(\w+):\s*(.+)$/);
-      if (match) {
-        workspace[match[1]] = match[2].trim();
-      }
-    }
-    
-    return workspace;
-  } catch (err) {
-    console.error('Error parsing workspace.yaml:', err);
-    return {};
-  }
-}
+// Helper: Parse workspace.yaml (async) - now using fileUtils.parseYAML
+const parseWorkspaceYAML = parseYAML;
 
 // Helper: Get session events (async)
 async function getSessionEvents(sessionId) {
