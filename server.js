@@ -17,6 +17,29 @@ app.set('view cache', false); // Disable template caching for development
 // Serve static files
 app.use(express.static('public'));
 
+// Security: Validate session ID to prevent path traversal
+function isValidSessionId(sessionId) {
+  // Only allow alphanumeric, hyphens, and underscores
+  return /^[a-zA-Z0-9_-]+$/.test(sessionId) && sessionId.length < 256;
+}
+
+// Security: Get safe session path (prevents path traversal)
+function getSafeSessionPath(sessionId) {
+  if (!isValidSessionId(sessionId)) {
+    throw new Error('Invalid session ID');
+  }
+  
+  const sessionPath = path.join(SESSION_DIR, sessionId);
+  const normalizedPath = path.normalize(sessionPath);
+  
+  // Ensure resolved path is still within SESSION_DIR
+  if (!normalizedPath.startsWith(SESSION_DIR)) {
+    throw new Error('Path traversal attempt detected');
+  }
+  
+  return normalizedPath;
+}
+
 // Helper: Get all sessions
 function getAllSessions() {
   const sessions = [];
@@ -154,15 +177,22 @@ app.get('/', (req, res) => {
 });
 
 app.get('/session/:id', (req, res) => {
-  const sessionId = req.params.id;
-  const sessions = getAllSessions();
-  const session = sessions.find(s => s.id === sessionId);
-  
-  if (!session) {
-    return res.status(404).send('Session not found');
-  }
-  
-  const events = getSessionEvents(sessionId);
+  try {
+    const sessionId = req.params.id;
+    
+    // Validate session ID to prevent path traversal
+    if (!isValidSessionId(sessionId)) {
+      return res.status(400).send('Invalid session ID');
+    }
+    
+    const sessions = getAllSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    
+    if (!session) {
+      return res.status(404).send('Session not found');
+    }
+    
+    const events = getSessionEvents(sessionId);
   
   // Extract metadata
   const metadata = {
@@ -188,6 +218,10 @@ app.get('/session/:id', (req, res) => {
   }
   
   res.render('session-vue', { sessionId, events, metadata });
+  } catch (err) {
+    console.error('Error loading session:', err);
+    res.status(500).send('Error loading session');
+  }
 });
 
 app.get('/api/sessions', (req, res) => {
@@ -196,8 +230,20 @@ app.get('/api/sessions', (req, res) => {
 });
 
 app.get('/api/session/:id/events', (req, res) => {
-  const events = getSessionEvents(req.params.id);
-  res.json(events);
+  try {
+    const sessionId = req.params.id;
+    
+    // Validate session ID to prevent path traversal
+    if (!isValidSessionId(sessionId)) {
+      return res.status(400).json({ error: 'Invalid session ID' });
+    }
+    
+    const events = getSessionEvents(sessionId);
+    res.json(events);
+  } catch (err) {
+    console.error('Error loading events:', err);
+    res.status(500).json({ error: 'Error loading events' });
+  }
 });
 
 app.listen(PORT, () => {
