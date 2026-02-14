@@ -806,7 +806,9 @@
             e.data?.text,
             e.data?.content,
             e.data?.reason,
-            e.data?.errorType
+            e.data?.errorType,
+            e.data?.previousModel,
+            e.data?.newModel
           ].filter(Boolean).join(' ').toLowerCase();
           
           return content.includes(search);
