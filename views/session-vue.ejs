@@ -836,11 +836,10 @@
               e.type !== 'assistant.turn_complete'
             )
             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-            .map((e, index, array) => ({ 
+            .map((e, index) => ({ 
               ...e, 
               virtualIndex: index,
-              stableId: e.id || `${e.timestamp}-${e.type}-${index}`,  // Stable ID for toggle state
-              isLastEvent: index === array.length - 1  // Mark last event
+              stableId: e.id || `${e.timestamp}-${e.type}-${index}`  // Stable ID for toggle state
             }));
           return events;
         });
