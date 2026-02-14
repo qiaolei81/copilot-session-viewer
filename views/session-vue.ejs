@@ -1590,6 +1590,13 @@
                         <div v-if="item.data?.message"><strong>Message:</strong> {{ item.data.message }}</div>
                       </div>
                       
+                      <!-- Model change: show previousModel → newModel -->
+                      <div v-else-if="item.type === 'session.model_change'" class="event-content">
+                        <div v-if="item.data?.previousModel && item.data?.newModel">
+                          <strong>{{ item.data.previousModel }}</strong> → <strong>{{ item.data.newModel }}</strong>
+                        </div>
+                      </div>
+                      
                       <!-- Regular content -->
                       <div v-else-if="item.data?.message || item.data?.text || item.data?.content">
                         <div 
