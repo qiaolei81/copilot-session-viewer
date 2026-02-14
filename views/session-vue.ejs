@@ -318,6 +318,17 @@
       font-weight: 500;
     }
     
+    /* Search result counter */
+    .search-result-count {
+      margin-left: 12px;
+      font-size: 12px;
+      color: #c9d1d9;
+      padding: 4px 8px;
+      background: #21262d;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    
     .filter-dropdown {
       position: relative;
     }
@@ -884,6 +895,13 @@
             }
           });
           return counts;
+        });
+        
+        // Search result count for display
+        const searchResultCount = computed(() => {
+          if (!debouncedSearchText.value.trim()) return null;
+          const count = searchFilteredEvents.value.length;
+          return count > 0 ? `${count} result${count !== 1 ? 's' : ''}` : 'No matches';
         });
         
         // Available filters (with counts based on search results)
@@ -1535,6 +1553,9 @@
                     placeholder="🔍 Search events..." 
                     class="search-input"
                   />
+                  <span v-if="searchResultCount" class="search-result-count">
+                    {{ searchResultCount }}
+                  </span>
                 </div>
                 <div class="content-toolbar-right">
                   Showing {{ visibleRange.start || 1 }}-{{ visibleRange.end || Math.min(filteredEvents.length, 100) }} / {{ filteredEvents.length }}
