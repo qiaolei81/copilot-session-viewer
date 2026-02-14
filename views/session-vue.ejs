@@ -1455,13 +1455,13 @@
           <!-- DEBUG PANEL -->
           <div style="background: #ff0000; color: white; padding: 10px; font-family: monospace; font-size: 12px; border: 2px solid yellow;">
             <strong>🐛 DEBUG INFO:</strong><br>
-            loadedEvents: {{ loadedEvents.length }}<br>
-            flatEvents: {{ flatEvents.length }}<br>
-            searchFilteredEvents: {{ searchFilteredEvents.length }}<br>
-            filteredEvents: {{ filteredEvents.length }}<br>
-            currentFilter: {{ currentFilter }}<br>
-            searchText: "{{ searchText }}"<br>
-            debouncedSearchText: "{{ debouncedSearchText }}"
+            loadedEvents: {{ loadedEvents?.length || 'undefined' }}<br>
+            flatEvents: {{ flatEvents?.length || 'undefined' }}<br>
+            searchFilteredEvents: {{ searchFilteredEvents?.length || 'undefined' }}<br>
+            filteredEvents: {{ filteredEvents?.length || 'undefined' }}<br>
+            currentFilter: {{ currentFilter || 'undefined' }}<br>
+            searchText: "{{ searchText || '' }}"<br>
+            debouncedSearchText: "{{ debouncedSearchText || '' }}"
           </div>
           
           <div class="main-layout">
