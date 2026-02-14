@@ -890,9 +890,12 @@
           }
           
           // Mark last event (for separator hiding)
-          return events.map((e, index, array) => ({
+          const totalCount = events.length;
+          return events.map((e, index) => ({
             ...e,
-            isLastEvent: index === array.length - 1
+            filteredIndex: index,
+            filteredTotal: totalCount,
+            isLastEvent: index === totalCount - 1
           }));
         });
         
