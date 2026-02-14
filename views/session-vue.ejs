@@ -1693,20 +1693,20 @@
                       </div>
                       
                       <!-- Regular content -->
-                      <div v-else-if="item.data?.message || item.data?.text || item.data?.content">
+                      <div v-else-if="item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent">
                         <div 
                           class="event-content"
                           v-html="highlightSearchText(
                             renderMarkdown(
-                              (expandedContent[item.stableId] || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content))
-                                ? (item.data?.message || item.data?.text || item.data?.content)
-                                : truncateContent(item.data?.message || item.data?.text || item.data?.content)
+                              (expandedContent[item.stableId] || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent))
+                                ? (item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent)
+                                : truncateContent(item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent)
                             ),
                             searchText
                           )"
                         ></div>
                         <div 
-                          v-if="isContentTooLong(item.data?.message || item.data?.text || item.data?.content)"
+                          v-if="isContentTooLong(item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent)"
                           style="margin-top: 8px; text-align: right;"
                         >
                           <button 
