@@ -122,12 +122,13 @@
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 8px;
-      padding: 16px;
+      padding: 12px 16px;
       color: #c9d1d9;
       text-decoration: none;
       transition: all 0.2s;
       display: block;
-      height: 180px;  /* Fixed height for consistent layout */
+      min-height: 140px;
+      height: auto;
       overflow: hidden;
       min-width: 0;
     }
@@ -139,45 +140,92 @@
     }
     .session-id {
       font-family: "SF Mono", Monaco, monospace;
-      font-size: 13px;
-      color: #58a6ff;
-      margin-bottom: 8px;
-      word-break: break-all;
+      font-size: 11px;
+      color: #6e7681;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      opacity: 0.7;
+    }
+    .session-summary {
+      color: #e6edf3;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      word-break: break-word;
       overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .session-divider {
+      height: 1px;
+      background: #21262d;
+      margin: 12px 0 10px 0;
     }
     .session-info {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
       font-size: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: "SF Mono", Monaco, monospace;
       min-width: 0;
     }
     .session-info-item {
       display: flex;
-      align-items: baseline;
+      align-items: center;
+      gap: 6px;
       min-width: 0;
-    }
-    .session-info-label {
       color: #6e7681;
-      margin-right: 6px;
-      min-width: 60px;
+    }
+    .session-info-item svg {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+      opacity: 0.6;
     }
     .session-info-value {
-      color: #c9d1d9;
+      color: #8b949e;
       word-break: break-word;
       overflow-wrap: anywhere;
     }
-    .session-summary {
-      color: #c9d1d9;
-      font-size: 12px;
-      margin-top: 8px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-style: italic;
-      word-break: break-word;
-      overflow-wrap: anywhere;
+    .session-info-item.workspace {
+      flex-basis: 100%;
+      min-width: 0;
+    }
+    .session-info-item.workspace .session-info-value {
+      font-weight: 500;
     }
     
+    /* Source badges */
+    .source-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+    .source-cli {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+      border: 1px solid rgba(35, 134, 54, 0.4);
+    }
+    .source-vscode {
+      background: rgba(31, 111, 235, 0.2);
+      color: #58a6ff;
+      border: 1px solid rgba(31, 111, 235, 0.4);
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .recent-list {
@@ -198,7 +246,7 @@
 <body>
   <div class="container">
     <h1>🤖 Session Viewer</h1>
-    <p class="subtitle">View GitHub Copilot CLI session logs</p>
+    <p class="subtitle">View GitHub Copilot session logs</p>
     
     <form id="sessionForm" onsubmit="viewSession(event)">
       <div class="input-group">
@@ -225,26 +273,32 @@
         <div class="recent-list">
           <% sessions.forEach(session => { %>
             <a href="/session/<%= session.id %>" class="recent-item">
-              <div class="session-id"><%= session.id %></div>
+              <div class="session-id" title="<%= session.id %>"><%= session.id %><span class="source-badge <%= session.type === 'directory' ? 'source-cli' : 'source-vscode' %>"><%= session.type === 'directory' ? 'CLI' : 'VSCode' %></span></div>
+
+              <% if (session.summary && session.summary !== 'No summary' && session.summary !== 'Legacy session') { %>
+              <div class="session-summary"><%= session.summary %></div>
+              <% } else { %>
+              <div class="session-summary" style="color: #6e7681; font-style: italic;">No summary available</div>
+              <% } %>
+
+              <div class="session-divider"></div>
+
               <div class="session-info">
-                <div class="session-info-item">
-                  <span class="session-info-label">Created:</span>
-                  <span class="session-info-value"><%= session.createdAt ? new Date(session.createdAt).toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : 'unknown' %></span>
-                </div>
-                <div class="session-info-item">
-                  <span class="session-info-label">Events:</span>
-                  <span class="session-info-value"><%= session.eventCount || 0 %></span>
-                </div>
                 <% if (session.workspace && session.workspace.cwd) { %>
-                <div class="session-info-item" style="grid-column: 1 / -1;">
-                  <span class="session-info-label">Path:</span>
+                <div class="session-info-item workspace" title="<%= session.workspace.cwd %>">
+                  <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"></path></svg>
                   <span class="session-info-value"><%= session.workspace.cwd %></span>
                 </div>
                 <% } %>
+                <div class="session-info-item">
+                  <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"></path></svg>
+                  <span class="session-info-value"><%= session.createdAt ? new Date(session.createdAt).toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : 'unknown' %></span>
+                </div>
+                <div class="session-info-item">
+                  <svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.72.72a.75.75 0 0 1 1.06 0l1.5 1.5a.75.75 0 0 1-1.06 1.06l-.22-.22v1.69a.75.75 0 0 1-1.5 0V3.06l-.22.22a.75.75 0 0 1-1.06-1.06ZM2 7a.75.75 0 0 0 0 1.5h3.69l-.22.22a.75.75 0 1 0 1.06 1.06l1.5-1.5a.75.75 0 0 0 0-1.06l-1.5-1.5a.75.75 0 0 0-1.06 1.06l.22.22Zm8.53-.28a.75.75 0 0 0 0 1.06l1.5 1.5a.75.75 0 1 0 1.06-1.06l-.22-.22H16a.75.75 0 0 0 0-1.5h-3.13l.22-.22a.75.75 0 0 0-1.06-1.06ZM7.72 12.22a.75.75 0 0 1 1.06 0l1.5 1.5a.75.75 0 1 1-1.06 1.06l-.22-.22v1.69a.75.75 0 0 1-1.5 0v-1.69l-.22.22a.75.75 0 0 1-1.06-1.06Z"></path></svg>
+                  <span class="session-info-value"><%= session.eventCount || 0 %> events</span>
+                </div>
               </div>
-              <% if (session.summary && session.summary !== 'No summary' && session.summary !== 'Legacy session') { %>
-              <div class="session-summary"><%= session.summary %></div>
-              <% } %>
             </a>
           <% }); %>
         </div>
