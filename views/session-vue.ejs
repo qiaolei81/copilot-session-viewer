@@ -774,9 +774,19 @@
         const expandedContent = ref(new Set());
         const currentFilter = ref('all');
         const searchText = ref('');
+        const debouncedSearchText = ref('');
         const activeTurnIndex = ref(0);
         const scrollerRef = ref(null);
         const visibleRange = ref({ start: 0, end: 0 });
+        
+        // Debounce search input
+        let searchTimeout = null;
+        watch(searchText, (newValue) => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            debouncedSearchText.value = newValue;
+          }, 300);
+        });
         
         // Async loading state
         const loadedEvents = ref([]);
@@ -797,9 +807,9 @@
         
         // Helper: check if event matches search
         const matchesSearch = (e) => {
-          if (!searchText.value.trim()) return true;
+          if (!debouncedSearchText.value.trim()) return true;
           
-          const search = searchText.value.toLowerCase();
+          const search = debouncedSearchText.value.toLowerCase();
           // Only search in event.data fields, not type
           const content = [
             e.data?.message,
