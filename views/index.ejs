@@ -21,6 +21,15 @@
       width: 100%;
       text-align: center;
     }
+    
+    /* Focus indicators for accessibility */
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid #58a6ff;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.2);
+    }
+    
     h1 {
       font-size: 48px;
       margin-bottom: 10px;
@@ -46,6 +55,7 @@
     .session-input {
       flex: 1;
       padding: 16px 20px;
+      min-height: 44px;
       background: transparent;
       border: none;
       color: #c9d1d9;
@@ -60,6 +70,7 @@
     }
     .view-btn {
       padding: 16px 32px;
+      min-height: 44px;
       background: #238636;
       border: none;
       border-radius: 8px;
