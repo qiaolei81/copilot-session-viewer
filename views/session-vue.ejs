@@ -1028,12 +1028,24 @@
           expandedTools.value = newSet;
         };
         
+        // Helper: escape HTML to prevent XSS
+        const escapeHtml = (unsafe) => {
+          if (!unsafe) return '';
+          return unsafe
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        };
+        
         const highlightSearchText = (html, searchTerm) => {
           if (!searchTerm || !searchTerm.trim() || !html) return html;
           
           const term = searchTerm.trim();
-          // Escape special regex characters
-          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // Escape HTML in search term to prevent XSS
+          const escapedTerm = escapeHtml(term)
+            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Also escape regex special chars
           
           // Create a temporary element to parse HTML
           const temp = document.createElement('div');
