@@ -246,6 +246,22 @@ app.get('/api/session/:id/events', (req, res) => {
   }
 });
 
+// Error handling middleware (must be last)
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.stack);
+  
+  // Send appropriate error response
+  const statusCode = err.status || 500;
+  const message = process.env.NODE_ENV === 'production' 
+    ? 'Internal server error' 
+    : err.message;
+  
+  res.status(statusCode).json({
+    error: message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Copilot Session Viewer running at http://localhost:${PORT}`);
   console.log(`📂 Monitoring: ${SESSION_DIR}`);
