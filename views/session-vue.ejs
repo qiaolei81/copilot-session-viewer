@@ -1123,9 +1123,6 @@
         };
         
         const toggleContent = (contentId) => {
-          console.log('[toggleContent] Called with:', contentId);
-          console.log('[toggleContent] Current state:', expandedContent.value[contentId]);
-          
           // Create new object to trigger Vue reactivity
           const newState = { ...expandedContent.value };
           if (newState[contentId]) {
@@ -1134,8 +1131,6 @@
             newState[contentId] = true;
           }
           expandedContent.value = newState;
-          
-          console.log('[toggleContent] New state:', expandedContent.value[contentId]);
         };
         
         const isContentTooLong = (text) => {
@@ -1470,14 +1465,6 @@
           <div class="header">
             <a href="/" class="home-btn">← Back to Home</a>
             <h1>📋 Session: {{ sessionId }}</h1>
-          </div>
-          
-          <!-- DEBUG: Show expanded state -->
-          <div style="position: fixed; bottom: 10px; right: 10px; background: #1c1c1c; border: 1px solid #ff0; color: #fff; padding: 10px; font-size: 11px; z-index: 9999; max-width: 300px;">
-            <strong>🐛 Toggle Debug:</strong><br>
-            expandedContent.count: {{ Object.keys(expandedContent).filter(k => expandedContent[k]).length }}<br>
-            expandedVersion: {{ expandedVersion }}<br>
-            expandedContent IDs: {{ Object.keys(expandedContent).filter(k => expandedContent[k]).join(', ') }}
           </div>
           
           <div class="main-layout">
