@@ -17,6 +17,10 @@ test.describe('Session Detail Page', () => {
   });
   
   test('should load session detail page', async ({ page }) => {
+    // Capture console messages and errors
+    page.on('console', msg => console.log('Browser console:', msg.type(), msg.text()));
+    page.on('pageerror', error => console.log('Page error:', error.message));
+    
     await page.goto(`/session/${SESSION_ID}`);
     
     // Wait for Vue to mount and render
@@ -78,6 +82,8 @@ test.describe('Session Detail Page', () => {
 
   test('should clear search filter', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
+    
+    // Wait for Vue to mount and events to load
     await page.waitForSelector('.main-layout', { timeout: 10000 });
     await page.waitForSelector('.event', { timeout: 10000 });
     
@@ -99,6 +105,8 @@ test.describe('Session Detail Page', () => {
 
   test('should expand and collapse tool details', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
+    
+    // Wait for Vue to mount and events to load
     await page.waitForSelector('.main-layout', { timeout: 10000 });
     await page.waitForSelector('.event', { timeout: 10000 });
     
@@ -122,6 +130,8 @@ test.describe('Session Detail Page', () => {
 
   test('should toggle content visibility', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
+    
+    // Wait for Vue to mount and events to load
     await page.waitForSelector('.main-layout', { timeout: 10000 });
     await page.waitForSelector('.event', { timeout: 10000 });
     
@@ -145,6 +155,8 @@ test.describe('Session Detail Page', () => {
 
   test('should toggle sidebar', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
+    
+    // Wait for Vue to mount
     await page.waitForSelector('.main-layout', { timeout: 10000 });
     await page.waitForSelector('.sidebar', { timeout: 10000 });
     

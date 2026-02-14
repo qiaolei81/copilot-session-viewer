@@ -1078,15 +1078,12 @@
           expandedTools.value = newSet;
         };
         
-        // Helper: escape HTML to prevent XSS
-        const escapeHtml = (unsafe) => {
-          if (!unsafe) return '';
-          return unsafe
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        // Helper: escape HTML to prevent XSS (using DOM textContent)
+        const escapeHtml = (text) => {
+          if (!text) return '';
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
         };
         
         const highlightSearchText = (html, searchTerm) => {
@@ -1304,11 +1301,6 @@
             return `${turn.userReqNumber} - Turn ${turn.id}`;
           }
           return `Turn ${turn.id}`;
-        };
-        const escapeHtml = (text) => {
-          const div = document.createElement('div');
-          div.textContent = text;
-          return div.innerHTML;
         };
         
         const formatDateTime = (timestamp) => {

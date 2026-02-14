@@ -7,8 +7,8 @@ test.describe('Homepage', () => {
     // Check title
     await expect(page).toHaveTitle(/Copilot Session Viewer/);
     
-    // Check header
-    await expect(page.locator('h1')).toContainText('Copilot Session Viewer');
+    // Check header (h1 displays emoji version)
+    await expect(page.locator('h1')).toContainText('Session Viewer');
   });
 
   test('should display session list', async ({ page }) => {
