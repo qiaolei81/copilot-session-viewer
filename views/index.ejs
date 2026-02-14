@@ -221,33 +221,9 @@
                   <span class="session-info-value"><%= session.eventCount || 0 %></span>
                 </div>
                 <div class="session-info-item">
-                  <span class="session-info-label">Type:</span>
-                  <span class="session-info-value"><%= session.type || 'unknown' %></span>
+                  <span class="session-info-label"><%= session.updatedAt ? 'Updated:' : 'Created:' %></span>
+                  <span class="session-info-value"><%= session.updatedAt ? new Date(session.updatedAt).toLocaleString() : (session.createdAt ? new Date(session.createdAt).toLocaleString() : 'unknown') %></span>
                 </div>
-                <% if (session.updatedAt) { %>
-                <div class="session-info-item">
-                  <span class="session-info-label">Updated:</span>
-                  <span class="session-info-value"><%= new Date(session.updatedAt).toLocaleString() %></span>
-                </div>
-                <% } %>
-                <% if (session.createdAt) { %>
-                <div class="session-info-item">
-                  <span class="session-info-label">Created:</span>
-                  <span class="session-info-value"><%= new Date(session.createdAt).toLocaleString() %></span>
-                </div>
-                <% } %>
-                <% if (session.workspace && session.workspace.repository) { %>
-                <div class="session-info-item">
-                  <span class="session-info-label">Repo:</span>
-                  <span class="session-info-value"><%= session.workspace.repository %></span>
-                </div>
-                <% } %>
-                <% if (session.workspace && session.workspace.branch) { %>
-                <div class="session-info-item">
-                  <span class="session-info-label">Branch:</span>
-                  <span class="session-info-value"><%= session.workspace.branch %></span>
-                </div>
-                <% } %>
                 <% if (session.workspace && session.workspace.cwd) { %>
                 <div class="session-info-item" style="grid-column: 1 / -1;">
                   <span class="session-info-label">Path:</span>
