@@ -452,10 +452,20 @@
     .event {
       background: #161b22;
       border-left: 3px solid #30363d;
-      padding: 12px 12px;
+      padding: 12px 12px 14px 12px;
       margin: 0;
       border-radius: 0;
       font-size: 14px;
+      position: relative;
+    }
+    .event::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #0d1117;
     }
     .event:nth-child(even) {
       background: #1c2128;
