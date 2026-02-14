@@ -909,6 +909,13 @@
           return count > 0 ? `${count} result${count !== 1 ? 's' : ''}` : 'No matches';
         });
         
+        // Track expansion state changes for size-dependencies
+        const expansionCount = computed(() => {
+          const toolsExpanded = Object.keys(expandedTools.value).filter(k => expandedTools.value[k]).length;
+          const contentExpanded = Object.keys(expandedContent.value).filter(k => expandedContent.value[k]).length;
+          return toolsExpanded + contentExpanded;
+        });
+        
         // Available filters (with counts based on search results)
         const filters = computed(() => {
           const types = new Set(searchFilteredEvents.value.map(e => e.type).filter(Boolean));
@@ -1074,8 +1081,11 @@
         };
         
         const toggleTool = (toolId) => {
-          expandedTools.value[toolId] = !expandedTools.value[toolId];
-          expandedVersion.value++; // Force re-render
+          if (expandedTools.value[toolId]) {
+            delete expandedTools.value[toolId];
+          } else {
+            expandedTools.value[toolId] = true;
+          }
         };
         
         const highlightSearchText = (html, searchTerm) => {
@@ -1112,13 +1122,16 @@
         
         const toggleContent = (contentId) => {
           console.log('[toggleContent] Called with:', contentId);
-          console.log('[toggleContent] Before:', Object.keys(expandedContent.value).filter(k => expandedContent.value[k]));
+          console.log('[toggleContent] Current state:', expandedContent.value[contentId]);
           
-          // Toggle the state
-          expandedContent.value[contentId] = !expandedContent.value[contentId];
-          expandedVersion.value++; // Force re-render
+          // Toggle the state directly
+          if (expandedContent.value[contentId]) {
+            delete expandedContent.value[contentId];
+          } else {
+            expandedContent.value[contentId] = true;
+          }
           
-          console.log('[toggleContent] After:', Object.keys(expandedContent.value).filter(k => expandedContent.value[k]), 'version:', expandedVersion.value);
+          console.log('[toggleContent] New state:', expandedContent.value[contentId]);
         };
         
         const isContentTooLong = (text) => {
@@ -1410,6 +1423,7 @@
           expandedTools,
           expandedContent,
           expandedVersion,
+          expansionCount,
           currentFilter,
           searchText,
           activeTurnIndex,
@@ -1600,7 +1614,7 @@
                   <DynamicScrollerItem
                     :item="item"
                     :active="active"
-                    :size-dependencies="[expandedVersion.value]"
+                    :size-dependencies="[expansionCount]"
                     :data-index="index"
                   >
                     <!-- Turn Start Divider -->
