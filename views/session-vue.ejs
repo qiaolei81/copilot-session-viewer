@@ -733,7 +733,7 @@
       display: none;
     }
     
-    /* Subagent divider - Slack Style (color-coded) */
+    /* Subagent divider - Slack Style (unified color) */
     .subagent-divider {
       display: flex;
       align-items: center;
@@ -747,6 +747,7 @@
       content: '';
       flex: 1;
       height: 1px;
+      background: #58a6ff;
     }
     .subagent-divider-text {
       font-size: 11px;
@@ -755,36 +756,11 @@
       letter-spacing: 0.8px;
       padding: 2px 8px;
       border-radius: 10px;
-      border: 1px solid;
+      border: 1px solid #58a6ff;
       margin: 0;
       text-transform: uppercase;
-    }
-    .subagent-divider.started::before,
-    .subagent-divider.started::after {
-      background: #f0b429;
-    }
-    .subagent-divider.started .subagent-divider-text {
-      color: #f0b429;
-      background: rgba(240, 180, 41, 0.1);
-      border-color: #f0b429;
-    }
-    .subagent-divider.completed::before,
-    .subagent-divider.completed::after {
-      background: #3fb950;
-    }
-    .subagent-divider.completed .subagent-divider-text {
-      color: #3fb950;
-      background: rgba(63, 185, 80, 0.1);
-      border-color: #3fb950;
-    }
-    .subagent-divider.failed::before,
-    .subagent-divider.failed::after {
-      background: #f85149;
-    }
-    .subagent-divider.failed .subagent-divider-text {
-      color: #f85149;
-      background: rgba(248, 81, 73, 0.1);
-      border-color: #f85149;
+      color: #58a6ff;
+      background: rgba(88, 166, 255, 0.1);
     }
     .subagent-divider-line-left,
     .subagent-divider-line-right {
@@ -854,18 +830,19 @@
         
         // Flatten and sort events
         const flatEvents = computed(() => {
-          return loadedEvents.value
+          const events = loadedEvents.value
             .filter(e => 
               e.type !== 'assistant.turn_end' && 
-              e.type !== 'assistant.turn_complete' &&
-              e.type !== 'session.start'  // Filter out session.start (info shown in sidebar)
+              e.type !== 'assistant.turn_complete'
             )
             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-            .map((e, index) => ({ 
+            .map((e, index, array) => ({ 
               ...e, 
               virtualIndex: index,
-              stableId: e.id || `${e.timestamp}-${e.type}-${index}`  // Stable ID for toggle state
+              stableId: e.id || `${e.timestamp}-${e.type}-${index}`,  // Stable ID for toggle state
+              isLastEvent: index === array.length - 1  // Mark last event
             }));
+          return events;
         });
         
         // Helper: check if event matches search
@@ -913,7 +890,11 @@
             events = events.filter(e => e.type === currentFilter.value);
           }
           
-          return events;
+          // Mark last event (for separator hiding)
+          return events.map((e, index, array) => ({
+            ...e,
+            isLastEvent: index === array.length - 1
+          }));
         });
         
         // Event type counts (based on search results)
@@ -1443,11 +1424,6 @@
           });
         });
         
-        const isLastEvent = (item) => {
-          // Check if this item is the last in filteredEvents
-          return item.virtualIndex >= filteredEvents.value.length - 1;
-        };
-        
         return {
           sessionId,
           metadata,
@@ -1489,8 +1465,7 @@
           setFilter,
           scrollToTurn,
           getTurnNumber,
-          escapeHtml,
-          isLastEvent
+          escapeHtml
         };
       },
       
@@ -1793,7 +1768,7 @@
                       </div>
                       
                       <!-- Separator (inside event for proper height calculation) -->
-                      <div v-if="!isLastEvent(item)" class="event-separator"></div>
+                      <div v-if="!item.isLastEvent" class="event-separator"></div>
                     </div>
                   </DynamicScrollerItem>
                 </template>
