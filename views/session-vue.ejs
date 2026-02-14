@@ -889,14 +889,23 @@
             events = events.filter(e => e.type === currentFilter.value);
           }
           
-          // Mark last event (for separator hiding)
+          // Divider types (no separator before these)
+          const dividerTypes = ['assistant.turn_start', 'subagent.started', 'subagent.completed', 'subagent.failed'];
+          
+          // Mark events that shouldn't have separator
           const totalCount = events.length;
-          return events.map((e, index) => ({
-            ...e,
-            filteredIndex: index,
-            filteredTotal: totalCount,
-            isLastEvent: index === totalCount - 1
-          }));
+          return events.map((e, index) => {
+            const nextItem = events[index + 1];
+            const isLast = index === totalCount - 1;
+            const nextIsDivider = nextItem && dividerTypes.includes(nextItem.type);
+            
+            return {
+              ...e,
+              filteredIndex: index,
+              filteredTotal: totalCount,
+              isLastEvent: isLast || nextIsDivider  // Hide separator if last OR next is divider
+            };
+          });
         });
         
         // Event type counts (based on search results)
