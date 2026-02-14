@@ -1489,6 +1489,21 @@
               </div>
               
               <div class="sidebar-section">
+                <div class="sidebar-section-title">Event Filters</div>
+                <div class="event-filters">
+                  <button
+                    v-for="filter in filters"
+                    :key="filter.type"
+                    :class="['filter-btn', { active: currentFilter === filter.type }]"
+                    :disabled="filter.disabled"
+                    @click="setFilter(filter.type)"
+                  >
+                    {{ filter.label }}
+                  </button>
+                </div>
+              </div>
+              
+              <div class="sidebar-section">
                 <div class="sidebar-section-title">Turns</div>
                 <div class="turn-buttons">
                   <button
@@ -1507,21 +1522,6 @@
                       </template>
                     </div>
                     <div class="turn-btn-message">{{ turn.message }}</div>
-                  </button>
-                </div>
-              </div>
-              
-              <div class="sidebar-section">
-                <div class="sidebar-section-title">Event Filters</div>
-                <div class="event-filters">
-                  <button
-                    v-for="filter in filters"
-                    :key="filter.type"
-                    :class="['filter-btn', { active: currentFilter === filter.type }]"
-                    :disabled="filter.disabled"
-                    @click="setFilter(filter.type)"
-                  >
-                    {{ filter.label }}
                   </button>
                 </div>
               </div>
