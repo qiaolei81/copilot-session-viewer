@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copilot Session Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      color: #58a6ff;
+    }
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 40px;
+      font-size: 16px;
+    }
+    .input-group {
+      background: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 12px;
+      padding: 8px;
+      display: flex;
+      gap: 8px;
+      transition: border-color 0.2s;
+    }
+    .input-group:focus-within {
+      border-color: #58a6ff;
+    }
+    .session-input {
+      flex: 1;
+      padding: 16px 20px;
+      background: transparent;
+      border: none;
+      color: #c9d1d9;
+      font-size: 16px;
+      font-family: "SF Mono", Monaco, monospace;
+    }
+    .session-input:focus {
+      outline: none;
+    }
+    .session-input::placeholder {
+      color: #6e7681;
+    }
+    .view-btn {
+      padding: 16px 32px;
+      background: #238636;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .view-btn:hover {
+      background: #2ea043;
+      transform: scale(1.02);
+    }
+    .view-btn:active {
+      transform: scale(0.98);
+    }
+    .hint {
+      margin-top: 20px;
+      color: #8b949e;
+      font-size: 14px;
+    }
+    .hint-code {
+      display: inline-block;
+      background: #161b22;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 13px;
+      color: #58a6ff;
+    }
+    .recent-sessions {
+      margin-top: 40px;
+      text-align: left;
+    }
+    .recent-title {
+      color: #8b949e;
+      font-size: 14px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .recent-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 16px;
+      grid-auto-flow: dense;
+    }
+    .recent-item {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      color: #c9d1d9;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: block;
+      height: fit-content;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .recent-item:hover {
+      border-color: #58a6ff;
+      background: #1c2128;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+    }
+    .session-id {
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 13px;
+      color: #58a6ff;
+      margin-bottom: 8px;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+    .session-info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px 12px;
+      font-size: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-width: 0;
+    }
+    .session-info-item {
+      display: flex;
+      align-items: baseline;
+      min-width: 0;
+    }
+    .session-info-label {
+      color: #6e7681;
+      margin-right: 6px;
+      min-width: 60px;
+    }
+    .session-info-value {
+      color: #c9d1d9;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .session-summary {
+      color: #8b949e;
+      font-size: 12px;
+      margin-top: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-style: italic;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .recent-list {
+        grid-template-columns: 1fr;
+      }
+      .container {
+        max-width: 100%;
+      }
+    }
+    
+    @media (min-width: 769px) and (max-width: 1200px) {
+      .recent-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 Session Viewer</h1>
+    <p class="subtitle">View GitHub Copilot CLI session logs</p>
+    
+    <form id="sessionForm" onsubmit="viewSession(event)">
+      <div class="input-group">
+        <input 
+          type="text" 
+          class="session-input" 
+          id="sessionInput"
+          placeholder="Enter Session ID..."
+          autofocus
+          required
+        >
+        <button type="submit" class="view-btn">View</button>
+      </div>
+    </form>
+    
+    <p class="hint">
+      Session ID can be found in <span class="hint-code">~/.copilot/session-state/</span><br>
+      <span style="font-size: 12px; color: #6e7681;">💡 Tip: Large sessions (1000+ events) automatically use virtual scroll mode</span>
+    </p>
+    
+    <% if (sessions.length > 0) { %>
+      <div class="recent-sessions">
+        <div class="recent-title">Recent Sessions (<%= sessions.length %>)</div>
+        <div class="recent-list">
+          <% sessions.forEach(session => { %>
+            <a href="/session/<%= session.id %>" class="recent-item">
+              <div class="session-id"><%= session.id %></div>
+              <div class="session-info">
+                <div class="session-info-item">
+                  <span class="session-info-label">Events:</span>
+                  <span class="session-info-value"><%= session.eventCount || 0 %></span>
+                </div>
+                <div class="session-info-item">
+                  <span class="session-info-label">Type:</span>
+                  <span class="session-info-value"><%= session.type || 'unknown' %></span>
+                </div>
+                <% if (session.updatedAt) { %>
+                <div class="session-info-item">
+                  <span class="session-info-label">Updated:</span>
+                  <span class="session-info-value"><%= new Date(session.updatedAt).toLocaleString() %></span>
+                </div>
+                <% } %>
+                <% if (session.createdAt) { %>
+                <div class="session-info-item">
+                  <span class="session-info-label">Created:</span>
+                  <span class="session-info-value"><%= new Date(session.createdAt).toLocaleString() %></span>
+                </div>
+                <% } %>
+                <% if (session.workspace && session.workspace.repository) { %>
+                <div class="session-info-item">
+                  <span class="session-info-label">Repo:</span>
+                  <span class="session-info-value"><%= session.workspace.repository %></span>
+                </div>
+                <% } %>
+                <% if (session.workspace && session.workspace.branch) { %>
+                <div class="session-info-item">
+                  <span class="session-info-label">Branch:</span>
+                  <span class="session-info-value"><%= session.workspace.branch %></span>
+                </div>
+                <% } %>
+                <% if (session.workspace && session.workspace.cwd) { %>
+                <div class="session-info-item" style="grid-column: 1 / -1;">
+                  <span class="session-info-label">Path:</span>
+                  <span class="session-info-value"><%= session.workspace.cwd %></span>
+                </div>
+                <% } %>
+              </div>
+              <% if (session.summary && session.summary !== 'No summary' && session.summary !== 'Legacy session') { %>
+              <div class="session-summary"><%= session.summary %></div>
+              <% } %>
+            </a>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+  
+  <script>
+    function viewSession(e) {
+      e.preventDefault();
+      const sessionId = document.getElementById('sessionInput').value.trim();
+      if (sessionId) {
+        window.location.href = `/session/${sessionId}`;
+      }
+    }
+  </script>
+</body>
+</html>

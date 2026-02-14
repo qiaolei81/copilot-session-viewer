@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+const path = require('path');
+const { spawn } = require('child_process');
+
+// Get the server.js path relative to this bin script
+const serverPath = path.join(__dirname, '..', 'server.js');
+
+// Spawn the server
+const server = spawn('node', [serverPath], {
+  stdio: 'inherit',
+  cwd: path.join(__dirname, '..')
+});
+
+server.on('exit', (code) => {
+  process.exit(code);
+});

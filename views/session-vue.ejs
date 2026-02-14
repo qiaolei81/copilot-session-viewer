@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session <%= sessionId %> - Vue Virtual Scroller</title>
+  
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  
+  <!-- vue-virtual-scroller -->
+  <link rel="stylesheet" href="https://unpkg.com/vue-virtual-scroller@2.0.0-beta.8/dist/vue-virtual-scroller.css">
+  <script src="https://unpkg.com/vue-virtual-scroller@2.0.0-beta.8/dist/vue-virtual-scroller.min.js"></script>
+  
+  <!-- Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+    .container { 
+      max-width: 100%; 
+      height: 100vh; 
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+    
+    /* Header */
+    .header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #30363d;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .home-btn {
+      padding: 6px 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .home-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+    }
+    h1 { 
+      color: #58a6ff; 
+      font-size: 20px; 
+      margin: 0;
+      flex: 1;
+    }
+    
+    /* Main layout */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: #161b22;
+      border-right: 1px solid #30363d;
+      overflow-y: auto;
+      padding: 16px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .sidebar.collapsed {
+      width: 0;
+      padding: 0;
+      border-right: none;
+      overflow: hidden;
+    }
+    
+    /* Sidebar toggle */
+    .sidebar-toggle {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #8b949e;
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .sidebar-toggle:hover {
+      background: #30363d;
+      color: #58a6ff;
+    }
+    
+    /* Expand button */
+    .expand-btn {
+      position: absolute;
+      top: 8px;
+      left: 16px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #8b949e;
+      cursor: pointer;
+      padding: 6px 12px;
+      font-size: 14px;
+      transition: all 0.2s;
+      z-index: 100;
+      display: none;
+    }
+    .sidebar.collapsed ~ .content .expand-btn {
+      display: block;
+    }
+    .expand-btn:hover {
+      background: #30363d;
+      color: #58a6ff;
+    }
+    
+    /* Sidebar sections */
+    .sidebar-section {
+      margin-bottom: 20px;
+    }
+    .sidebar-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Session Info */
+    .session-info {
+      font-size: 13px;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 8px;
+    }
+    .info-label {
+      color: #8b949e;
+      min-width: 70px;
+      flex-shrink: 0;
+    }
+    .info-value {
+      color: #c9d1d9;
+      word-break: break-all;
+    }
+    
+    /* Turn buttons */
+    .turn-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .turn-btn {
+      padding: 6px 10px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #8b949e;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .turn-btn-id {
+      font-weight: 600;
+      color: #c9d1d9;
+      font-size: 11px;
+    }
+    .turn-btn-message {
+      font-size: 10px;
+      color: #6e7681;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .turn-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+    }
+    .turn-btn:hover .turn-btn-id {
+      color: #58a6ff;
+    }
+    .turn-btn.active {
+      background: #1f6feb;
+      border-color: #1f6feb;
+      color: #fff;
+    }
+    .turn-btn.active .turn-btn-id,
+    .turn-btn.active .turn-btn-message {
+      color: #fff;
+    }
+    
+    /* Event filters */
+    .event-filters {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .filter-btn {
+      padding: 6px 10px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #c9d1d9;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      text-align: left;
+      width: 100%;
+    }
+    .filter-btn:not(:disabled):hover { 
+      background: #30363d; 
+    }
+    .filter-btn.active {
+      background: #1f6feb;
+      border-color: #1f6feb;
+      color: #fff;
+    }
+    .filter-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: #161b22;
+      color: #6e7681;
+    }
+    
+    /* Content */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .scroll-indicator {
+      padding: 8px 12px;
+      background: #0d1117;
+      border-bottom: 1px solid #30363d;
+      font-size: 12px;
+      color: #8b949e;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .content-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .content-toolbar-center {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+    }
+    
+    .search-input {
+      width: 300px;
+      padding: 4px 12px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    .search-input:focus {
+      border-color: #58a6ff;
+      background: #0d1117;
+    }
+    
+    .search-input::placeholder {
+      color: #6e7681;
+    }
+    
+    /* Search highlight */
+    .search-highlight {
+      background: #ffd33d;
+      color: #1f2328;
+      padding: 1px 2px;
+      border-radius: 2px;
+      font-weight: 500;
+    }
+    
+    .filter-dropdown {
+      position: relative;
+    }
+    
+    .filter-dropdown-toggle {
+      padding: 4px 12px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    
+    .filter-dropdown-toggle:hover {
+      border-color: #58a6ff;
+      background: #0d1117;
+    }
+    
+    .filter-count {
+      background: #58a6ff;
+      color: #0d1117;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .filter-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      min-width: 250px;
+      z-index: 1000;
+    }
+    
+    .filter-dropdown-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #c9d1d9;
+    }
+    
+    .clear-filters-btn {
+      background: none;
+      border: none;
+      color: #58a6ff;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      transition: background 0.2s;
+    }
+    
+    .clear-filters-btn:hover {
+      background: rgba(88, 166, 255, 0.1);
+    }
+    
+    .filter-options {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    
+    .filter-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 13px;
+    }
+    
+    .filter-option:hover {
+      background: rgba(88, 166, 255, 0.1);
+    }
+    
+    .filter-option input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #58a6ff;
+    }
+    
+    .filter-option-label {
+      flex: 1;
+      color: #c9d1d9;
+    }
+    
+    .filter-option-count {
+      color: #7d8590;
+      font-size: 11px;
+    }
+    
+    .content-toolbar-right {
+      text-align: right;
+    }
+    
+    /* Virtual Scroller */
+    .vue-recycle-scroller {
+      flex: 1;
+    }
+    .vue-recycle-scroller__item-wrapper {
+      overflow: visible !important;
+    }
+    
+    /* Events */
+    .event {
+      background: #161b22;
+      border-left: 3px solid #30363d;
+      border-bottom: 1px solid #21262d;
+      padding: 6px 12px;
+      margin: 0;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    .event.turn-boundary {
+      background: #1c2128;
+      border-left: 4px solid #8250df;
+      padding: 8px 12px;
+      box-shadow: 0 0 8px rgba(130, 80, 223, 0.15);
+    }
+    .event-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .event-badge {
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      min-width: 90px;
+      text-align: center;
+      display: inline-block;
+      line-height: 1.4;
+    }
+    .badge-user { background: #1f6feb; color: #fff; }
+    .badge-assistant { background: #238636; color: #fff; }
+    .badge-reasoning { background: #a371f7; color: #fff; }
+    .badge-turn { background: #8250df; color: #fff; }
+    .badge-tool { background: #9e6a03; color: #fff; }
+    .badge-subagent { background: #8957e5; color: #fff; }
+    .badge-skill { background: #bf3989; color: #fff; }
+    .badge-session { background: #6e7681; color: #fff; }
+    .badge-error { background: #da3633; color: #fff; }
+    .badge-warning { background: #d29922; color: #000; }
+    .badge-info { background: #58a6ff; color: #fff; }
+    
+    .event-content {
+      color: #c9d1d9;
+      text-align: left;
+      font-size: 13px;
+    }
+    
+    /* Markdown styling */
+    .event-content code {
+      background: #161b22;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: 11px;
+      color: #f0883e;
+    }
+    .event-content pre {
+      background: #161b22;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+      border: 1px solid #30363d;
+      font-size: 12px;
+    }
+    .event-content pre code {
+      background: none;
+      padding: 0;
+      color: #e6edf3;
+    }
+    .event-content a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+    .event-content a:hover {
+      text-decoration: underline;
+    }
+    .event-content ul, .event-content ol {
+      padding-left: 24px;
+      margin: 8px 0;
+    }
+    .event-content li {
+      margin: 4px 0;
+    }
+    .event-content blockquote {
+      border-left: 3px solid #30363d;
+      padding-left: 12px;
+      margin: 8px 0;
+      color: #8b949e;
+    }
+    .event-content strong {
+      color: #e6edf3;
+      font-weight: 600;
+    }
+    .event-content em {
+      color: #e6edf3;
+      font-style: italic;
+    }
+    .event-content h1, .event-content h2, .event-content h3, 
+    .event-content h4, .event-content h5, .event-content h6 {
+      color: #e6edf3;
+      margin: 12px 0 6px 0;
+      font-weight: 600;
+    }
+    .event-content h1 { font-size: 16px; }
+    .event-content h2 { font-size: 15px; }
+    .event-content h3 { font-size: 14px; }
+    .event-content h4 { font-size: 13px; }
+    .event-content p {
+      margin: 6px 0;
+    }
+    
+    /* Markdown table styling */
+    .event-content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .event-content th {
+      background: #21262d;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #e6edf3;
+      border-bottom: 1px solid #30363d;
+    }
+    .event-content td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #30363d;
+    }
+    .event-content tr:last-child td {
+      border-bottom: none;
+    }
+    .event-content tbody tr:hover {
+      background: rgba(110, 118, 129, 0.1);
+    }
+    
+    .event-timestamp {
+      font-size: 11px;
+      color: #8b949e;
+    }
+    
+    /* Tool calls */
+    .tool-list {
+      margin-top: 6px;
+      padding-left: 8px;
+      border-left: 2px solid rgba(110, 118, 129, 0.3);
+    }
+    .tool-item {
+      padding: 2px 0;
+    }
+    .tool-header-line {
+      color: #8b949e;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 2px 0;
+    }
+    .tool-header-line:hover {
+      color: #c9d1d9;
+    }
+    .tool-connector {
+      color: #6e7681;
+      margin-right: 0;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .tool-expand-icon {
+      color: #6e7681;
+      margin: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      line-height: 1;
+      transform: translateY(-1px);
+    }
+    .tool-name {
+      color: #f0883e;
+      flex-shrink: 0;
+      margin-right: 4px;
+    }
+    .tool-status-success {
+      color: #238636;
+    }
+    .tool-status-error {
+      color: #da3633;
+    }
+    .tool-status-running {
+      color: #d29922;
+    }
+    .tool-detail {
+      margin-top: 4px;
+      padding: 8px;
+      background: rgba(110, 118, 129, 0.05);
+      border-radius: 3px;
+      border: 1px solid #30363d;
+      font-size: 11px;
+    }
+    .tool-detail-section {
+      margin-bottom: 6px;
+    }
+    .tool-detail-section:last-child {
+      margin-bottom: 0;
+    }
+    .tool-detail-title {
+      color: #7d8590;
+      margin-bottom: 2px;
+      font-weight: 600;
+      font-size: 10px;
+    }
+    .tool-detail-content pre {
+      margin: 0;
+      padding: 4px 6px;
+      background: #0d1117;
+      border-radius: 3px;
+      overflow-x: auto;
+      max-height: 200px;
+      font-size: 11px;
+      line-height: 1.3;
+      color: #e6edf3;
+    }
+    
+    /* Turn divider */
+    .turn-divider {
+      display: flex;
+      align-items: center;
+      color: #8250df;
+      margin: 0;
+      padding: 0;
+      position: relative;
+      z-index: 1000;
+      background: #0d1117;
+    }
+    .turn-divider-line-left {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #8250df, #8250df);
+    }
+    .turn-divider-text {
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .turn-divider-line-right {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to left, transparent, #8250df, #8250df);
+    }
+    
+    /* Subagent divider */
+    .subagent-divider {
+      display: flex;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      position: relative;
+      z-index: 1000;
+      background: #0d1117;
+    }
+    .subagent-divider.started {
+      color: #f0b429;
+    }
+    .subagent-divider.completed {
+      color: #f0b429;
+    }
+    .subagent-divider.failed {
+      color: #f85149;
+    }
+    .subagent-divider-line-left {
+      flex: 1;
+      height: 1px;
+    }
+    .subagent-divider.started .subagent-divider-line-left {
+      background: linear-gradient(to right, transparent, #f0b429, #f0b429);
+    }
+    .subagent-divider.completed .subagent-divider-line-left {
+      background: linear-gradient(to right, transparent, #f0b429, #f0b429);
+    }
+    .subagent-divider.failed .subagent-divider-line-left {
+      background: linear-gradient(to right, transparent, #f85149, #f85149);
+    }
+    .subagent-divider-text {
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .subagent-divider-line-right {
+      flex: 1;
+      height: 1px;
+    }
+    .subagent-divider.started .subagent-divider-line-right {
+      background: linear-gradient(to left, transparent, #f0b429, #f0b429);
+    }
+    .subagent-divider.completed .subagent-divider-line-right {
+      background: linear-gradient(to left, transparent, #f0b429, #f0b429);
+    }
+    .subagent-divider.failed .subagent-divider-line-right {
+      background: linear-gradient(to left, transparent, #f85149, #f85149);
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  
+  <!-- Session data -->
+  <script>
+    window.sessionData = {
+      sessionId: '<%= sessionId %>',
+      metadata: <%- JSON.stringify(metadata) %>,
+      events: [] // Will be loaded asynchronously
+    };
+  </script>
+  
+  <!-- Vue App -->
+  <script>
+    const { createApp, ref, computed, onMounted, reactive } = Vue;
+    const { DynamicScroller, DynamicScrollerItem } = window.VueVirtualScroller;
+    
+    const app = createApp({
+      components: {
+        DynamicScroller,
+        DynamicScrollerItem
+      },
+      
+      setup() {
+        const sessionId = ref(window.sessionData.sessionId);
+        const metadata = ref(window.sessionData.metadata);
+        const sidebarCollapsed = ref(false);
+        const expandedTools = reactive(new Set());
+        const expandedContent = reactive(new Set());
+        const currentFilter = ref('all');
+        const searchText = ref('');
+        const activeTurnIndex = ref(0);
+        const scrollerRef = ref(null);
+        const visibleRange = ref({ start: 0, end: 0 });
+        
+        // Async loading state
+        const loadedEvents = ref([]);
+        const eventsLoading = ref(true);
+        const eventsError = ref(null);
+        
+        // Flatten and sort events
+        const flatEvents = computed(() => {
+          return loadedEvents.value
+            .filter(e => 
+              e.type !== 'assistant.turn_end' && 
+              e.type !== 'assistant.turn_complete' &&
+              e.type !== 'session.start'  // Filter out session.start (info shown in sidebar)
+            )
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+            .map((e, index) => ({ ...e, virtualIndex: index }));
+        });
+        
+        // Helper: check if event matches search
+        const matchesSearch = (e) => {
+          if (!searchText.value.trim()) return true;
+          
+          const search = searchText.value.toLowerCase();
+          // Only search in event.data fields, not type
+          const content = [
+            e.data?.message,
+            e.data?.text,
+            e.data?.content,
+            e.data?.reason,
+            e.data?.errorType
+          ].filter(Boolean).join(' ').toLowerCase();
+          
+          return content.includes(search);
+        };
+        
+        // Events after search (before type filter) - used for filter counts
+        const searchFilteredEvents = computed(() => {
+          const excludeToolCalls = (e) => {
+            const eventType = e.type || '';
+            return eventType !== 'tool.execution_start' && eventType !== 'tool.execution_complete';
+          };
+          
+          let events = flatEvents.value.filter(excludeToolCalls);
+          
+          // Apply search only
+          if (searchText.value.trim()) {
+            events = events.filter(matchesSearch);
+          }
+          
+          return events;
+        });
+        
+        // Final filtered events (search + type filter)
+        const filteredEvents = computed(() => {
+          let events = searchFilteredEvents.value;
+          
+          // Apply type filter
+          if (currentFilter.value !== 'all') {
+            events = events.filter(e => e.type === currentFilter.value);
+          }
+          
+          return events;
+        });
+        
+        // Event type counts (based on search results)
+        const eventCounts = computed(() => {
+          const counts = {};
+          searchFilteredEvents.value.forEach(e => {
+            if (e.type) {
+              counts[e.type] = (counts[e.type] || 0) + 1;
+            }
+          });
+          return counts;
+        });
+        
+        // Available filters (with counts based on search results)
+        const filters = computed(() => {
+          const types = new Set(searchFilteredEvents.value.map(e => e.type).filter(Boolean));
+          
+          const totalEvents = searchFilteredEvents.value.length;
+          
+          const result = [{ type: 'all', label: `All (${totalEvents})`, count: totalEvents }];
+          
+          const commonTypes = ['user.message', 'assistant.message', 'assistant.reasoning', 
+            'assistant.turn_start', 'skill.invoked', 'subagent.started', 'subagent.completed', 'subagent.failed', 
+            'abort', 'session.error'];
+          
+          commonTypes.forEach(type => {
+            const count = eventCounts.value[type] || 0;
+            result.push({
+              type,
+              label: `${type} (${count})`,
+              count,
+              disabled: count === 0
+            });
+          });
+          
+          return result;
+        });
+        
+        // Turns
+        const turns = computed(() => {
+          const turnStarts = flatEvents.value.filter(e => e.type === 'assistant.turn_start');
+          const allUserMessages = flatEvents.value.filter(e => e.type === 'user.message');
+          
+          return turnStarts.map((turn, idx) => {
+            // Use idx as the display turn number (sequential, no duplicates)
+            const turnId = idx;
+            const startTime = new Date(turn.timestamp).getTime();
+            
+            // Find turn end
+            let endTime;
+            const nextTurnIndex = turnStarts.indexOf(turn) + 1;
+            if (nextTurnIndex < turnStarts.length) {
+              endTime = new Date(turnStarts[nextTurnIndex].timestamp).getTime();
+            } else {
+              endTime = Date.now();
+            }
+            
+            // Calculate duration
+            const durationMs = endTime - startTime;
+            const totalSeconds = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+            
+            // Find user message before this turn
+            const userMessage = flatEvents.value
+              .slice(0, flatEvents.value.indexOf(turn))
+              .reverse()
+              .find(e => e.type === 'user.message');
+            
+            // Calculate UserReq number (1-indexed)
+            const userReqNumber = userMessage 
+              ? allUserMessages.indexOf(userMessage) + 1 
+              : 0;
+            
+            return {
+              id: turnId,
+              index: turn.virtualIndex,
+              originalTurnId: turn.data?.turnId,  // Keep original for reference
+              timestamp: turn.timestamp,
+              duration: durationText,
+              message: userMessage?.data?.message || '',
+              userReqNumber: userReqNumber
+            };
+          });
+        });
+        
+        // Tool call map
+        const toolCallMap = computed(() => {
+          const map = new Map();
+          const toolGroups = new Map();
+          
+          flatEvents.value.forEach(event => {
+            if (event.type === 'tool.execution_start') {
+              const toolId = event.data?.toolCallId;
+              if (toolId) {
+                if (!toolGroups.has(toolId)) {
+                  toolGroups.set(toolId, { tool: event.data.tool, start: event });
+                }
+              }
+            } else if (event.type === 'tool.execution_complete') {
+              const toolId = event.data?.toolCallId;
+              if (toolId && toolGroups.has(toolId)) {
+                toolGroups.get(toolId).complete = event;
+              }
+            }
+          });
+          
+          flatEvents.value.forEach(event => {
+            if (event.type === 'assistant.message') {
+              const groups = [];
+              toolGroups.forEach((group, toolId) => {
+                if (group.start?.parentId === event.id) {
+                  groups.push(group);
+                }
+              });
+              if (groups.length > 0) {
+                map.set(event.id || event.virtualIndex, groups);
+              }
+            }
+          });
+          
+          return map;
+        });
+        
+        // Methods
+        const formatTime = (timestamp) => {
+          if (!timestamp) return '';
+          const date = new Date(timestamp);
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          return `${hours}:${minutes}:${seconds}`;
+        };
+        
+        const renderMarkdown = (text) => {
+          if (!text) return '';
+          try {
+            // 处理转义序列：将 \r\n、\n、\t 等转换为实际字符
+            let processedText = text
+              .replace(/\\r\\n/g, '\n')  // \r\n → 换行
+              .replace(/\\n/g, '\n')      // \n → 换行
+              .replace(/\\t/g, '\t')      // \t → 制表符
+              .replace(/\\"/g, '"')       // \" → 引号
+              .replace(/\\\\/g, '\\');    // \\ → 反斜杠
+            
+            // Parse YAML frontmatter
+            const frontmatterMatch = processedText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+            if (frontmatterMatch) {
+              const frontmatter = frontmatterMatch[1];
+              const content = frontmatterMatch[2];
+              
+              // Parse frontmatter into key-value pairs
+              const pairs = frontmatter.split('\n').filter(line => line.trim() && line.includes(':')).map(line => {
+                const colonIndex = line.indexOf(':');
+                const key = line.substring(0, colonIndex).trim();
+                const value = line.substring(colonIndex + 1).trim();
+                return { key, value };
+              });
+              
+              // Render frontmatter as table
+              let tableHTML = '<table style="margin-bottom: 16px; border-collapse: collapse;"><tbody>';
+              pairs.forEach(pair => {
+                tableHTML += `<tr><td style="padding: 4px 12px; border: 1px solid #30363d; font-weight: 600; color: #7d8590;">${pair.key}</td><td style="padding: 4px 12px; border: 1px solid #30363d;">${pair.value}</td></tr>`;
+              });
+              tableHTML += '</tbody></table>';
+              
+              // Render remaining content
+              return tableHTML + marked.parse(content);
+            }
+            
+            return marked.parse(processedText);
+          } catch (e) {
+            return text;
+          }
+        };
+        
+        const toggleTool = (toolId) => {
+          if (expandedTools.has(toolId)) {
+            expandedTools.delete(toolId);
+          } else {
+            expandedTools.add(toolId);
+          }
+        };
+        
+        const highlightSearchText = (html, searchTerm) => {
+          if (!searchTerm || !searchTerm.trim() || !html) return html;
+          
+          const term = searchTerm.trim();
+          // Escape special regex characters
+          const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          
+          // Create a temporary element to parse HTML
+          const temp = document.createElement('div');
+          temp.innerHTML = html;
+          
+          // Function to highlight text in text nodes
+          const highlightTextNode = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              const text = node.textContent;
+              const regex = new RegExp(`(${escapedTerm})`, 'gi');
+              if (regex.test(text)) {
+                const highlighted = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+                const span = document.createElement('span');
+                span.innerHTML = highlighted;
+                node.parentNode.replaceChild(span, node);
+              }
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
+              Array.from(node.childNodes).forEach(highlightTextNode);
+            }
+          };
+          
+          Array.from(temp.childNodes).forEach(highlightTextNode);
+          return temp.innerHTML;
+        };
+        
+        const toggleContent = (contentId) => {
+          if (expandedContent.has(contentId)) {
+            expandedContent.delete(contentId);
+          } else {
+            expandedContent.add(contentId);
+          }
+        };
+        
+        const isContentTooLong = (text) => {
+          if (!text) return false;
+          const lineCount = text.split('\n').length;
+          return lineCount > 20 || text.length > 2000;
+        };
+        
+        const truncateContent = (text) => {
+          const lines = text.split('\n');
+          if (lines.length <= 20) return text;
+          return lines.slice(0, 20).join('\n') + '\n\n...';
+        };
+        
+        const getBadgeInfo = (type) => {
+          // Special case for specific event types
+          if (type === 'session.model_change') {
+            return { label: 'MODEL CHANGE', class: 'badge-session' };
+          }
+          
+          const parts = (type || '').split('.');
+          const category = parts[0] || 'unknown';
+          
+          const badges = {
+            user: { label: 'USER', class: 'badge-user' },
+            assistant: { label: 'ASSISTANT', class: 'badge-assistant' },
+            reasoning: { label: 'REASONING', class: 'badge-reasoning' },
+            turn: { label: 'TURN', class: 'badge-turn' },
+            tool: { label: 'TOOL', class: 'badge-tool' },
+            subagent: { label: 'SUBAGENT', class: 'badge-subagent' },
+            skill: { label: 'SKILL', class: 'badge-skill' },
+            session: { label: 'SESSION', class: 'badge-session' },
+            error: { label: 'ERROR', class: 'badge-error' },
+            abort: { label: 'ABORT', class: 'badge-error' }
+          };
+          
+          return badges[category] || { label: category.toUpperCase(), class: 'badge-info' };
+        };
+        
+        const getToolStatus = (group) => {
+          if (!group.complete) {
+            return { icon: '⏳', color: 'tool-status-running', text: '' };
+          }
+          
+          const completeData = group.complete.data || {};
+          if (completeData.error || completeData.isError) {
+            return { icon: '❌', color: 'tool-status-error', text: '' };
+          }
+          
+          return { icon: '✓', color: 'tool-status-success', text: '' };
+        };
+        
+        const getToolErrorMessage = (group) => {
+          if (!group.complete?.data?.error) return '';
+          
+          const error = group.complete.data.error;
+          
+          // If error is an object with message property
+          if (typeof error === 'object' && error.message) {
+            return error.message;
+          }
+          
+          // If error is a string, try to parse as JSON
+          if (typeof error === 'string') {
+            try {
+              const parsed = JSON.parse(error);
+              if (parsed.message) return parsed.message;
+            } catch (e) {
+              // Not JSON, return as-is
+            }
+            return error;
+          }
+          
+          // Fallback to stringified error
+          return String(error);
+        };
+        
+        const getToolDuration = (group) => {
+          if (!group.complete) return '';
+          
+          const startTime = new Date(group.start.timestamp).getTime();
+          const endTime = new Date(group.complete.timestamp).getTime();
+          const durationMs = endTime - startTime;
+          
+          if (durationMs >= 100) {
+            return `${(durationMs / 1000).toFixed(1)}s`;
+          }
+          return '';
+        };
+        
+        const getToolCommand = (group) => {
+          if (!group.start) return '';
+          const args = group.start.data?.arguments || {};
+          const toolName = group.start.data?.toolName || group.tool || '';
+          
+          let command = '';
+          if (toolName === 'bash' || toolName === 'exec') {
+            command = args.command || args.description || '';
+          } else if (toolName === 'ask_user') {
+            command = args.question || args.message || '';
+          } else if (toolName === 'read' || toolName === 'write' || toolName === 'edit') {
+            command = args.file_path || args.path || '';
+          } else if (toolName === 'view') {
+            command = args.path || args.file || '';
+          } else if (toolName === 'create') {
+            command = args.path || args.name || '';
+          } else if (toolName === 'report_intent') {
+            command = args.intent || args.message || '';
+          } else if (toolName === 'web_search') {
+            command = args.query || '';
+          } else if (toolName === 'web_fetch') {
+            command = args.url || '';
+          } else if (toolName === 'browser') {
+            const action = args.action || '';
+            const url = args.targetUrl || args.url || '';
+            command = url ? `${action} ${url}` : action;
+          } else {
+            command = args.description || args.command || args.message || 
+                      args.path || args.file_path || args.query || '';
+          }
+          
+          if (command && command.length > 100) {
+            command = command.substring(0, 100) + '...';
+          }
+          
+          return command;
+        };
+        
+        const hasTools = (event) => {
+          return event.type === 'assistant.message' && toolCallMap.value.has(event.id || event.virtualIndex);
+        };
+        
+        const getToolGroups = (event) => {
+          return toolCallMap.value.get(event.id || event.virtualIndex) || [];
+        };
+        
+        const setFilter = (type) => {
+          currentFilter.value = type;
+        };
+        
+        const scrollToTurn = (turn) => {
+          // Clear search and filter when jumping to a turn
+          searchText.value = '';
+          currentFilter.value = 'all';
+          
+          activeTurnIndex.value = turn.index;
+          
+          // Wait for DOM to update and virtual scroller to re-calculate
+          Vue.nextTick(() => {
+            if (scrollerRef.value) {
+              // Use turn.index (virtualIndex) to find the exact turn_start event
+              const targetIndex = filteredEvents.value.findIndex(e => 
+                e.virtualIndex === turn.index
+              );
+              
+              if (targetIndex >= 0) {
+                // Additional small delay to ensure scroller is ready
+                setTimeout(() => {
+                  scrollerRef.value.scrollToItem(targetIndex);
+                }, 50);
+              }
+            }
+          });
+        };
+        
+        const getTurnNumber = (virtualIndex) => {
+          // Find the turn with matching virtualIndex
+          const turn = turns.value.find(t => t.index === virtualIndex);
+          if (!turn) return '?';
+          
+          // Format: "UserReq N - Turn M" or just "Turn M" if no UserReq
+          if (turn.userReqNumber > 0) {
+            return `${turn.userReqNumber} - Turn ${turn.id}`;
+          }
+          return `Turn ${turn.id}`;
+        };
+        const escapeHtml = (text) => {
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        };
+        
+        const formatDateTime = (timestamp) => {
+          if (!timestamp) return 'N/A';
+          return new Date(timestamp).toLocaleString();
+        };
+        
+        const formatTimestamp = (timestamp) => {
+          if (!timestamp) return '';
+          const date = new Date(timestamp);
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          return `${hours}:${minutes}:${seconds}`;
+        };
+        
+        // Lifecycle
+        onMounted(async () => {
+          // Load events asynchronously
+          try {
+            const response = await fetch(`/api/session/${sessionId.value}/events`);
+            if (!response.ok) {
+              throw new Error(`Failed to load events: ${response.statusText}`);
+            }
+            loadedEvents.value = await response.json();
+          } catch (error) {
+            console.error('Error loading events:', error);
+            eventsError.value = error.message;
+          } finally {
+            eventsLoading.value = false;
+          }
+          
+          window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'b') {
+              e.preventDefault();
+              sidebarCollapsed.value = !sidebarCollapsed.value;
+            }
+          });
+          
+          if (window.marked) {
+            marked.setOptions({
+              breaks: true,
+              gfm: true,
+              sanitize: false
+            });
+          }
+          
+          // 监听滚动事件来更新 visibleRange
+          const updateVisibleRange = () => {
+            if (!scrollerRef.value) return;
+            
+            // 尝试多种方式访问 scroller 元素
+            let scroller = null;
+            if (scrollerRef.value.$el) {
+              scroller = scrollerRef.value.$el.querySelector('.vue-recycle-scroller');
+            } else if (scrollerRef.value.querySelector) {
+              scroller = scrollerRef.value.querySelector('.vue-recycle-scroller');
+            }
+            
+            if (!scroller) {
+              // 如果还找不到，直接查询 DOM
+              scroller = document.querySelector('.vue-recycle-scroller');
+            }
+            
+            if (scroller) {
+              const scrollTop = scroller.scrollTop;
+              const clientHeight = scroller.clientHeight;
+              
+              // 估算可见范围
+              const avgItemHeight = 80;
+              const startIndex = Math.floor(scrollTop / avgItemHeight);
+              const visibleCount = Math.ceil(clientHeight / avgItemHeight);
+              const endIndex = Math.min(startIndex + visibleCount, filteredEvents.value.length);
+              
+              visibleRange.value = {
+                start: Math.max(1, startIndex + 1),
+                end: Math.max(1, endIndex)
+              };
+            }
+          };
+          
+          // 初始更新和添加滚动监听
+          setTimeout(() => {
+            updateVisibleRange();
+            
+            const scroller = document.querySelector('.vue-recycle-scroller');
+            if (scroller) {
+              scroller.addEventListener('scroll', updateVisibleRange);
+            }
+          }, 500);
+        });
+        
+        return {
+          sessionId,
+          metadata,
+          sidebarCollapsed,
+          expandedTools,
+          expandedContent,
+          currentFilter,
+          searchText,
+          activeTurnIndex,
+          scrollerRef,
+          visibleRange,
+          loadedEvents,
+          eventsLoading,
+          eventsError,
+          flatEvents,
+          filteredEvents,
+          eventCounts,
+          filters,
+          turns,
+          toolCallMap,
+          formatTime,
+          formatDateTime,
+          formatTimestamp,
+          renderMarkdown,
+          highlightSearchText,
+          toggleTool,
+          toggleContent,
+          isContentTooLong,
+          truncateContent,
+          getBadgeInfo,
+          getToolStatus,
+          getToolErrorMessage,
+          getToolDuration,
+          getToolCommand,
+          hasTools,
+          getToolGroups,
+          setFilter,
+          scrollToTurn,
+          getTurnNumber,
+          escapeHtml
+        };
+      },
+      
+      template: `
+        <div class="container">
+          <div class="header">
+            <a href="/" class="home-btn">← Back to Home</a>
+            <h1>📋 Session: {{ sessionId }}</h1>
+          </div>
+          
+          <div class="main-layout">
+            <div :class="['sidebar', { collapsed: sidebarCollapsed }]">
+              <div class="sidebar-section">
+                <div class="sidebar-section-title">Session Info</div>
+                <div class="session-info">
+                  <div class="info-row">
+                    <span class="info-label">Summary</span>
+                    <span class="info-value">{{ metadata.summary || 'N/A' }}</span>
+                  </div>
+                  <div class="info-row" v-if="metadata.model">
+                    <span class="info-label">Model</span>
+                    <span class="info-value">{{ metadata.model }}</span>
+                  </div>
+                  <div class="info-row" v-if="metadata.repo">
+                    <span class="info-label">Repo</span>
+                    <span class="info-value">{{ metadata.repo }}</span>
+                  </div>
+                  <div class="info-row" v-if="metadata.branch">
+                    <span class="info-label">Branch</span>
+                    <span class="info-value">{{ metadata.branch }}</span>
+                  </div>
+                  <div class="info-row" v-if="metadata.cwd">
+                    <span class="info-label">CWD</span>
+                    <span class="info-value">{{ metadata.cwd }}</span>
+                  </div>
+                  <div class="info-row" v-if="metadata.created">
+                    <span class="info-label">Created</span>
+                    <span class="info-value">{{ formatDateTime(metadata.created) }}</span>
+                  </div>
+                  <div class="info-row" v-if="metadata.updated">
+                    <span class="info-label">Updated</span>
+                    <span class="info-value">{{ formatDateTime(metadata.updated) }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="sidebar-section">
+                <div class="sidebar-section-title">Turns</div>
+                <div class="turn-buttons">
+                  <button
+                    v-for="turn in turns"
+                    :key="turn.index"
+                    :class="['turn-btn', { active: activeTurnIndex === turn.index }]"
+                    @click="scrollToTurn(turn)"
+                    :title="turn.message"
+                  >
+                    <div class="turn-btn-id">
+                      <template v-if="turn.userReqNumber > 0">
+                        UserReq {{ turn.userReqNumber }} - Turn {{ turn.id }} • {{ turn.duration }}
+                      </template>
+                      <template v-else>
+                        Turn {{ turn.id }} • {{ turn.duration }}
+                      </template>
+                    </div>
+                    <div class="turn-btn-message">{{ turn.message }}</div>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="sidebar-section">
+                <div class="sidebar-section-title">Event Filters</div>
+                <div class="event-filters">
+                  <button
+                    v-for="filter in filters"
+                    :key="filter.type"
+                    :class="['filter-btn', { active: currentFilter === filter.type }]"
+                    :disabled="filter.disabled"
+                    @click="setFilter(filter.type)"
+                  >
+                    {{ filter.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="content">
+              <button 
+                v-if="sidebarCollapsed"
+                class="expand-btn"
+                @click="sidebarCollapsed = false"
+                title="Expand sidebar"
+              >
+                ☰ Show Sidebar
+              </button>
+              
+              <div class="scroll-indicator">
+                <div class="content-toolbar-left">
+                  <button 
+                    class="sidebar-toggle"
+                    @click="sidebarCollapsed = !sidebarCollapsed"
+                    :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                  >
+                    ☰
+                  </button>
+                <div class="content-toolbar-center">
+                  <input 
+                    v-model="searchText" 
+                    type="text" 
+                    placeholder="🔍 Search events..." 
+                    class="search-input"
+                  />
+                </div>
+                <div class="content-toolbar-right">
+                  Showing {{ visibleRange.start || 1 }}-{{ visibleRange.end || Math.min(filteredEvents.length, 100) }} / {{ filteredEvents.length }}
+                </div>
+              </div>
+              
+              <!-- Loading state -->
+              <div v-if="eventsLoading" class="loading-message">
+                <div style="text-align: center; padding: 40px; color: #8b949e;">
+                  ⏳ Loading events...
+                </div>
+              </div>
+              
+              <!-- Error state -->
+              <div v-else-if="eventsError" class="error-message">
+                <div style="text-align: center; padding: 40px; color: #f85149;">
+                  ❌ Error loading events: {{ eventsError }}
+                </div>
+              </div>
+              
+              <!-- Events list -->
+              <DynamicScroller
+                v-else
+                ref="scrollerRef"
+                :items="filteredEvents"
+                :min-item-size="20"
+                key-field="virtualIndex"
+                class="scroller"
+              >
+                <template #default="{ item, index, active }">
+                  <DynamicScrollerItem
+                    :item="item"
+                    :active="active"
+                    :size-dependencies="[expandedTools.size, expandedContent.size]"
+                    :data-index="index"
+                  >
+                    <!-- Turn Start Divider -->
+                    <div 
+                      v-if="item.type === 'assistant.turn_start'"
+                      :data-type="item.type"
+                      :data-index="item.virtualIndex"
+                      class="turn-divider"
+                    >
+                      <div class="turn-divider-line-left"></div>
+                      <span class="turn-divider-text">UserReq {{ getTurnNumber(item.virtualIndex) }} Start</span>
+                      <div class="turn-divider-line-right"></div>
+                    </div>
+                    
+                    <!-- Subagent Divider -->
+                    <div 
+                      v-else-if="item.type === 'subagent.started' || item.type === 'subagent.completed' || item.type === 'subagent.failed'"
+                      :data-type="item.type"
+                      :data-index="item.virtualIndex"
+                      :class="['subagent-divider', item.type.split('.')[1]]"
+                    >
+                      <div class="subagent-divider-line-left"></div>
+                      <span class="subagent-divider-text">
+                        🤖 {{ item.data?.agentDisplayName || item.data?.agentName || 'SubAgent' }}
+                        {{ item.type === 'subagent.started' ? 'Start ▶' : item.type === 'subagent.completed' ? 'Complete ✓' : 'Failed ✗' }}
+                      </span>
+                      <div class="subagent-divider-line-right"></div>
+                    </div>
+                    
+                    <!-- Regular Event -->
+                    <div 
+                      v-else
+                      :class="['event']"
+                      :data-type="item.type"
+                      :data-index="item.virtualIndex"
+                      style="margin-bottom: 4px;"
+                    >
+                      <div class="event-header">
+                        <span :class="['event-badge', getBadgeInfo(item.type).class]">
+                          {{ getBadgeInfo(item.type).label }}
+                        </span>
+                        <span class="event-timestamp">{{ formatTime(item.timestamp) }}</span>
+                      </div>
+                      
+                      <!-- Abort event: show reason -->
+                      <div v-if="item.type === 'abort' && item.data?.reason" class="event-content">
+                        <strong>Reason:</strong> {{ item.data.reason }}
+                      </div>
+                      
+                      <!-- Session start: show type and selectedModel -->
+                      <div v-else-if="item.type === 'session.start'" class="event-content">
+                        <div v-if="item.data?.type"><strong>Type:</strong> {{ item.data.type }}</div>
+                        <div v-if="item.data?.selectedModel"><strong>Model:</strong> {{ item.data.selectedModel }}</div>
+                        <div v-if="item.data?.producer"><strong>Producer:</strong> {{ item.data.producer }}</div>
+                      </div>
+                      
+                      <!-- Session resume: show resumeTime, eventCount, context -->
+                      <div v-else-if="item.type === 'session.resume'" class="event-content">
+                        <div v-if="item.data?.resumeTime"><strong>Resume Time:</strong> {{ formatDateTime(item.data.resumeTime) }}</div>
+                        <div v-if="item.data?.eventCount"><strong>Event Count:</strong> {{ item.data.eventCount }}</div>
+                        <div v-if="item.data?.context?.branch"><strong>Branch:</strong> {{ item.data.context.branch }}</div>
+                        <div v-if="item.data?.context?.repository"><strong>Repository:</strong> {{ item.data.context.repository }}</div>
+                        <div v-if="item.data?.context?.cwd"><strong>Working Directory:</strong> {{ item.data.context.cwd }}</div>
+                      </div>
+                      
+                      <!-- Session error: show errorType + message -->
+                      <div v-else-if="item.type === 'session.error' && (item.data?.errorType || item.data?.message)" class="event-content">
+                        <div v-if="item.data?.errorType"><strong>Error Type:</strong> {{ item.data.errorType }}</div>
+                        <div v-if="item.data?.message"><strong>Message:</strong> {{ item.data.message }}</div>
+                      </div>
+                      
+                      <!-- Regular content -->
+                      <div v-else-if="item.data?.message || item.data?.text || item.data?.content">
+                        <div 
+                          class="event-content"
+                          v-html="highlightSearchText(
+                            renderMarkdown(
+                              expandedContent.has(item.virtualIndex) || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content)
+                                ? (item.data?.message || item.data?.text || item.data?.content)
+                                : truncateContent(item.data?.message || item.data?.text || item.data?.content)
+                            ),
+                            searchText
+                          )"
+                        ></div>
+                        <div 
+                          v-if="isContentTooLong(item.data?.message || item.data?.text || item.data?.content)"
+                          style="margin-top: 8px; text-align: right;"
+                        >
+                          <button 
+                            @click="toggleContent(item.virtualIndex)"
+                            style="background: none; border: 1px solid #30363d; color: #58a6ff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                          >
+                            {{ expandedContent.has(item.virtualIndex) ? 'Show less ▲' : 'Show more ▼' }}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div v-if="hasTools(item)" class="tool-list">
+                        <div
+                          v-for="(group, idx) in getToolGroups(item)"
+                          :key="idx"
+                          class="tool-item"
+                        >
+                          <div 
+                            class="tool-header-line"
+                            @click="toggleTool(\`\${item.virtualIndex}-\${idx}\`)"
+                          >
+                            <span class="tool-connector">{{ idx === getToolGroups(item).length - 1 ? '└─' : '├─' }}</span>
+                            <span class="tool-expand-icon">{{ expandedTools.has(\`\${item.virtualIndex}-\${idx}\`) ? '▼' : '▶' }}</span>
+                            <span class="tool-name">🔧&nbsp;{{ group.start?.data?.toolName || group.tool || 'Tool' }}</span>
+                            <span :class="getToolStatus(group).color" style="margin-left: 4px;">({{ getToolStatus(group).icon }}{{ getToolDuration(group) ? ' ' + getToolDuration(group) : '' }})</span>
+                            <span v-if="getToolCommand(group)" style="color: #7d8590; margin-left: 8px;">{{ getToolCommand(group) }}</span>
+                            <span v-if="getToolErrorMessage(group)" style="color: #ff7b72; margin-left: 8px;">{{ getToolErrorMessage(group).length > 80 ? getToolErrorMessage(group).substring(0, 80) + '...' : getToolErrorMessage(group) }}</span>
+                          </div>
+                          
+                          <div v-if="expandedTools.has(\`\${item.virtualIndex}-\${idx}\`)" class="tool-detail">
+                            <div v-if="group.start?.data?.arguments" class="tool-detail-section">
+                              <div class="tool-detail-title">Arguments:</div>
+                              <div class="tool-detail-content">
+                                <pre>{{ JSON.stringify(group.start.data.arguments, null, 2) }}</pre>
+                              </div>
+                            </div>
+                            <div v-if="group.complete?.data?.result" class="tool-detail-section">
+                              <div class="tool-detail-title">Result:</div>
+                              <div class="tool-detail-content">
+                                <pre>{{ JSON.stringify(group.complete.data.result, null, 2) }}</pre>
+                              </div>
+                            </div>
+                            <div v-if="getToolErrorMessage(group)" class="tool-detail-section">
+                              <div class="tool-detail-title">Error:</div>
+                              <div class="tool-detail-content" style="color: #ff7b72;">
+                                {{ getToolErrorMessage(group) }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </DynamicScrollerItem>
+                </template>
+              </DynamicScroller>
+            </div>
+          </div>
+        </div>
+      `
+    });
+    
+    app.mount('#app');
+  </script>
+</body>
+</html>
