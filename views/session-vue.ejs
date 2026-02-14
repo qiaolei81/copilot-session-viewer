@@ -805,6 +805,7 @@
         
         const expandedTools = ref(new Set());
         const expandedContent = ref(new Set());
+        const expandedVersion = ref(0); // Force re-render version
         const currentFilter = ref('all');
         const searchText = ref('');
         const debouncedSearchText = ref('');
@@ -1076,6 +1077,7 @@
             newSet.add(toolId);
           }
           expandedTools.value = newSet;
+          expandedVersion.value++; // Force re-render
         };
         
         const highlightSearchText = (html, searchTerm) => {
@@ -1111,13 +1113,14 @@
         };
         
         const toggleContent = (contentId) => {
-          const newSet = new Set(expandedContent.value);
-          if (newSet.has(contentId)) {
-            newSet.delete(contentId);
+          if (expandedContent.value.has(contentId)) {
+            expandedContent.value.delete(contentId);
           } else {
-            newSet.add(contentId);
+            expandedContent.value.add(contentId);
           }
-          expandedContent.value = newSet;
+          // Force Vue to detect the change
+          expandedContent.value = new Set(expandedContent.value);
+          expandedVersion.value++; // Force re-render
         };
         
         const isContentTooLong = (text) => {
@@ -1590,7 +1593,7 @@
                   <DynamicScrollerItem
                     :item="item"
                     :active="active"
-                    :size-dependencies="[(expandedTools.value?.size || 0), (expandedContent.value?.size || 0)]"
+                    :size-dependencies="[expandedVersion.value, (expandedTools.value?.size || 0), (expandedContent.value?.size || 0)]"
                     :data-index="index"
                   >
                     <!-- Turn Start Divider -->
@@ -1688,9 +1691,10 @@
                         >
                           <button 
                             @click="toggleContent(item.virtualIndex)"
+                            :data-content-id="item.virtualIndex"
                             style="background: none; border: 1px solid #30363d; color: #58a6ff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
                           >
-                            {{ (expandedContent.value?.has(item.virtualIndex)) ? 'Show less ▲' : 'Show more ▼' }}
+                            {{ expandedContent.value?.has(item.virtualIndex) ? 'Show less ▲' : 'Show more ▼' }}
                           </button>
                         </div>
                       </div>

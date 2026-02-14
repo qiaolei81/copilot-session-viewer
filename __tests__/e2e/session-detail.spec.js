@@ -172,20 +172,32 @@ test.describe('Session Detail Page', () => {
     await page.waitForSelector('.event', { timeout: 10000 });
     
     // Find an event with "Show more" button
-    const showMoreButton = page.locator('button').filter({ hasText: 'Show more' }).first();
+    const showMoreButton = page.locator('button[data-content-id]').filter({ hasText: 'Show more' }).first();
     
     if (await showMoreButton.count() > 0) {
+      // Get the content ID
+      const contentId = await showMoreButton.getAttribute('data-content-id');
+      
       // Click "Show more"
       await showMoreButton.click();
       
+      // Wait for Vue to update
+      await page.waitForTimeout(500);
+      
+      // Find button by content ID (more stable than hasText filter)
+      const button = page.locator(`button[data-content-id="${contentId}"]`);
+      
       // Button text should change to "Show less"
-      await expect(showMoreButton).toContainText('Show less');
+      await expect(button).toContainText('Show less', { timeout: 10000 });
       
       // Click "Show less"
-      await showMoreButton.click();
+      await button.click();
+      
+      // Wait for Vue to update
+      await page.waitForTimeout(500);
       
       // Button text should change back
-      await expect(showMoreButton).toContainText('Show more');
+      await expect(button).toContainText('Show more', { timeout: 10000 });
     }
   });
 
