@@ -983,27 +983,30 @@
         
         // Available filters (with counts based on search results)
         const filters = computed(() => {
-          const types = new Set(searchFilteredEvents.value.map(e => e.type).filter(Boolean));
-          
           const totalEvents = searchFilteredEvents.value.length;
           
+          // Start with "All" filter
           const result = [{ type: 'all', label: `All (${totalEvents})`, count: totalEvents }];
           
-          const commonTypes = ['user.message', 'assistant.message', 'assistant.reasoning', 
-            'assistant.turn_start', 'skill.invoked', 'subagent.started', 'subagent.completed', 'subagent.failed', 
-            'abort', 'session.error'];
+          // Dynamically extract all event types from actual events
+          const typeCounts = {};
+          searchFilteredEvents.value.forEach(e => {
+            if (e.type) {
+              typeCounts[e.type] = (typeCounts[e.type] || 0) + 1;
+            }
+          });
           
-          commonTypes.forEach(type => {
-            const count = eventCounts.value[type] || 0;
-            result.push({
+          // Convert to array and sort by count (descending)
+          const sortedTypes = Object.entries(typeCounts)
+            .sort((a, b) => b[1] - a[1])  // Sort by count descending
+            .map(([type, count]) => ({
               type,
               label: `${type} (${count})`,
               count,
-              disabled: count === 0
-            });
-          });
+              disabled: false
+            }));
           
-          return result;
+          return [...result, ...sortedTypes];
         });
         
         // Turns
