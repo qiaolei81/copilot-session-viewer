@@ -18,7 +18,7 @@ const sessionRepository = new SessionRepository(SESSION_DIR);
 // Set view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.set('view cache', NODE_ENV === 'production'); // Cache templates in production
+app.set('view cache', false); // Disable cache for debugging
 
 // Serve static files
 app.use(express.static('public'));

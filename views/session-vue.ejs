@@ -1590,7 +1590,7 @@
                   <DynamicScrollerItem
                     :item="item"
                     :active="active"
-                    :size-dependencies="[expandedTools.value.size, expandedContent.value.size]"
+                    :size-dependencies="[(expandedTools.value?.size || 0), (expandedContent.value?.size || 0)]"
                     :data-index="index"
                   >
                     <!-- Turn Start Divider -->
