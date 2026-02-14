@@ -40,36 +40,38 @@ function getSafeSessionPath(sessionId) {
   return normalizedPath;
 }
 
-// Helper: Get all sessions
-function getAllSessions() {
+// Helper: Get all sessions (async)
+async function getAllSessions() {
   const sessions = [];
   
   try {
-    const entries = fs.readdirSync(SESSION_DIR);
+    const entries = await fs.promises.readdir(SESSION_DIR);
     
     for (const entry of entries) {
       if (entry === '.DS_Store') continue;
       
       const fullPath = path.join(SESSION_DIR, entry);
-      const stats = fs.statSync(fullPath);
+      const stats = await fs.promises.stat(fullPath);
       
       if (stats.isDirectory()) {
         // Directory-based session
         const workspaceFile = path.join(fullPath, 'workspace.yaml');
         const eventsFile = path.join(fullPath, 'events.jsonl');
         
-        if (fs.existsSync(workspaceFile)) {
-          const workspace = parseWorkspaceYAML(workspaceFile);
+        try {
+          await fs.promises.access(workspaceFile);
+          const workspace = await parseWorkspaceYAML(workspaceFile);
           
           // Count events
           let eventCount = 0;
-          if (fs.existsSync(eventsFile)) {
-            try {
-              const content = fs.readFileSync(eventsFile, 'utf-8');
-              eventCount = content.trim().split('\n').filter(line => line.trim()).length;
-            } catch (err) {
-              console.error('Error counting events:', err);
-            }
+          let hasEvents = false;
+          try {
+            await fs.promises.access(eventsFile);
+            hasEvents = true;
+            const content = await fs.promises.readFile(eventsFile, 'utf-8');
+            eventCount = content.trim().split('\n').filter(line => line.trim()).length;
+          } catch (err) {
+            // Events file doesn't exist
           }
           
           sessions.push({
@@ -79,9 +81,11 @@ function getAllSessions() {
             createdAt: workspace?.created_at || stats.birthtime,
             updatedAt: workspace?.updated_at || stats.mtime,
             summary: workspace?.summary || 'No summary',
-            hasEvents: fs.existsSync(eventsFile),
+            hasEvents: hasEvents,
             eventCount: eventCount
           });
+        } catch (err) {
+          // workspace.yaml doesn't exist, skip this directory
         }
       } else if (entry.endsWith('.jsonl')) {
         // Single-file session
@@ -90,7 +94,7 @@ function getAllSessions() {
         // Count events
         let eventCount = 0;
         try {
-          const content = fs.readFileSync(fullPath, 'utf-8');
+          const content = await fs.promises.readFile(fullPath, 'utf-8');
           eventCount = content.trim().split('\n').filter(line => line.trim()).length;
         } catch (err) {
           console.error('Error counting events:', err);
@@ -117,10 +121,10 @@ function getAllSessions() {
   return sessions;
 }
 
-// Helper: Parse workspace.yaml
-function parseWorkspaceYAML(filePath) {
+// Helper: Parse workspace.yaml (async)
+async function parseWorkspaceYAML(filePath) {
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = await fs.promises.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
     const workspace = {};
     
@@ -138,23 +142,31 @@ function parseWorkspaceYAML(filePath) {
   }
 }
 
-// Helper: Get session events
-function getSessionEvents(sessionId) {
+// Helper: Get session events (async)
+async function getSessionEvents(sessionId) {
   const sessionPath = path.join(SESSION_DIR, sessionId);
   let eventsFile;
   
-  if (fs.existsSync(sessionPath) && fs.statSync(sessionPath).isDirectory()) {
-    eventsFile = path.join(sessionPath, 'events.jsonl');
-  } else {
+  try {
+    const stats = await fs.promises.stat(sessionPath);
+    if (stats.isDirectory()) {
+      eventsFile = path.join(sessionPath, 'events.jsonl');
+    } else {
+      eventsFile = path.join(SESSION_DIR, `${sessionId}.jsonl`);
+    }
+  } catch (err) {
+    // If sessionPath doesn't exist, try .jsonl file
     eventsFile = path.join(SESSION_DIR, `${sessionId}.jsonl`);
   }
   
-  if (!fs.existsSync(eventsFile)) {
+  try {
+    await fs.promises.access(eventsFile);
+  } catch (err) {
     return [];
   }
   
   try {
-    const content = fs.readFileSync(eventsFile, 'utf-8');
+    const content = await fs.promises.readFile(eventsFile, 'utf-8');
     const lines = content.trim().split('\n').filter(line => line.trim());
     return lines.map((line, index) => {
       try {
@@ -171,12 +183,12 @@ function getSessionEvents(sessionId) {
 }
 
 // Routes
-app.get('/', (req, res) => {
-  const sessions = getAllSessions();
+app.get('/', async (req, res) => {
+  const sessions = await getAllSessions();
   res.render('index', { sessions });
 });
 
-app.get('/session/:id', (req, res) => {
+app.get('/session/:id', async (req, res) => {
   try {
     const sessionId = req.params.id;
     
@@ -185,14 +197,14 @@ app.get('/session/:id', (req, res) => {
       return res.status(400).send('Invalid session ID');
     }
     
-    const sessions = getAllSessions();
+    const sessions = await getAllSessions();
     const session = sessions.find(s => s.id === sessionId);
     
     if (!session) {
       return res.status(404).send('Session not found');
     }
     
-    const events = getSessionEvents(sessionId);
+    const events = await getSessionEvents(sessionId);
   
   // Extract metadata
   const metadata = {
@@ -224,12 +236,12 @@ app.get('/session/:id', (req, res) => {
   }
 });
 
-app.get('/api/sessions', (req, res) => {
-  const sessions = getAllSessions();
+app.get('/api/sessions', async (req, res) => {
+  const sessions = await getAllSessions();
   res.json(sessions);
 });
 
-app.get('/api/session/:id/events', (req, res) => {
+app.get('/api/session/:id/events', async (req, res) => {
   try {
     const sessionId = req.params.id;
     
@@ -238,7 +250,7 @@ app.get('/api/session/:id/events', (req, res) => {
       return res.status(400).json({ error: 'Invalid session ID' });
     }
     
-    const events = getSessionEvents(sessionId);
+    const events = await getSessionEvents(sessionId);
     res.json(events);
   } catch (err) {
     console.error('Error loading events:', err);
