@@ -1081,11 +1081,13 @@
         };
         
         const toggleTool = (toolId) => {
-          if (expandedTools.value[toolId]) {
-            delete expandedTools.value[toolId];
+          const newState = { ...expandedTools.value };
+          if (newState[toolId]) {
+            delete newState[toolId];
           } else {
-            expandedTools.value[toolId] = true;
+            newState[toolId] = true;
           }
+          expandedTools.value = newState;
         };
         
         const highlightSearchText = (html, searchTerm) => {
@@ -1124,12 +1126,14 @@
           console.log('[toggleContent] Called with:', contentId);
           console.log('[toggleContent] Current state:', expandedContent.value[contentId]);
           
-          // Toggle the state directly
-          if (expandedContent.value[contentId]) {
-            delete expandedContent.value[contentId];
+          // Create new object to trigger Vue reactivity
+          const newState = { ...expandedContent.value };
+          if (newState[contentId]) {
+            delete newState[contentId];
           } else {
-            expandedContent.value[contentId] = true;
+            newState[contentId] = true;
           }
+          expandedContent.value = newState;
           
           console.log('[toggleContent] New state:', expandedContent.value[contentId]);
         };
