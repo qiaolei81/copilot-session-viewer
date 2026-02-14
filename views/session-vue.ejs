@@ -1575,26 +1575,6 @@
               </div>
               
               <div class="sidebar-section">
-                <div class="sidebar-section-title">Turns</div>
-                <div class="turn-buttons">
-                  <button
-                    v-for="turn in turns"
-                    :key="turn.index"
-                    :class="['turn-btn', { active: activeTurnIndex === turn.index }]"
-                    @click="scrollToTurn(turn)"
-                    :title="turn.message"
-                  >
-                    <div class="turn-btn-id">
-                      <template v-if="turn.userReqNumber > 0">
-                        UserReq {{ turn.userReqNumber }} - Turn {{ turn.id }} • {{ turn.duration }}
-                      </template>
-                      <template v-else>
-                        Turn {{ turn.id }} • {{ turn.duration }}
-                      </template>
-                    </div>
-                    <div class="turn-btn-message">{{ turn.message }}</div>
-                  </button>
-                </div>
               </div>
             </div>
             
