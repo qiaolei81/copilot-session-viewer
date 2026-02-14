@@ -5,24 +5,24 @@ A web UI for viewing and browsing GitHub Copilot CLI session logs with Vue-based
 ## Features
 
 - 📋 **List all sessions** - Browse all Copilot CLI sessions from `~/.copilot/session-state/`
-- 🔍 **Search & Filter** - Search by session ID, summary, or repository; filter by event type
+- 🔍 **Search & Filter** - Search event content and filter by event type
 - 📊 **Session Details** - View complete event logs with Vue virtual scrolling for smooth performance
 - 🎨 **Event Type Filtering** - Filter events by type (user messages, assistant responses, tool calls, etc.)
 - ⚡ **Virtual Scrolling** - Smooth performance even with thousands of events (Vue + vue-virtual-scroller)
 - 💾 **Supports Both Formats** - Handles both directory-based sessions and legacy `.jsonl` files
 - 🌗 **Dark Theme** - GitHub-inspired dark UI
 - 🔦 **Search Highlighting** - Keywords highlighted in search results
+- 🖥️ **Cross-Platform** - Works on macOS, Linux, and Windows
 
-## Installation
+## Quick Start
+
+### 1. Install Dependencies
 
 ```bash
-cd ~/workspace/copilot-session-viewer
 npm install
 ```
 
-## Usage
-
-Start the server:
+### 2. Start the Server
 
 ```bash
 npm start
@@ -34,20 +34,27 @@ Or for development with auto-reload:
 npm run dev
 ```
 
-Then open your browser to:
+### 3. Open in Browser
 
-**http://localhost:3838**
+```
+http://localhost:3838
+```
 
 ## Session Data Location
 
-The viewer reads session data from:
+The viewer automatically reads session data from GitHub Copilot CLI's storage:
+
+**macOS / Linux:**
 ```
 ~/.copilot/session-state/
 ```
 
-This includes:
-- Directory-based sessions (current format)
-- Legacy `.jsonl` sessions (older format)
+**Windows:**
+```
+C:\Users\<username>\.copilot\session-state\
+```
+
+The application uses `os.homedir()` to automatically detect the correct path for your operating system.
 
 ## Session Structure
 
