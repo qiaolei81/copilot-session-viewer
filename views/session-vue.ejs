@@ -440,6 +440,128 @@
       text-align: right;
     }
     
+    /* Turn navigation in toolbar */
+    .turn-dropdown {
+      padding: 6px 12px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 13px;
+      cursor: pointer;
+      min-width: 180px;
+      transition: border-color 0.2s;
+    }
+    
+    .turn-dropdown:hover {
+      border-color: #58a6ff;
+    }
+    
+    .turn-dropdown:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    
+    .toolbar-divider {
+      width: 1px;
+      height: 20px;
+      background: #30363d;
+    }
+    
+    .recent-label {
+      font-size: 11px;
+      color: #7d8590;
+      white-space: nowrap;
+    }
+    
+    .recent-turn-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .recent-turn-tab {
+      padding: 4px 10px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 12px;
+      color: #7d8590;
+      transition: all 0.2s;
+    }
+    
+    .recent-turn-tab:hover {
+      background: #21262d;
+      border-color: #58a6ff;
+      color: #c9d1d9;
+    }
+    
+    .recent-turn-tab.active {
+      background: #58a6ff;
+      border-color: #58a6ff;
+      color: #0d1117;
+      font-weight: 600;
+    }
+    
+    /* Floating navigation */
+    .floating-nav {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 24px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+    
+    .floating-nav-btn {
+      background: transparent;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .floating-nav-btn:hover:not(:disabled) {
+      background: #21262d;
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+    
+    .floating-nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    .turn-indicator {
+      color: #7d8590;
+      font-size: 14px;
+      padding: 0 8px;
+      font-weight: 500;
+    }
+    
+    .turn-current {
+      color: #58a6ff;
+      font-weight: 600;
+    }
+    
+    .turn-total {
+      color: #7d8590;
+    }
+    
     /* Virtual Scroller */
     .vue-recycle-scroller {
       flex: 1;
@@ -811,6 +933,8 @@
         const searchText = ref('');
         const debouncedSearchText = ref('');
         const activeTurnIndex = ref(0);
+        const currentTurnIndex = ref(0);  // Current selected turn
+        const recentTurns = ref([0]);  // Recently visited turns (max 5)
         const scrollerRef = ref(null);
         const visibleRange = ref({ start: 0, end: 0 });
         
@@ -1294,6 +1418,12 @@
           currentFilter.value = 'all';
           
           activeTurnIndex.value = turn.index;
+          currentTurnIndex.value = turn.id;
+          
+          // Add to recent turns (max 5, no duplicates)
+          const recent = recentTurns.value.filter(t => t !== turn.id);
+          recent.unshift(turn.id);
+          recentTurns.value = recent.slice(0, 5);
           
           // Wait for DOM to update and virtual scroller to re-calculate
           Vue.nextTick(() => {
@@ -1311,6 +1441,25 @@
               }
             }
           });
+        };
+        
+        const jumpToTurn = (turnId) => {
+          const turn = turns.value.find(t => t.id === turnId);
+          if (turn) {
+            scrollToTurn(turn);
+          }
+        };
+        
+        const prevTurn = () => {
+          if (currentTurnIndex.value > 0) {
+            jumpToTurn(currentTurnIndex.value - 1);
+          }
+        };
+        
+        const nextTurn = () => {
+          if (currentTurnIndex.value < turns.value.length - 1) {
+            jumpToTurn(currentTurnIndex.value + 1);
+          }
         };
         
         const getTurnNumber = (virtualIndex) => {
@@ -1446,6 +1595,8 @@
           currentFilter,
           searchText,
           activeTurnIndex,
+          currentTurnIndex,
+          recentTurns,
           scrollerRef,
           visibleRange,
           loadedEvents,
@@ -1475,6 +1626,9 @@
           getToolGroups,
           setFilter,
           scrollToTurn,
+          jumpToTurn,
+          prevTurn,
+          nextTurn,
           getTurnNumber,
           escapeHtml
         };
@@ -1581,6 +1735,35 @@
                   >
                     ☰
                   </button>
+                  
+                  <!-- Turn dropdown -->
+                  <select 
+                    v-if="turns.length > 0"
+                    v-model="currentTurnIndex" 
+                    @change="jumpToTurn(currentTurnIndex)"
+                    class="turn-dropdown"
+                  >
+                    <option v-for="turn in turns" :key="turn.id" :value="turn.id">
+                      Turn {{ turn.id + 1 }} of {{ turns.length }} ({{ turn.duration }})
+                    </option>
+                  </select>
+                  
+                  <div v-if="turns.length > 0" class="toolbar-divider"></div>
+                  
+                  <!-- Recent turns label -->
+                  <span v-if="recentTurns.length > 1" class="recent-label">Recent:</span>
+                  
+                  <!-- Recent turn tabs -->
+                  <div v-if="recentTurns.length > 1" class="recent-turn-tabs">
+                    <button
+                      v-for="turnId in recentTurns.slice(0, 5)"
+                      :key="turnId"
+                      :class="['recent-turn-tab', { active: turnId === currentTurnIndex }]"
+                      @click="jumpToTurn(turnId)"
+                    >
+                      T{{ turnId + 1 }}
+                    </button>
+                  </div>
                 </div>
                 <div class="content-toolbar-center">
                   <input 
@@ -1594,12 +1777,7 @@
                   </span>
                 </div>
                 <div class="content-toolbar-right">
-                  <span v-if="filteredEvents.length <= 200">
-                    Showing all {{ filteredEvents.length }} events
-                  </span>
-                  <span v-else>
-                    Showing {{ visibleRange.start }}-{{ visibleRange.end }} / {{ filteredEvents.length }}
-                  </span>
+                  <!-- Removed: showing X-Y / Z -->
                 </div>
               </div>
               
@@ -1785,6 +1963,28 @@
                 </template>
               </DynamicScroller>
             </div>
+          </div>
+          
+          <!-- Floating navigation (Prev/Next) -->
+          <div v-if="turns.length > 1" class="floating-nav">
+            <button 
+              class="floating-nav-btn"
+              @click="prevTurn"
+              :disabled="currentTurnIndex === 0"
+            >
+              ← Previous
+            </button>
+            <div class="turn-indicator">
+              <span class="turn-current">Turn {{ currentTurnIndex + 1 }}</span>
+              <span class="turn-total"> of {{ turns.length }}</span>
+            </div>
+            <button 
+              class="floating-nav-btn"
+              @click="nextTurn"
+              :disabled="currentTurnIndex >= turns.length - 1"
+            >
+              Next →
+            </button>
           </div>
         </div>
       `
