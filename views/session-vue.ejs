@@ -1452,6 +1452,18 @@
             <h1>📋 Session: {{ sessionId }}</h1>
           </div>
           
+          <!-- DEBUG PANEL -->
+          <div style="background: #ff0000; color: white; padding: 10px; font-family: monospace; font-size: 12px; border: 2px solid yellow;">
+            <strong>🐛 DEBUG INFO:</strong><br>
+            loadedEvents: {{ loadedEvents.length }}<br>
+            flatEvents: {{ flatEvents.length }}<br>
+            searchFilteredEvents: {{ searchFilteredEvents.length }}<br>
+            filteredEvents: {{ filteredEvents.length }}<br>
+            currentFilter: {{ currentFilter }}<br>
+            searchText: "{{ searchText }}"<br>
+            debouncedSearchText: "{{ debouncedSearchText }}"
+          </div>
+          
           <div class="main-layout">
             <div :class="['sidebar', { collapsed: sidebarCollapsed }]">
               <div class="sidebar-section">
