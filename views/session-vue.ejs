@@ -866,8 +866,8 @@
           
           let events = flatEvents.value.filter(excludeToolCalls);
           
-          // Apply search only
-          if (searchText.value.trim()) {
+          // Apply search using debouncedSearchText for consistency
+          if (debouncedSearchText.value.trim()) {
             events = events.filter(matchesSearch);
           }
           
