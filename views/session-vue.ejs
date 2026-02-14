@@ -770,8 +770,8 @@
         const sessionId = ref(window.sessionData.sessionId);
         const metadata = ref(window.sessionData.metadata);
         const sidebarCollapsed = ref(false);
-        const expandedTools = reactive(new Set());
-        const expandedContent = reactive(new Set());
+        const expandedTools = ref(new Set());
+        const expandedContent = ref(new Set());
         const currentFilter = ref('all');
         const searchText = ref('');
         const activeTurnIndex = ref(0);
@@ -1019,11 +1019,13 @@
         };
         
         const toggleTool = (toolId) => {
-          if (expandedTools.has(toolId)) {
-            expandedTools.delete(toolId);
+          const newSet = new Set(expandedTools.value);
+          if (newSet.has(toolId)) {
+            newSet.delete(toolId);
           } else {
-            expandedTools.add(toolId);
+            newSet.add(toolId);
           }
+          expandedTools.value = newSet;
         };
         
         const highlightSearchText = (html, searchTerm) => {
@@ -1058,11 +1060,13 @@
         };
         
         const toggleContent = (contentId) => {
-          if (expandedContent.has(contentId)) {
-            expandedContent.delete(contentId);
+          const newSet = new Set(expandedContent.value);
+          if (newSet.has(contentId)) {
+            newSet.delete(contentId);
           } else {
-            expandedContent.add(contentId);
+            newSet.add(contentId);
           }
+          expandedContent.value = newSet;
         };
         
         const isContentTooLong = (text) => {
@@ -1605,7 +1609,7 @@
                           class="event-content"
                           v-html="highlightSearchText(
                             renderMarkdown(
-                              expandedContent.has(item.virtualIndex) || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content)
+                              expandedContent.value.has(item.virtualIndex) || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content)
                                 ? (item.data?.message || item.data?.text || item.data?.content)
                                 : truncateContent(item.data?.message || item.data?.text || item.data?.content)
                             ),
@@ -1620,7 +1624,7 @@
                             @click="toggleContent(item.virtualIndex)"
                             style="background: none; border: 1px solid #30363d; color: #58a6ff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;"
                           >
-                            {{ expandedContent.has(item.virtualIndex) ? 'Show less ▲' : 'Show more ▼' }}
+                            {{ expandedContent.value.has(item.virtualIndex) ? 'Show less ▲' : 'Show more ▼' }}
                           </button>
                         </div>
                       </div>
@@ -1633,17 +1637,17 @@
                         >
                           <div 
                             class="tool-header-line"
-                            @click="toggleTool(\`\${item.virtualIndex}-\${idx}\`)"
+                            @click="toggleTool(item.virtualIndex + '-' + idx)"
                           >
                             <span class="tool-connector">{{ idx === getToolGroups(item).length - 1 ? '└─' : '├─' }}</span>
-                            <span class="tool-expand-icon">{{ expandedTools.has(\`\${item.virtualIndex}-\${idx}\`) ? '▼' : '▶' }}</span>
+                            <span class="tool-expand-icon">{{ expandedTools.value.has(item.virtualIndex + '-' + idx) ? '▼' : '▶' }}</span>
                             <span class="tool-name">🔧&nbsp;{{ group.start?.data?.toolName || group.tool || 'Tool' }}</span>
                             <span :class="getToolStatus(group).color" style="margin-left: 4px;">({{ getToolStatus(group).icon }}{{ getToolDuration(group) ? ' ' + getToolDuration(group) : '' }})</span>
                             <span v-if="getToolCommand(group)" style="color: #7d8590; margin-left: 8px;">{{ getToolCommand(group) }}</span>
                             <span v-if="getToolErrorMessage(group)" style="color: #ff7b72; margin-left: 8px;">{{ getToolErrorMessage(group).length > 80 ? getToolErrorMessage(group).substring(0, 80) + '...' : getToolErrorMessage(group) }}</span>
                           </div>
                           
-                          <div v-if="expandedTools.has(\`\${item.virtualIndex}-\${idx}\`)" class="tool-detail">
+                          <div v-if="expandedTools.value.has(item.virtualIndex + '-' + idx)" class="tool-detail">
                             <div v-if="group.start?.data?.arguments" class="tool-detail-section">
                               <div class="tool-detail-title">Arguments:</div>
                               <div class="tool-detail-content">
