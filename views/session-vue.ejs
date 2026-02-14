@@ -1443,6 +1443,10 @@
           });
         });
         
+        const isLastEvent = (index) => {
+          return index >= filteredEvents.value.length - 1;
+        };
+        
         return {
           sessionId,
           metadata,
@@ -1484,7 +1488,8 @@
           setFilter,
           scrollToTurn,
           getTurnNumber,
-          escapeHtml
+          escapeHtml,
+          isLastEvent
         };
       },
       
@@ -1787,7 +1792,7 @@
                       </div>
                       
                       <!-- Separator (inside event for proper height calculation) -->
-                      <div v-if="index < filteredEvents.length - 1" class="event-separator"></div>
+                      <div v-if="!isLastEvent(index)" class="event-separator"></div>
                     </div>
                   </DynamicScrollerItem>
                 </template>
