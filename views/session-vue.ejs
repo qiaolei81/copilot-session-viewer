@@ -781,7 +781,7 @@
   
   <!-- Vue App -->
   <script>
-    const { createApp, ref, computed, onMounted, reactive } = Vue;
+    const { createApp, ref, computed, onMounted, onBeforeUnmount, reactive, watch } = Vue;
     const { DynamicScroller, DynamicScrollerItem } = window.VueVirtualScroller;
     
     const app = createApp({
@@ -1391,14 +1391,26 @@
           };
           
           // 初始更新和添加滚动监听
+          let scrollCleanup = null;
           setTimeout(() => {
             updateVisibleRange();
             
             const scroller = document.querySelector('.vue-recycle-scroller');
             if (scroller) {
               scroller.addEventListener('scroll', updateVisibleRange);
+              // Store cleanup function
+              scrollCleanup = () => {
+                scroller.removeEventListener('scroll', updateVisibleRange);
+              };
             }
           }, 500);
+          
+          // Cleanup on unmount
+          onBeforeUnmount(() => {
+            if (scrollCleanup) {
+              scrollCleanup();
+            }
+          });
         });
         
         return {
