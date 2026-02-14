@@ -1351,9 +1351,9 @@
             
             // 尝试多种方式访问 scroller 元素
             let scroller = null;
-            if (scrollerRef.value.$el) {
+            if (scrollerRef.value.$el && typeof scrollerRef.value.$el.querySelector === 'function') {
               scroller = scrollerRef.value.$el.querySelector('.vue-recycle-scroller');
-            } else if (scrollerRef.value.querySelector) {
+            } else if (scrollerRef.value.querySelector && typeof scrollerRef.value.querySelector === 'function') {
               scroller = scrollerRef.value.querySelector('.vue-recycle-scroller');
             }
             
