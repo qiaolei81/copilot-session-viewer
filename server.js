@@ -4,15 +4,16 @@ const path = require('path');
 const os = require('os');
 
 const app = express();
-const PORT = 3838;
 
-// Session state directory
-const SESSION_DIR = path.join(os.homedir(), '.copilot', 'session-state');
+// Configuration from environment variables
+const PORT = process.env.PORT || 3838;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const SESSION_DIR = process.env.SESSION_DIR || path.join(os.homedir(), '.copilot', 'session-state');
 
 // Set view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.set('view cache', false); // Disable template caching for development
+app.set('view cache', NODE_ENV === 'production'); // Cache templates in production
 
 // Serve static files
 app.use(express.static('public'));

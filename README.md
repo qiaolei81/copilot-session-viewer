@@ -56,6 +56,30 @@ C:\Users\<username>\.copilot\session-state\
 
 The application uses `os.homedir()` to automatically detect the correct path for your operating system.
 
+## Configuration
+
+Environment variables can be set via `.env` file (copy from `.env.example`):
+
+```bash
+# Server port (default: 3838)
+PORT=3838
+
+# Node environment (development | production)
+NODE_ENV=development
+
+# Custom session directory (optional)
+SESSION_DIR=/path/to/session-state
+```
+
+**Production Deployment:**
+```bash
+NODE_ENV=production PORT=8080 npm start
+```
+
+**Template Caching:**
+- Development: Templates reload on every request
+- Production: Templates cached for performance
+
 ## Session Structure
 
 ### Directory Format
