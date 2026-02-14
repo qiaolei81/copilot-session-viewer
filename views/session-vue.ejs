@@ -451,11 +451,13 @@
     .event {
       background: #161b22;
       border-left: 3px solid #30363d;
-      padding: 10px 12px;
+      padding: 12px 12px;
       margin: 0;
       border-radius: 0;
       font-size: 14px;
-      box-shadow: 0 1px 0 0 #0d1117;
+    }
+    .event:nth-child(even) {
+      background: #1c2128;
     }
     .event.turn-boundary {
       background: #1c2128;
@@ -685,36 +687,40 @@
       color: #e6edf3;
     }
     
-    /* Turn divider */
+    /* Turn divider - Pill Badge Style */
     .turn-divider {
       display: flex;
-      align-items: center;
-      color: #8250df;
-      margin: 8px 0;
-      padding: 8px 0;
+      justify-content: center;
+      margin: 16px 0;
+      padding: 0;
       position: relative;
-      z-index: 1000;
-      background: #0d1117;
+      background: transparent;
     }
-    .turn-divider-line-left {
-      flex: 1;
-      height: 2px;
-      background: linear-gradient(to right, transparent, #8250df, #8250df);
-      opacity: 0.6;
+    .turn-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent 0%, #30363d 20%, #30363d 80%, transparent 100%);
     }
     .turn-divider-text {
-      padding: 0 16px;
-      font-size: 13px;
-      font-weight: 600;
-      white-space: nowrap;
+      background: linear-gradient(135deg, #8250df 0%, #9d6ce8 100%);
+      color: #ffffff;
+      padding: 6px 20px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 2px 8px rgba(130, 80, 223, 0.3);
     }
+    .turn-divider-line-left,
     .turn-divider-line-right {
-      flex: 1;
-      height: 2px;
-      background: linear-gradient(to left, transparent, #8250df, #8250df);
-      opacity: 0.6;
+      display: none;
     }
     
     /* Subagent divider */
