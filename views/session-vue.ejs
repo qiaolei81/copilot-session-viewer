@@ -1078,17 +1078,6 @@
           expandedTools.value = newSet;
         };
         
-        // Helper: escape HTML to prevent XSS
-        const escapeHtml = (unsafe) => {
-          if (!unsafe) return '';
-          return unsafe
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-        };
-        
         const highlightSearchText = (html, searchTerm) => {
           if (!searchTerm || !searchTerm.trim() || !html) return html;
           
