@@ -687,36 +687,32 @@
       color: #e6edf3;
     }
     
-    /* Turn divider - Pill Badge Style */
+    /* Turn divider - Sidebar Accent Style */
     .turn-divider {
       display: flex;
-      justify-content: center;
-      margin: 16px 0;
-      padding: 0;
-      position: relative;
-      background: transparent;
-    }
-    .turn-divider::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(to right, transparent 0%, #30363d 20%, #30363d 80%, transparent 100%);
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      padding: 12px 16px;
+      background: linear-gradient(90deg, rgba(130, 80, 223, 0.08) 0%, transparent 100%);
+      border-left: 4px solid #8250df;
+      border-radius: 0 6px 6px 0;
     }
     .turn-divider-text {
-      background: linear-gradient(135deg, #8250df 0%, #9d6ce8 100%);
-      color: #ffffff;
-      padding: 6px 20px;
-      border-radius: 20px;
-      font-size: 11px;
+      color: #8250df;
+      font-size: 13px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      position: relative;
-      z-index: 1;
-      box-shadow: 0 2px 8px rgba(130, 80, 223, 0.3);
+      letter-spacing: 0.8px;
+      margin: 0;
+      padding: 0;
+    }
+    .turn-divider::after {
+      content: '▶';
+      color: #8250df;
+      font-size: 10px;
+      margin-left: auto;
+      opacity: 0.6;
     }
     .turn-divider-line-left,
     .turn-divider-line-right {
