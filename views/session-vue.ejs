@@ -532,6 +532,28 @@
       font-size: 13px;
     }
     
+    /* Model change styling */
+    .model-change-content {
+      margin-top: 6px;
+    }
+    
+    .model-change-text {
+      font-size: 14px;
+      color: #e6edf3;
+    }
+    
+    .model-name {
+      color: #58a6ff;
+      font-weight: 600;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: 14px;
+    }
+    
+    .model-arrow {
+      color: #7d8590;
+      margin: 0 8px;
+    }
+    
     /* Markdown styling */
     .event-content code {
       background: #161b22;
@@ -1726,9 +1748,20 @@
                       </div>
                       
                       <!-- Model change: show previousModel → newModel -->
-                      <div v-else-if="item.type === 'session.model_change'" class="event-content">
-                        <div v-if="item.data?.previousModel && item.data?.newModel">
-                          <strong>{{ item.data.previousModel }}</strong> → <strong>{{ item.data.newModel }}</strong>
+                      <div v-else-if="item.type === 'session.model_change'" class="event-content model-change-content">
+                        <div v-if="item.data?.previousModel && item.data?.newModel" class="model-change-text">
+                          <span class="model-name">{{ item.data.previousModel }}</span> 
+                          <span class="model-arrow">→</span> 
+                          <span class="model-name">{{ item.data.newModel }}</span>
+                        </div>
+                        <div v-else-if="item.data?.newModel" class="model-change-text">
+                          Switched to <span class="model-name">{{ item.data.newModel }}</span>
+                        </div>
+                        <div v-else-if="item.data?.model" class="model-change-text">
+                          Switched to <span class="model-name">{{ item.data.model }}</span>
+                        </div>
+                        <div v-else class="model-change-text">
+                          Model changed
                         </div>
                       </div>
                       
