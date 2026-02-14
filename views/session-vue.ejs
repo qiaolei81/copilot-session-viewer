@@ -694,32 +694,34 @@
       color: #e6edf3;
     }
     
-    /* Turn divider - Compact Label Style (方案 1) */
+    /* Turn divider - Design 3: Slack Style (居中对称) */
     .turn-divider {
       display: flex;
       align-items: center;
+      gap: 12px;
       padding: 0;
-      margin: 4px 0 0 12px;
+      margin: 12px 12px;
       background: transparent;
     }
-    .turn-divider-text {
-      background: #8250df;
-      color: #ffffff;
-      padding: 6px 16px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      margin: 0;
-    }
+    .turn-divider::before,
     .turn-divider::after {
       content: '';
       flex: 1;
       height: 1px;
       background: #30363d;
-      margin-left: 12px;
+    }
+    .turn-divider-text {
+      color: #7d8590;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+      padding: 2px 8px;
+      background: #0d1117;
+      border-radius: 10px;
+      border: 1px solid #21262d;
+      margin: 0;
     }
     .turn-divider-line-left,
     .turn-divider-line-right {
@@ -731,50 +733,58 @@
       display: none;
     }
     
-    /* Subagent divider - Compact Label Style */
+    /* Subagent divider - Slack Style (color-coded) */
     .subagent-divider {
       display: flex;
       align-items: center;
+      gap: 12px;
       padding: 0;
-      margin: 4px 0 0 12px;
+      margin: 12px 12px;
       background: transparent;
     }
-    .subagent-divider-text {
-      padding: 6px 16px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 700;
-      white-space: nowrap;
-      letter-spacing: 0.5px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      margin: 0;
-    }
-    .subagent-divider.started .subagent-divider-text {
-      background: #f0b429;
-      color: #000000;
-    }
-    .subagent-divider.completed .subagent-divider-text {
-      background: #3fb950;
-      color: #000000;
-    }
-    .subagent-divider.failed .subagent-divider-text {
-      background: #f85149;
-      color: #ffffff;
-    }
+    .subagent-divider::before,
     .subagent-divider::after {
       content: '';
       flex: 1;
       height: 1px;
-      margin-left: 12px;
     }
+    .subagent-divider-text {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      letter-spacing: 0.8px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid;
+      margin: 0;
+      text-transform: uppercase;
+    }
+    .subagent-divider.started::before,
     .subagent-divider.started::after {
       background: #f0b429;
     }
+    .subagent-divider.started .subagent-divider-text {
+      color: #f0b429;
+      background: rgba(240, 180, 41, 0.1);
+      border-color: #f0b429;
+    }
+    .subagent-divider.completed::before,
     .subagent-divider.completed::after {
       background: #3fb950;
     }
+    .subagent-divider.completed .subagent-divider-text {
+      color: #3fb950;
+      background: rgba(63, 185, 80, 0.1);
+      border-color: #3fb950;
+    }
+    .subagent-divider.failed::before,
     .subagent-divider.failed::after {
       background: #f85149;
+    }
+    .subagent-divider.failed .subagent-divider-text {
+      color: #f85149;
+      background: rgba(248, 81, 73, 0.1);
+      border-color: #f85149;
     }
     .subagent-divider-line-left,
     .subagent-divider-line-right {
