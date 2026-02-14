@@ -1787,7 +1787,7 @@
                       </div>
                       
                       <!-- Separator (inside event for proper height calculation) -->
-                      <div class="event-separator"></div>
+                      <div v-if="index < filteredEvents.length - 1" class="event-separator"></div>
                     </div>
                   </DynamicScrollerItem>
                 </template>
