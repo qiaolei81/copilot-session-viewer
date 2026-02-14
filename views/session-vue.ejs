@@ -697,6 +697,7 @@
     /* Turn divider - Compact Label Style (方案 1) */
     .turn-divider {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       padding: 0;
       margin: 12px 0 12px 12px;
@@ -726,9 +727,18 @@
       display: none;
     }
     
+    /* Divider separator (for turn and subagent dividers) */
+    .divider-separator {
+      width: 100%;
+      height: 3px;
+      background: #0d1117;
+      margin-top: 8px;
+    }
+    
     /* Subagent divider - Compact Label Style */
     .subagent-divider {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       padding: 0;
       margin: 12px 0 12px 12px;
@@ -1636,6 +1646,7 @@
                       <div class="turn-divider-line-left"></div>
                       <span class="turn-divider-text">UserReq {{ getTurnNumber(item.virtualIndex) }} Start</span>
                       <div class="turn-divider-line-right"></div>
+                      <div class="divider-separator"></div>
                     </div>
                     
                     <!-- Subagent Divider -->
@@ -1651,6 +1662,7 @@
                         {{ item.type === 'subagent.started' ? 'Start ▶' : item.type === 'subagent.completed' ? 'Complete ✓' : 'Failed ✗' }}
                       </span>
                       <div class="subagent-divider-line-right"></div>
+                      <div class="divider-separator"></div>
                     </div>
                     
                     <!-- Regular Event -->
