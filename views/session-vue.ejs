@@ -1115,14 +1115,19 @@
         const toggleContent = (contentId) => {
           console.log('[toggleContent] Called with:', contentId);
           console.log('[toggleContent] Before:', Array.from(expandedContent.value));
-          if (expandedContent.value.has(contentId)) {
-            expandedContent.value.delete(contentId);
+          
+          // Create new Set and modify it
+          const newSet = new Set(expandedContent.value);
+          if (newSet.has(contentId)) {
+            newSet.delete(contentId);
           } else {
-            expandedContent.value.add(contentId);
+            newSet.add(contentId);
           }
-          // Force Vue to detect the change
-          expandedContent.value = new Set(expandedContent.value);
+          
+          // Replace the entire ref value to trigger Vue reactivity
+          expandedContent.value = newSet;
           expandedVersion.value++; // Force re-render
+          
           console.log('[toggleContent] After:', Array.from(expandedContent.value), 'version:', expandedVersion.value);
         };
         
