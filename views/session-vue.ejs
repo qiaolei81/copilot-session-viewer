@@ -1113,6 +1113,8 @@
         };
         
         const toggleContent = (contentId) => {
+          console.log('[toggleContent] Called with:', contentId);
+          console.log('[toggleContent] Before:', Array.from(expandedContent.value));
           if (expandedContent.value.has(contentId)) {
             expandedContent.value.delete(contentId);
           } else {
@@ -1121,6 +1123,7 @@
           // Force Vue to detect the change
           expandedContent.value = new Set(expandedContent.value);
           expandedVersion.value++; // Force re-render
+          console.log('[toggleContent] After:', Array.from(expandedContent.value), 'version:', expandedVersion.value);
         };
         
         const isContentTooLong = (text) => {
@@ -1454,6 +1457,14 @@
           <div class="header">
             <a href="/" class="home-btn">← Back to Home</a>
             <h1>📋 Session: {{ sessionId }}</h1>
+          </div>
+          
+          <!-- DEBUG: Show expanded state -->
+          <div style="position: fixed; bottom: 10px; right: 10px; background: #1c1c1c; border: 1px solid #ff0; color: #fff; padding: 10px; font-size: 11px; z-index: 9999; max-width: 300px;">
+            <strong>🐛 Toggle Debug:</strong><br>
+            expandedContent.size: {{ expandedContent.size }}<br>
+            expandedVersion: {{ expandedVersion }}<br>
+            expandedContent IDs: {{ Array.from(expandedContent).join(', ') }}
           </div>
           
           <div class="main-layout">
