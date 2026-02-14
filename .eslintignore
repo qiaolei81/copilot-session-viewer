@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+coverage/
+
+# Test artifacts
+*.log
+.DS_Store
+
+# Debug scripts
+check-*.js
+test-*.js
+debug-*.js
+verify-*.js
+
+# External libraries
+public/hyperlist.js
