@@ -11,11 +11,23 @@ const globalLimiter = rateLimit({
   skip: (req) => req.path.startsWith('/public') // Skip static files
 });
 
-// Rate limiting for insight generation (stricter)
-const insightLimiter = rateLimit({
-  windowMs: config.RATE_LIMIT_WINDOW_MS,
-  max: config.RATE_LIMIT_MAX_REQUESTS,
-  message: { error: 'Too many insight generation requests. Please try again later.' },
+// Rate limiting for insight generation (stricter for POST)
+const insightGenerationLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes (shorter window)
+  max: 3, // 3 generations per 5-minute window (expensive operations)
+  message: {
+    error: 'Too many insight generation requests. Please wait 5 minutes before generating another insight.',
+    retryAfter: 5 * 60 // 5 minutes in seconds
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Rate limiting for insight status/retrieval (more lenient for GET/DELETE)
+const insightAccessLimiter = rateLimit({
+  windowMs: config.RATE_LIMIT_WINDOW_MS, // 15 minutes
+  max: config.RATE_LIMIT_MAX_REQUESTS, // 10 requests per window
+  message: { error: 'Too many insight requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -31,6 +43,7 @@ const uploadLimiter = rateLimit({
 
 module.exports = {
   globalLimiter,
-  insightLimiter,
+  insightGenerationLimiter,
+  insightAccessLimiter,
   uploadLimiter
 };

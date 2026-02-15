@@ -20,8 +20,8 @@ module.exports = {
   // Session Repository
   SESSION_CACHE_TTL_MS: 30 * 1000, // 30 seconds
 
-  // Request Limits
+  // Request Limits - More lenient for better UX
   RATE_LIMIT_WINDOW_MS: 15 * 60 * 1000, // 15 minutes
-  RATE_LIMIT_MAX_REQUESTS: 5,
+  RATE_LIMIT_MAX_REQUESTS: 15, // Increased from 5 to 15 for better UX
   REQUEST_TIMEOUT_MS: 30 * 1000 // 30 seconds
 };

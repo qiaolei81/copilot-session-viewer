@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const config = require('./config');
 
 // Middleware
-const { globalLimiter, insightLimiter, uploadLimiter } = require('./middleware/rateLimiting');
+const { globalLimiter, insightGenerationLimiter, insightAccessLimiter, uploadLimiter } = require('./middleware/rateLimiting');
 const { requestTimeout, developmentCors, errorHandler, notFoundHandler } = require('./middleware/common');
 
 // Controllers
@@ -75,10 +75,10 @@ function createApp(options = {}) {
     uploadController.importSession.bind(uploadController)
   );
 
-  // Insight routes with rate limiting
-  app.post('/session/:id/insight', insightLimiter, insightController.generateInsight.bind(insightController));
-  app.get('/session/:id/insight', insightLimiter, insightController.getInsightStatus.bind(insightController));
-  app.delete('/session/:id/insight', insightLimiter, insightController.deleteInsight.bind(insightController));
+  // Insight routes with appropriate rate limiting
+  app.post('/session/:id/insight', insightGenerationLimiter, insightController.generateInsight.bind(insightController));
+  app.get('/session/:id/insight', insightAccessLimiter, insightController.getInsightStatus.bind(insightController));
+  app.delete('/session/:id/insight', insightAccessLimiter, insightController.deleteInsight.bind(insightController));
 
   // Upload rate limiting
   app.use('/session/import', uploadLimiter);
