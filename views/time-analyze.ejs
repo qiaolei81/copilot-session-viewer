@@ -1058,6 +1058,36 @@
           };
         };
 
+        // ── Turn-specific timeline (starts from first turn) ──
+        const turnTimelineStart = computed(() => {
+          if (!turnAnalysis.value.length) return null;
+          const firstTurn = turnAnalysis.value[0];
+          return new Date(firstTurn.startTime).getTime();
+        });
+
+        const turnTimelineEnd = computed(() => {
+          if (!turnAnalysis.value.length) return null;
+          const lastTurn = turnAnalysis.value[turnAnalysis.value.length - 1];
+          return new Date(lastTurn.endTime).getTime();
+        });
+
+        const turnTimelineDuration = computed(() => {
+          if (!turnTimelineStart.value || !turnTimelineEnd.value) return 0;
+          return turnTimelineEnd.value - turnTimelineStart.value;
+        });
+
+        const turnGanttPosition = (startTs, endTs) => {
+          if (!turnTimelineStart.value || !turnTimelineDuration.value || !startTs) return { left: '0%', width: '0%' };
+          const s = new Date(startTs).getTime();
+          const e = endTs ? new Date(endTs).getTime() : s + 1000;
+          const left = ((s - turnTimelineStart.value) / turnTimelineDuration.value) * 100;
+          const width = Math.max(((e - s) / turnTimelineDuration.value) * 100, 0.5);
+          return {
+            left: left + '%',
+            width: Math.min(width, 100 - left) + '%'
+          };
+        };
+
         // ── Sort control ──
         const toggleSort = (field) => {
           if (sortField.value === field) {
@@ -1224,7 +1254,7 @@
           toolTimeByCategory, maxCategoryTime,
           totalToolTime, totalToolCount, avgToolDuration, longestTool,
           gapAnalysis, maxGapDuration, gapStats,
-          ganttPosition, toggleSort, sortIcon,
+          ganttPosition, turnGanttPosition, toggleSort, sortIcon,
           getToolBadgeClass, getOpBadgeClass
         };
       },
@@ -1326,7 +1356,7 @@
                         <div class="timeline-bar-container">
                           <div
                             class="timeline-bar"
-                            :style="ganttPosition(turn.startTime, turn.endTime)"
+                            :style="turnGanttPosition(turn.startTime, turn.endTime)"
                             :title="'Turn ' + turn.turnId + ' — ' + formatDuration(turn.duration)"
                           ></div>
                         </div>
