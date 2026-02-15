@@ -12,7 +12,19 @@ A web-based visualization and analysis interface for GitHub Copilot CLI session 
 
 ## Quick Start
 
-### Install via npm (recommended)
+### Try without installing (npx)
+
+```bash
+npx @qiaolei81/copilot-session-viewer
+```
+
+Then open http://localhost:3838
+
+**Note:** Use `npx --yes` to skip the confirmation prompt.
+
+---
+
+### Install via npm (recommended for regular use)
 
 ```bash
 npm install -g @qiaolei81/copilot-session-viewer
