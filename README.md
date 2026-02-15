@@ -1,8 +1,34 @@
 # Copilot Session Viewer
 
+[![npm version](https://img.shields.io/npm/v/copilot-session-viewer.svg)](https://www.npmjs.com/package/copilot-session-viewer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
+
 **AI-Assisted Session Log Analysis Tool for GitHub Copilot CLI**
 
 A web-based visualization and analysis interface for GitHub Copilot CLI session logs. This tool provides comprehensive session inspection, time-series analysis, and event stream visualization capabilities.
+
+---
+
+## Quick Start
+
+### Install via npm (recommended)
+
+```bash
+npm install -g copilot-session-viewer
+copilot-session-viewer
+```
+
+Then open http://localhost:3838
+
+### Install from source
+
+```bash
+git clone https://github.com/yourusername/copilot-session-viewer.git
+cd copilot-session-viewer
+npm install
+npm start
+```
 
 ---
 

@@ -3,7 +3,30 @@
   "version": "1.0.0",
   "description": "Web UI for viewing GitHub Copilot CLI session logs",
   "author": "Lei Qiao <qiaolei81@gmail.com>",
+  "license": "MIT",
   "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/copilot-session-viewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/copilot-session-viewer/issues"
+  },
+  "homepage": "https://github.com/yourusername/copilot-session-viewer#readme",
+  "keywords": [
+    "copilot",
+    "github-copilot",
+    "session-viewer",
+    "log-viewer",
+    "cli",
+    "ai",
+    "developer-tools",
+    "vue",
+    "express"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "bin": {
     "copilot-session-viewer": "./bin/copilot-session-viewer"
   },
