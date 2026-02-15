@@ -6,11 +6,11 @@
   <title>Session <%= sessionId %> - Vue Virtual Scroller</title>
   
   <!-- Vue 3 -->
-  <script src="https://unpkg.com/vue@3.5.28/dist/vue.global.prod.js" integrity="sha384-EyKhbIJoP1t1fKIFRNEfYKy4uy8qxs7UNS4Cab53xyXqCTUB1PCoxeFsD0G/NX9W" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.28/dist/vue.global.prod.js" integrity="sha384-EyKhbIJoP1t1fKIFRNEfYKy4uy8qxs7UNS4Cab53xyXqCTUB1PCoxeFsD0G/NX9W" crossorigin="anonymous"></script>
 
   <!-- vue-virtual-scroller -->
-  <link rel="stylesheet" href="https://unpkg.com/vue-virtual-scroller@2.0.0-beta.8/dist/vue-virtual-scroller.css" integrity="sha384-PIWxQLH13FE3yKn8YrBWCcBRMkCKr2xW0XcqY9sNVhmihrqyXrdsWrcjZdqlnaWg" crossorigin="anonymous">
-  <script src="https://unpkg.com/vue-virtual-scroller@2.0.0-beta.8/dist/vue-virtual-scroller.min.js" integrity="sha384-asaCxaI3GxogQlKm59ynOPR3hwB7hNOTYipFrlNUHdRM0BOQs5BRO8ix8clxlj6p" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vue-virtual-scroller@2.0.0-beta.8/dist/vue-virtual-scroller.css" integrity="sha384-PIWxQLH13FE3yKn8YrBWCcBRMkCKr2xW0XcqY9sNVhmihrqyXrdsWrcjZdqlnaWg" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/vue-virtual-scroller@2.0.0-beta.8/dist/vue-virtual-scroller.min.js" integrity="sha384-asaCxaI3GxogQlKm59ynOPR3hwB7hNOTYipFrlNUHdRM0BOQs5BRO8ix8clxlj6p" crossorigin="anonymous"></script>
 
   <!-- Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js" integrity="sha384-zbcZAIxlvJtNE3Dp5nxLXdXtXyxwOdnILY1TDPVmKFhl4r4nSUG1r8bcFXGVa4Te" crossorigin="anonymous"></script>
@@ -1125,7 +1125,7 @@
               originalTurnId: turn.data?.turnId,  // Keep original for reference
               timestamp: turn.timestamp,
               duration: durationText,
-              message: userMessage?.data?.message || '',
+              message: userMessage?.data?.content || userMessage?.data?.transformedContent || '',
               userReqNumber: userReqNumber
             };
           });
