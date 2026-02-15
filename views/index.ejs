@@ -350,8 +350,8 @@
   </div>
   
   <script>
-    // Sessions data from server
-    const sessionsData = <%- JSON.stringify(sessions) %>;
+    // Sessions data from server (escaped to prevent XSS)
+    const sessionsData = <%- JSON.stringify(sessions).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') %>;
     
     function viewSession(e) {
       e.preventDefault();

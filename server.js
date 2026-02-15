@@ -5,6 +5,7 @@ const os = require('os');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const helmet = require('helmet');
 
 // Application modules
 const config = require('./src/config');
@@ -27,13 +28,30 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.set('view cache', config.NODE_ENV === 'production');
 
+// Security headers (helmet)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"]
+    }
+  }
+}));
+
 // Enable compression
 app.use(compression());
 
-// CORS for development
+// CORS for development (with explicit origin instead of wildcard)
 if (config.NODE_ENV === 'development') {
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const allowedOrigins = ['http://localhost:3838', 'http://127.0.0.1:3838'];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     next();
@@ -43,8 +61,8 @@ if (config.NODE_ENV === 'development') {
 // Serve static files
 app.use(express.static('public'));
 
-// Parse JSON bodies
-app.use(express.json());
+// Parse JSON bodies with explicit size limit
+app.use(express.json({ limit: '100kb' }));
 
 // Request timeout middleware
 app.use((req, res, next) => {
@@ -384,6 +402,13 @@ app.post('/session/import', upload.single('zipFile'), async (req, res) => {
         }
         
         const sessionDirName = entries[0];
+        
+        // Validate session directory name to prevent Zip Slip path traversal
+        if (!isValidSessionId(sessionDirName)) {
+          await fs.promises.rm(extractDir, { recursive: true, force: true });
+          return res.status(400).json({ error: 'Invalid session directory name in zip file' });
+        }
+        
         const sessionPath = path.join(extractDir, sessionDirName);
         const targetPath = path.join(SESSION_DIR, sessionDirName);
         
@@ -440,13 +465,13 @@ app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.stack);
   
   const statusCode = err.status || 500;
-  const message = config.NODE_ENV === 'production'
-    ? 'Internal server error'
-    : err.message;
+  // Default to production-safe behavior if NODE_ENV is not set
+  const isDevelopment = config.NODE_ENV === 'development';
+  const message = isDevelopment ? err.message : 'Internal server error';
 
   res.status(statusCode).json({
     error: message,
-    ...(config.NODE_ENV !== 'production' && { stack: err.stack })
+    ...(isDevelopment && { stack: err.stack })
   });
 });
 
