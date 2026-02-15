@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Load More Sessions" button for manual session loading
 - Seamless scroll-triggered loading when approaching bottom of page
 - API endpoint `/api/sessions/load-more` for paginated session loading
+- Comprehensive e2e test suite expansion (45 total tests, up from 17)
+- New test files: `api-pagination.spec.js`, `infinite-scroll.spec.js`, `core-functionality.spec.js`
 
 ### Changed
 - Replaced traditional pagination with infinite scroll on homepage
@@ -28,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated unit tests to reflect infinite scroll functionality
 - Improved performance for sites with large numbers of sessions
 - Memory usage optimization by loading sessions progressively
+- E2E test reliability improvements - achieved 100% pass rate (45/45 tests)
+- Fixed selector issues in session detail page tests
+- Improved test resilience with better error handling and fallback selectors
 
 ## [0.1.2] - 2026-02-15
 
