@@ -25,7 +25,7 @@ module.exports = {
   // Path Configuration
   getBrewPath() {
     return process.platform === 'darwin'
-      ? '/opt/homebrew/bin:/opt/homebrew/opt/node@22/bin:'
+      ? '/opt/homebrew/bin:'
       : '';
   }
 };
