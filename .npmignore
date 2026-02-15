@@ -55,9 +55,8 @@ debug-*.js
 sessions/
 *.jsonl
 
-# ESLint
-.eslintrc*
-eslint.config.js
+# ESLint (modern flat config)
+eslint.config.mjs
 
 # Nodemon
 nodemon.json
