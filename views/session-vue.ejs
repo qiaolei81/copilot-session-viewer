@@ -1543,20 +1543,25 @@
         onMounted(async () => {
           // Load events asynchronously
           try {
+            console.log('[Navigation] Starting event loading...');
             const response = await fetch(`/api/sessions/${sessionId.value}/events`);
             if (!response.ok) {
               throw new Error(`Failed to load events: ${response.statusText}`);
             }
             loadedEvents.value = await response.json();
+            console.log('[Navigation] Events loaded:', loadedEvents.value.length);
             
             // Check for URL query parameters and jump to event AFTER events are loaded
             const urlParams = new URLSearchParams(window.location.search);
             const eventTypeParam = urlParams.get('eventType');
             const eventNameParam = urlParams.get('eventName');
+            console.log('[Navigation] URL params:', eventTypeParam, eventNameParam);
             
             if (eventTypeParam && eventNameParam) {
+              console.log('[Navigation] Waiting for Vue to render...');
               // Wait for Vue to process the events and render
               setTimeout(() => {
+                console.log('[Navigation] Timeout triggered, flatEvents count:', flatEvents.value?.length);
                 let targetEvent = null;
                 
                 if (eventTypeParam === 'assistant.turn_start') {
@@ -1565,28 +1570,39 @@
                   if (match) {
                     const turnId = parseInt(match[2], 10);
                     if (!isNaN(turnId)) {
+                      console.log('[Navigation] Jumping to turn:', turnId);
                       jumpToTurn(turnId);
                       return;
                     }
                   }
                 } else if (eventTypeParam === 'subagent.started') {
+                  console.log('[Navigation] Searching for subagent:', eventNameParam);
                   // Find subagent by name
+                  const allSubagents = flatEvents.value.filter(e => e.type === 'subagent.started');
+                  console.log('[Navigation] Total subagents found:', allSubagents.length);
+                  allSubagents.forEach((sa, i) => {
+                    console.log(`  [${i}]`, sa.data?.agentDisplayName, sa.data?.agentName, sa.data?.label);
+                  });
+                  
                   targetEvent = flatEvents.value.find(event => 
                     event.type === 'subagent.started' && 
                     (event.data?.agentDisplayName === eventNameParam || 
                      event.data?.agentName === eventNameParam ||
                      event.data?.label === eventNameParam)
                   );
+                  console.log('[Navigation] Target event found:', targetEvent ? 'YES' : 'NO');
                 } else {
                   // Generic: match by type only
                   targetEvent = flatEvents.value.find(event => event.type === eventTypeParam);
                 }
                 
                 if (targetEvent && scrollerRef.value) {
-                  console.log('Jumping to event:', targetEvent.type, targetEvent.data?.agentDisplayName, 'at index', targetEvent.virtualIndex);
+                  console.log('[Navigation] Jumping to event:', targetEvent.type, targetEvent.data?.agentDisplayName, 'at index', targetEvent.virtualIndex);
                   scrollerRef.value.scrollToItem(targetEvent.virtualIndex);
+                } else {
+                  console.log('[Navigation] Failed - targetEvent:', !!targetEvent, 'scrollerRef:', !!scrollerRef.value);
                 }
-              }, 800);
+              }, 1000);
             }
           } catch (error) {
             console.error('Error loading events:', error);
