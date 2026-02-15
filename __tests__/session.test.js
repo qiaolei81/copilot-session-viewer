@@ -95,7 +95,12 @@ describe('Session', () => {
         updatedAt: undefined,
         summary: 'Test',
         hasEvents: false,
-        eventCount: 5
+        eventCount: 5,
+        duration: null,
+        isImported: false,
+        hasInsight: false,
+        copilotVersion: null,
+        selectedModel: null
       });
     });
   });

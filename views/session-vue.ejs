@@ -179,18 +179,29 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .info-row {
-      display: flex;
-      margin-bottom: 8px;
+    
+    /* Session info table */
+    .session-info-table {
+      width: 100%;
+      font-size: 12px;
     }
-    .info-label {
-      color: #c9d1d9;
-      min-width: 70px;
-      flex-shrink: 0;
+    .session-info-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(110, 118, 129, 0.15);
+      vertical-align: top;
     }
-    .info-value {
+    .session-info-table td:first-child {
+      color: #8b949e;
+      font-weight: 500;
+      white-space: nowrap;
+      width: 85px;
+    }
+    .session-info-table td:last-child {
       color: #c9d1d9;
       word-break: break-all;
+    }
+    .session-info-table tr:last-child td {
+      border-bottom: none;
     }
 
     /* Source badges */
@@ -1679,34 +1690,38 @@
                 <div class="sidebar-section-title">Session Info</div>
                 <div class="session-info">
                   <div v-if="metadata.summary" class="session-summary-block">{{ metadata.summary }}</div>
-                  <div class="info-row" v-if="metadata.copilotVersion">
-                    <span class="info-label">CLI Version</span>
-                    <span class="info-value">{{ metadata.copilotVersion }}</span>
-                  </div>
-                  <div class="info-row" v-if="metadata.model">
-                    <span class="info-label">Model</span>
-                    <span class="info-value">{{ metadata.model }}</span>
-                  </div>
-                  <div class="info-row" v-if="metadata.repo">
-                    <span class="info-label">Repo</span>
-                    <span class="info-value">{{ metadata.repo }}</span>
-                  </div>
-                  <div class="info-row" v-if="metadata.branch">
-                    <span class="info-label">Branch</span>
-                    <span class="info-value">{{ metadata.branch }}</span>
-                  </div>
-                  <div class="info-row" v-if="metadata.cwd">
-                    <span class="info-label">CWD</span>
-                    <span class="info-value">{{ metadata.cwd }}</span>
-                  </div>
-                  <div class="info-row" v-if="metadata.created">
-                    <span class="info-label">Created</span>
-                    <span class="info-value">{{ formatDateTime(metadata.created) }}</span>
-                  </div>
-                  <div class="info-row" v-if="metadata.updated">
-                    <span class="info-label">Updated</span>
-                    <span class="info-value">{{ formatDateTime(metadata.updated) }}</span>
-                  </div>
+                  <table class="session-info-table">
+                    <tbody>
+                      <tr v-if="metadata.copilotVersion">
+                        <td>CLI Version</td>
+                        <td>{{ metadata.copilotVersion }}</td>
+                      </tr>
+                      <tr v-if="metadata.model">
+                        <td>Model</td>
+                        <td>{{ metadata.model }}</td>
+                      </tr>
+                      <tr v-if="metadata.repo">
+                        <td>Repo</td>
+                        <td>{{ metadata.repo }}</td>
+                      </tr>
+                      <tr v-if="metadata.branch">
+                        <td>Branch</td>
+                        <td>{{ metadata.branch }}</td>
+                      </tr>
+                      <tr v-if="metadata.cwd">
+                        <td>CWD</td>
+                        <td>{{ metadata.cwd }}</td>
+                      </tr>
+                      <tr v-if="metadata.created">
+                        <td>Created</td>
+                        <td>{{ formatDateTime(metadata.created) }}</td>
+                      </tr>
+                      <tr v-if="metadata.updated">
+                        <td>Updated</td>
+                        <td>{{ formatDateTime(metadata.updated) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
               
