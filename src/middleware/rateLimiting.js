@@ -1,5 +1,4 @@
 const rateLimit = require('express-rate-limit');
-const config = require('../config');
 
 // Global rate limiting for all routes
 const globalLimiter = rateLimit({
