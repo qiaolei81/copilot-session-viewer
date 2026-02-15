@@ -1549,10 +1549,9 @@
             eventsLoading.value = false;
           }
           
-          // Check for ?turn=<id> query parameter and jump to that turn
+          // Check for URL query parameters and jump to event
           const urlParams = new URLSearchParams(window.location.search);
           const turnParam = urlParams.get('turn');
-          const timestampParam = urlParams.get('timestamp');
           const eventTypeParam = urlParams.get('eventType');
           const eventNameParam = urlParams.get('eventName');
           
@@ -1560,13 +1559,12 @@
             // Legacy: jump by turn ID
             const turnId = parseInt(turnParam, 10);
             if (!isNaN(turnId)) {
-              // Wait a bit for Vue to render the list
               setTimeout(() => {
                 jumpToTurn(turnId);
               }, 500);
             }
           } else if (eventTypeParam && eventNameParam) {
-            // New: jump by eventType + eventName
+            // Jump by eventType + eventName
             setTimeout(() => {
               let targetEvent = null;
               
@@ -1595,41 +1593,6 @@
               
               if (targetEvent && scrollerRef.value) {
                 scrollerRef.value.scrollToItem(targetEvent.virtualIndex);
-              }
-            }, 500);
-          } else if (timestampParam) {
-            // Legacy: jump by timestamp
-            setTimeout(() => {
-              const targetTime = timestampParam;
-              const typeFilter = urlParams.get('type'); // Optional: filter by event type
-              
-              let targetEvent = null;
-              
-              // First try: exact timestamp + type match (for subagents)
-              if (typeFilter) {
-                targetEvent = flatEvents.value.find(event => 
-                  event.timestamp === targetTime && event.type === typeFilter
-                );
-              }
-              
-              // Fallback: find closest event by timestamp
-              if (!targetEvent) {
-                const targetTimeMs = new Date(targetTime).getTime();
-                let minDiff = Infinity;
-                
-                for (const event of flatEvents.value) {
-                  const eventTime = new Date(event.timestamp).getTime();
-                  const diff = Math.abs(eventTime - targetTimeMs);
-                  if (diff < minDiff) {
-                    minDiff = diff;
-                    targetEvent = event;
-                  }
-                }
-              }
-              
-              if (targetEvent && scrollerRef.value) {
-                const index = targetEvent.virtualIndex;
-                scrollerRef.value.scrollToItem(index);
               }
             }, 500);
           }
