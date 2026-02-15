@@ -47,7 +47,17 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
    docs: update README
    test: add e2e test for filtering
    ```
-7. **Push** to your fork and **submit a pull request**
+7. **Push** to your fork:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+8. **Submit a pull request** to the `main` branch
+
+**Note for fork contributors:**
+- CI tests will run automatically on your PR
+- You don't need access to secrets (NPM_TOKEN) - only maintainers publish releases
+- Your PR will be labeled `external-contribution` automatically
+
 
 ### Code Style Guidelines
 
