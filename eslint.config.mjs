@@ -19,7 +19,11 @@ export default [
       ...js.configs.recommended.rules,
       
       // Error prevention
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_',
+        caughtErrors: 'none'  // Ignore unused catch binding
+      }],
       'no-undef': 'error',
       'no-redeclare': 'error',
       'no-constant-condition': 'warn',
