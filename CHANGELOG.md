@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-02-16
+
+### Fixed
+- Rate limiting configuration for insight operations - resolved 429 "Too Many Requests" errors
+- Removed rate limiting from insight status checks (GET requests) - status checks are now unlimited
+- Improved rate limiting differentiation: strict for generation (POST), lenient for access (DELETE)
+- Fixed "Age: NaNs" timestamp display issue in insight generation progress
+- Added missing `ageMs` calculation to backend insight service responses
+- ESLint configuration migration from deprecated `.eslintignore` to modern flat config
+- Minimal `.npmignore` configuration for optimized package publishing (82% size reduction)
+
+### Changed
+- Insight generation rate limiting: 3 requests per 5 minutes (more user-friendly window)
+- Insight access operations: 50 requests per minute (very lenient for status checks)
+- Package size optimized from 298kB to 52kB for npm publishing
+
+### Removed
+- Deprecated `.eslintignore` file in favor of `eslint.config.mjs` ignores property
+- Verbose `.npmignore` entries - simplified to essential exclusions only
+
 ## [0.1.3] - 2026-02-16
 
 ### Added
