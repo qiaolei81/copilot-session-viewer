@@ -58,7 +58,7 @@ class ProcessManager {
    * Setup cleanup handlers for graceful shutdown
    */
   _setupCleanupHandlers() {
-    const cleanup = (signal) => {
+    const cleanup = (signal, exitCode = 0) => {
       if (this.isShuttingDown) return;
       this.isShuttingDown = true;
       
@@ -67,17 +67,17 @@ class ProcessManager {
       
       // Give processes time to exit
       setTimeout(() => {
-        process.exit(0);
+        process.exit(exitCode);
       }, 1000);
     };
 
-    process.on('SIGTERM', () => cleanup('SIGTERM'));
-    process.on('SIGINT', () => cleanup('SIGINT'));
+    process.on('SIGTERM', () => cleanup('SIGTERM', 0));
+    process.on('SIGINT', () => cleanup('SIGINT', 0));
     
-    // Handle uncaught errors
+    // Handle uncaught errors with error exit code
     process.on('uncaughtException', (err) => {
       console.error('💥 Uncaught exception:', err);
-      cleanup('uncaughtException');
+      cleanup('uncaughtException', 1);
     });
   }
 }

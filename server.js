@@ -51,15 +51,15 @@ if (config.NODE_ENV === 'development') {
     const origin = req.headers.origin;
     if (allowedOrigins.includes(origin)) {
       res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
     }
-    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
     next();
   });
 }
 
 // Serve static files
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Parse JSON bodies with explicit size limit
 app.use(express.json({ limit: '100kb' }));
@@ -70,11 +70,31 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting for insight generation
+// Global rate limiting for all routes
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: { error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/public') // Skip static files
+});
+app.use(globalLimiter);
+
+// Rate limiting for insight generation (stricter)
 const insightLimiter = rateLimit({
   windowMs: config.RATE_LIMIT_WINDOW_MS,
   max: config.RATE_LIMIT_MAX_REQUESTS,
   message: { error: 'Too many insight generation requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Rate limiting for file uploads (strict)
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 uploads per window
+  message: { error: 'Too many upload requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -363,14 +383,19 @@ const upload = multer({
   dest: uploadDir,
   limits: { fileSize: config.MAX_UPLOAD_SIZE },
   fileFilter: (req, file, cb) => {
-    if (!file.originalname.endsWith('.zip')) {
+    // Check both file extension and MIME type
+    const isZipExtension = file.originalname.toLowerCase().endsWith('.zip');
+    const isZipMime = file.mimetype === 'application/zip' || 
+                      file.mimetype === 'application/x-zip-compressed';
+    
+    if (!isZipExtension || !isZipMime) {
       return cb(new Error('Only .zip files are allowed'));
     }
     cb(null, true);
   }
 });
 
-app.post('/session/import', upload.single('zipFile'), async (req, res) => {
+app.post('/session/import', uploadLimiter, upload.single('zipFile'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

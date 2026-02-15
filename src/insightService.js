@@ -148,9 +148,16 @@ class InsightService {
     const outputStream = fsSync.createWriteStream(outputFile);
     copilotProcess.stdout.pipe(outputStream);
 
-    let stderr = '';
+    // Capture stderr with size limit
+    const stderrChunks = [];
+    let stderrSize = 0;
+    const MAX_STDERR = 64 * 1024; // 64KB cap
+
     copilotProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
+      if (stderrSize < MAX_STDERR) {
+        stderrChunks.push(data);
+        stderrSize += data.length;
+      }
     });
 
     copilotProcess.on('close', async (code) => {
@@ -158,6 +165,7 @@ class InsightService {
         outputStream.end();
         
         if (code !== 0) {
+          const stderr = Buffer.concat(stderrChunks).toString('utf-8').slice(0, MAX_STDERR);
           console.error('❌ Copilot CLI failed:', stderr);
           await fs.writeFile(insightFile, 
             `# ❌ Generation Failed\n\n\`\`\`\n${stderr}\n\`\`\`\n`, 
