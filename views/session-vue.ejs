@@ -1553,8 +1553,11 @@
           const urlParams = new URLSearchParams(window.location.search);
           const turnParam = urlParams.get('turn');
           const timestampParam = urlParams.get('timestamp');
+          const eventTypeParam = urlParams.get('eventType');
+          const eventNameParam = urlParams.get('eventName');
           
           if (turnParam) {
+            // Legacy: jump by turn ID
             const turnId = parseInt(turnParam, 10);
             if (!isNaN(turnId)) {
               // Wait a bit for Vue to render the list
@@ -1562,8 +1565,40 @@
                 jumpToTurn(turnId);
               }, 500);
             }
+          } else if (eventTypeParam && eventNameParam) {
+            // New: jump by eventType + eventName
+            setTimeout(() => {
+              let targetEvent = null;
+              
+              if (eventTypeParam === 'assistant.turn_start') {
+                // Parse "UserReq1_Turn0" format
+                const match = eventNameParam.match(/UserReq(\d+)_Turn(\d+)/);
+                if (match) {
+                  const turnId = parseInt(match[2], 10);
+                  if (!isNaN(turnId)) {
+                    jumpToTurn(turnId);
+                    return;
+                  }
+                }
+              } else if (eventTypeParam === 'subagent.started') {
+                // Find subagent by name
+                targetEvent = flatEvents.value.find(event => 
+                  event.type === 'subagent.started' && 
+                  (event.data?.agentDisplayName === eventNameParam || 
+                   event.data?.agentName === eventNameParam ||
+                   event.data?.label === eventNameParam)
+                );
+              } else {
+                // Generic: match by type only
+                targetEvent = flatEvents.value.find(event => event.type === eventTypeParam);
+              }
+              
+              if (targetEvent && scrollerRef.value) {
+                scrollerRef.value.scrollToItem(targetEvent.virtualIndex);
+              }
+            }, 500);
           } else if (timestampParam) {
-            // Find event with matching timestamp (and optional type filter)
+            // Legacy: jump by timestamp
             setTimeout(() => {
               const targetTime = timestampParam;
               const typeFilter = urlParams.get('type'); // Optional: filter by event type

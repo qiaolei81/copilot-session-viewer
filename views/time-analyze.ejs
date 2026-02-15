@@ -1342,7 +1342,7 @@
                     <tr v-for="(turn, tidx) in group.turns" :key="'turn-' + turn.turnId" class="turn-row">
                       <td class="mono turn-cell">
                         <a 
-                          :href="'/session/' + sessionId + '?turn=' + turn.turnId"
+                          :href="'/session/' + sessionId + '?eventType=assistant.turn_start&eventName=UserReq' + group.userReqNumber + '_Turn' + turn.turnId"
                           class="turn-link"
                           :title="'View events from here'"
                         >
@@ -1381,7 +1381,7 @@
                 <div v-for="(sa, idx) in subagentAnalysis" :key="idx" class="gantt-row">
                   <div class="gantt-label" :title="sa.name">
                     <a 
-                      :href="'/session/' + sessionId + '?timestamp=' + encodeURIComponent(sa.startTime) + '&type=subagent.started'"
+                      :href="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(sa.name)"
                       class="subagent-link"
                       :title="'View events from here'"
                     >
@@ -1424,7 +1424,7 @@
                     <tr v-for="(sa, idx) in subagentAnalysis" :key="idx">
                       <td>
                         <a 
-                          :href="'/session/' + sessionId + '?timestamp=' + encodeURIComponent(sa.startTime) + '&type=subagent.started'"
+                          :href="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(sa.name)"
                           class="subagent-link"
                           :title="'View events from here'"
                         >
