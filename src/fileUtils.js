@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
-const path = require('path');
+const fsSync = require('fs');
+const readline = require('readline');
 
 /**
  * File utility functions
@@ -26,8 +27,13 @@ async function fileExists(filePath) {
  */
 async function countLines(filePath) {
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return content.trim().split('\n').filter(line => line.trim()).length;
+    const stream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    let count = 0;
+    for await (const line of rl) {
+      if (line.trim()) count++;
+    }
+    return count;
   } catch (err) {
     console.error(`Error counting lines in ${filePath}:`, err.message);
     return 0;
@@ -44,18 +50,140 @@ async function parseYAML(filePath) {
     const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
     const result = {};
-    
+
     for (const line of lines) {
       const match = line.match(/^(\w+):\s*(.+)$/);
       if (match) {
         result[match[1]] = match[2].trim();
       }
     }
-    
+
     return result;
   } catch (err) {
     console.error(`Error parsing YAML ${filePath}:`, err.message);
     return {};
+  }
+}
+
+/**
+ * Get the first user message from a .jsonl events file
+ * Reads line by line and stops at the first user.message event
+ * @param {string} filePath - Path to .jsonl file
+ * @param {number} maxLength - Max characters to return (default 200)
+ * @returns {Promise<string>} First user message or empty string
+ */
+async function getFirstUserMessage(filePath, maxLength = 200) {
+  try {
+    const stream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+    for await (const line of rl) {
+      if (!line.trim()) continue;
+      try {
+        const event = JSON.parse(line);
+        if (event.type === 'user.message') {
+          const msg = event.data?.message || event.data?.content || event.data?.text || '';
+          if (msg) {
+            rl.close();
+            stream.destroy();
+            return msg.length > maxLength ? msg.substring(0, maxLength) + '...' : msg;
+          }
+        }
+      } catch {
+        // Skip malformed JSON lines
+      }
+    }
+    return '';
+  } catch (err) {
+    return '';
+  }
+}
+
+/**
+ * Get session duration by reading first and last event timestamps
+ * @param {string} filePath - Path to .jsonl events file
+ * @returns {Promise<number|null>} Duration in milliseconds, or null if unable to calculate
+ */
+async function getSessionDuration(filePath) {
+  try {
+    const stream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+    let firstTimestamp = null;
+    let lastTimestamp = null;
+
+    for await (const line of rl) {
+      if (!line.trim()) continue;
+      try {
+        const event = JSON.parse(line);
+        if (event.timestamp) {
+          const ts = new Date(event.timestamp).getTime();
+          if (!firstTimestamp) {
+            firstTimestamp = ts;
+          }
+          lastTimestamp = ts;
+        }
+      } catch {
+        // Skip malformed JSON lines
+      }
+    }
+
+    if (firstTimestamp && lastTimestamp && lastTimestamp >= firstTimestamp) {
+      return lastTimestamp - firstTimestamp;
+    }
+    return null;
+  } catch (err) {
+    console.error(`Error calculating session duration for ${filePath}:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Get session metadata from session.start event
+ * @param {string} filePath - Path to .jsonl events file
+ * @returns {Promise<{copilotVersion: string|null, selectedModel: string|null}>}
+ */
+async function getSessionMetadata(filePath) {
+  try {
+    const stream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+    let copilotVersion = null;
+    let selectedModel = null;
+
+    for await (const line of rl) {
+      if (!line.trim()) continue;
+      try {
+        const event = JSON.parse(line);
+        
+        // Extract copilotVersion and selectedModel from session.start
+        if (event.type === 'session.start' && event.data) {
+          copilotVersion = event.data.copilotVersion || null;
+          selectedModel = event.data.selectedModel || null;
+          
+          // If we have selectedModel, we're done
+          if (selectedModel) {
+            rl.close();
+            stream.destroy();
+            return { copilotVersion, selectedModel };
+          }
+        }
+        
+        // If no selectedModel in session.start, check for model_change
+        if (!selectedModel && event.type === 'session.model_change' && event.data) {
+          selectedModel = event.data.newModel || null;
+          rl.close();
+          stream.destroy();
+          return { copilotVersion, selectedModel };
+        }
+      } catch {
+        // Skip malformed JSON lines
+      }
+    }
+    return { copilotVersion, selectedModel };
+  } catch (err) {
+    console.error(`Error reading session metadata from ${filePath}:`, err.message);
+    return { copilotVersion: null, selectedModel: null };
   }
 }
 
@@ -72,5 +200,8 @@ module.exports = {
   fileExists,
   countLines,
   parseYAML,
+  getFirstUserMessage,
+  getSessionDuration,
+  getSessionMetadata,
   shouldSkipEntry
 };

@@ -139,15 +139,29 @@
       box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
     }
     .session-id {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-family: "SF Mono", Monaco, monospace;
       font-size: 11px;
       color: #6e7681;
       margin-bottom: 12px;
       letter-spacing: -0.02em;
+      opacity: 0.7;
+    }
+    .session-id-text {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      opacity: 0.7;
+      flex: 1;
+      min-width: 0;
+    }
+    .session-badges {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      margin-left: 12px;
     }
     .session-summary {
       color: #e6edf3;
@@ -203,27 +217,77 @@
       font-weight: 500;
     }
     
-    /* Source badges */
-    .source-badge {
+    .status-badge {
       display: inline-block;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 1px 6px;
-      border-radius: 3px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-size: 14px;
       vertical-align: middle;
-      margin-left: 8px;
+      opacity: 0.8;
+      transition: opacity 0.2s;
     }
-    .source-cli {
-      background: rgba(35, 134, 54, 0.2);
-      color: #3fb950;
-      border: 1px solid rgba(35, 134, 54, 0.4);
+    .status-badge:hover {
+      opacity: 1;
     }
-    .source-vscode {
-      background: rgba(31, 111, 235, 0.2);
+    .status-badge.model {
+      padding: 2px 8px;
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    }
+    .status-badge.version {
+      padding: 2px 8px;
+      background: rgba(234, 179, 8, 0.15);
+      color: #fbbf24;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    }
+
+    /* Sessions header with import link */
+    .sessions-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .import-link {
       color: #58a6ff;
-      border: 1px solid rgba(31, 111, 235, 0.4);
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .import-link:hover {
+      color: #79c0ff;
+      text-decoration: underline;
+    }
+    .import-status {
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    .import-status.success {
+      display: block;
+      background: rgba(35, 134, 54, 0.15);
+      border: 1px solid #238636;
+      color: #3fb950;
+    }
+    .import-status.error {
+      display: block;
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid #f85149;
+      color: #ff7b72;
+    }
+    .import-status.loading {
+      display: block;
+      background: rgba(88, 166, 255, 0.15);
+      border: 1px solid #58a6ff;
+      color: #58a6ff;
     }
 
     /* Responsive adjustments */
@@ -263,50 +327,32 @@
     </form>
     
     <p class="hint">
-      Session ID can be found in <span class="hint-code">~/.copilot/session-state/</span><br>
-      <span style="font-size: 12px; color: #6e7681;">💡 Tip: Large sessions (1000+ events) automatically use virtual scroll mode</span>
+      Session ID can be found in <span class="hint-code">~/.copilot/session-state/</span>
     </p>
     
     <% if (sessions.length > 0) { %>
       <div class="recent-sessions">
-        <div class="recent-title">Recent Sessions (<%= sessions.length %>)</div>
-        <div class="recent-list">
-          <% sessions.forEach(session => { %>
-            <a href="/session/<%= session.id %>" class="recent-item">
-              <div class="session-id" title="<%= session.id %>"><%= session.id %><span class="source-badge <%= session.type === 'directory' ? 'source-cli' : 'source-vscode' %>"><%= session.type === 'directory' ? 'CLI' : 'VSCode' %></span></div>
-
-              <% if (session.summary && session.summary !== 'No summary' && session.summary !== 'Legacy session') { %>
-              <div class="session-summary"><%= session.summary %></div>
-              <% } else { %>
-              <div class="session-summary" style="color: #6e7681; font-style: italic;">No summary available</div>
-              <% } %>
-
-              <div class="session-divider"></div>
-
-              <div class="session-info">
-                <% if (session.workspace && session.workspace.cwd) { %>
-                <div class="session-info-item workspace" title="<%= session.workspace.cwd %>">
-                  <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"></path></svg>
-                  <span class="session-info-value"><%= session.workspace.cwd %></span>
-                </div>
-                <% } %>
-                <div class="session-info-item">
-                  <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"></path></svg>
-                  <span class="session-info-value"><%= session.createdAt ? new Date(session.createdAt).toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : 'unknown' %></span>
-                </div>
-                <div class="session-info-item">
-                  <svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.72.72a.75.75 0 0 1 1.06 0l1.5 1.5a.75.75 0 0 1-1.06 1.06l-.22-.22v1.69a.75.75 0 0 1-1.5 0V3.06l-.22.22a.75.75 0 0 1-1.06-1.06ZM2 7a.75.75 0 0 0 0 1.5h3.69l-.22.22a.75.75 0 1 0 1.06 1.06l1.5-1.5a.75.75 0 0 0 0-1.06l-1.5-1.5a.75.75 0 0 0-1.06 1.06l.22.22Zm8.53-.28a.75.75 0 0 0 0 1.06l1.5 1.5a.75.75 0 1 0 1.06-1.06l-.22-.22H16a.75.75 0 0 0 0-1.5h-3.13l.22-.22a.75.75 0 0 0-1.06-1.06ZM7.72 12.22a.75.75 0 0 1 1.06 0l1.5 1.5a.75.75 0 1 1-1.06 1.06l-.22-.22v1.69a.75.75 0 0 1-1.5 0v-1.69l-.22.22a.75.75 0 0 1-1.06-1.06Z"></path></svg>
-                  <span class="session-info-value"><%= session.eventCount || 0 %> events</span>
-                </div>
-              </div>
-            </a>
-          <% }); %>
+        <div class="sessions-header">
+          <div class="recent-title">All Sessions (<%= sessions.length %>)</div>
+          <a class="import-link" id="importLink">Import session from zip</a>
         </div>
+        <input 
+          type="file" 
+          id="fileInput" 
+          name="sessionZip" 
+          accept=".zip" 
+          style="display: none;"
+        >
+        <div id="importStatus" class="import-status"></div>
+        <div id="sessions-container"></div>
       </div>
     <% } %>
   </div>
   
   <script>
+    // Sessions data from server
+    const sessionsData = <%- JSON.stringify(sessions) %>;
+    
     function viewSession(e) {
       e.preventDefault();
       const sessionId = document.getElementById('sessionInput').value.trim();
@@ -314,6 +360,242 @@
         window.location.href = `/session/${sessionId}`;
       }
     }
+
+    // File import handling
+    const fileInput = document.getElementById('fileInput');
+    const importLink = document.getElementById('importLink');
+    const importStatus = document.getElementById('importStatus');
+    
+    // Click import link to select file
+    importLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      fileInput.click();
+    });
+    
+    // Auto-upload when file is selected
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (!file.name.endsWith('.zip')) {
+        showStatus('error', '❌ Please select a .zip file');
+        return;
+      }
+      
+      importLink.style.pointerEvents = 'none';
+      importLink.style.opacity = '0.5';
+      importLink.textContent = 'Importing...';
+      showStatus('loading', 'Uploading and extracting session...');
+      
+      try {
+        const formData = new FormData();
+        formData.append('sessionZip', file);
+        
+        const response = await fetch('/session/import', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          showStatus('success', `✅ Session ${result.sessionId} imported successfully!`);
+          
+          // Reload page after 1.5 seconds to show new session
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showStatus('error', `❌ Import failed: ${result.error}`);
+          importLink.style.pointerEvents = 'auto';
+          importLink.style.opacity = '1';
+          importLink.textContent = 'Import session from zip';
+        }
+      } catch (err) {
+        showStatus('error', `❌ Import failed: ${err.message}`);
+        importLink.style.pointerEvents = 'auto';
+        importLink.style.opacity = '1';
+        importLink.textContent = 'Import session from zip';
+      } finally {
+        // Reset file input
+        fileInput.value = '';
+      }
+    });
+    
+    function showStatus(type, message) {
+      importStatus.className = `import-status ${type}`;
+      importStatus.textContent = message;
+    }
+
+    // Format duration from milliseconds to human-readable format
+    function formatDuration(ms) {
+      if (!ms || ms < 0) return '—';
+      
+      const seconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      
+      if (hours > 0) {
+        const remainingMinutes = minutes % 60;
+        return `${hours}h ${remainingMinutes}m`;
+      } else if (minutes > 0) {
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+      } else {
+        return `${seconds}s`;
+      }
+    }
+    
+    // Format date to YYYY/MM/DD
+    function formatDateHeader(dateStr) {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}/${month}/${day}`;
+    }
+    
+    // Get date key from timestamp (YYYY-MM-DD for grouping)
+    function getDateKey(timestamp) {
+      if (!timestamp) return 'Unknown';
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Group sessions by date
+    function groupSessionsByDate(sessions) {
+      const groups = {};
+      sessions.forEach(session => {
+        const dateKey = getDateKey(session.createdAt);
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+        groups[dateKey].push(session);
+      });
+      return groups;
+    }
+    
+    // Render session card HTML
+    function renderSessionCard(session) {
+      // Add status badges
+      let badges = '';
+      if (session.isImported) {
+        badges += '<span class="status-badge imported" title="Imported session">📥</span>';
+      }
+      if (session.hasInsight) {
+        badges += '<span class="status-badge insight" title="Has Copilot Insight">💡</span>';
+      }
+      // Add model and version badges
+      if (session.selectedModel) {
+        const modelShort = session.selectedModel.replace('claude-', '').replace('gpt-', '');
+        badges += `<span class="status-badge model" title="Model: ${escapeHtml(session.selectedModel)}">${escapeHtml(modelShort)}</span>`;
+      }
+      if (session.copilotVersion) {
+        badges += `<span class="status-badge version" title="Copilot CLI version">${escapeHtml(session.copilotVersion)}</span>`;
+      }
+      
+      let summaryHtml = '';
+      if (session.summary && session.summary !== 'No summary' && session.summary !== 'Legacy session') {
+        summaryHtml = `<div class="session-summary">${escapeHtml(session.summary)}</div>`;
+      } else {
+        summaryHtml = '<div class="session-summary" style="color: #6e7681; font-style: italic;">No summary available</div>';
+      }
+      
+      let workspaceHtml = '';
+      if (session.workspace && session.workspace.cwd) {
+        workspaceHtml = `
+          <div class="session-info-item workspace" title="${escapeHtml(session.workspace.cwd)}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"></path></svg>
+            <span class="session-info-value">${escapeHtml(session.workspace.cwd)}</span>
+          </div>
+        `;
+      }
+      
+      const createdAtStr = session.createdAt 
+        ? new Date(session.createdAt).toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+        : 'unknown';
+      
+      let durationHtml = '';
+      if (session.duration) {
+        durationHtml = `
+          <div class="session-info-item">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM7.25 12.5v-5A.75.75 0 0 1 8 6.75h2.5a.75.75 0 0 1 0 1.5H8.75v4.25a.75.75 0 0 1-1.5 0Z"></path></svg>
+            <span class="session-info-value">${formatDuration(session.duration)}</span>
+          </div>
+        `;
+      }
+      
+      return `
+        <a href="/session/${session.id}" class="recent-item">
+          <div class="session-id">
+            <span class="session-id-text" title="${escapeHtml(session.id)}">${escapeHtml(session.id)}</span>
+            <div class="session-badges">${badges}</div>
+          </div>
+          ${summaryHtml}
+          <div class="session-divider"></div>
+          <div class="session-info">
+            ${workspaceHtml}
+            <div class="session-info-item">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"></path></svg>
+              <span class="session-info-value">${createdAtStr}</span>
+            </div>
+            ${durationHtml}
+            <div class="session-info-item">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.72.72a.75.75 0 0 1 1.06 0l1.5 1.5a.75.75 0 0 1-1.06 1.06l-.22-.22v1.69a.75.75 0 0 1-1.5 0V3.06l-.22.22a.75.75 0 0 1-1.06-1.06ZM2 7a.75.75 0 0 0 0 1.5h3.69l-.22.22a.75.75 0 1 0 1.06 1.06l1.5-1.5a.75.75 0 0 0 0-1.06l-1.5-1.5a.75.75 0 0 0-1.06 1.06l.22.22Zm8.53-.28a.75.75 0 0 0 0 1.06l1.5 1.5a.75.75 0 1 0 1.06-1.06l-.22-.22H16a.75.75 0 0 0 0-1.5h-3.13l.22-.22a.75.75 0 0 0-1.06-1.06ZM7.72 12.22a.75.75 0 0 1 1.06 0l1.5 1.5a.75.75 0 1 1-1.06 1.06l-.22-.22v1.69a.75.75 0 0 1-1.5 0v-1.69l-.22.22a.75.75 0 0 1-1.06-1.06Z"></path></svg>
+              <span class="session-info-value">${session.eventCount || 0} events</span>
+            </div>
+          </div>
+        </a>
+      `;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Render grouped sessions
+    document.addEventListener('DOMContentLoaded', function() {
+      if (sessionsData.length === 0) return;
+      
+      const grouped = groupSessionsByDate(sessionsData);
+      const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a)); // Descending
+      
+      const container = document.getElementById('sessions-container');
+      
+      sortedDates.forEach(dateKey => {
+        const dateHeader = document.createElement('div');
+        dateHeader.className = 'date-group-header';
+        dateHeader.textContent = formatDateHeader(grouped[dateKey][0].createdAt);
+        container.appendChild(dateHeader);
+        
+        const grid = document.createElement('div');
+        grid.className = 'recent-list';
+        grouped[dateKey].forEach(session => {
+          grid.innerHTML += renderSessionCard(session);
+        });
+        container.appendChild(grid);
+      });
+    });
   </script>
+  
+  <style>
+    .date-group-header {
+      color: #58a6ff;
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 32px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #21262d;
+    }
+    .date-group-header:first-child {
+      margin-top: 0;
+    }
+  </style>
 </body>
 </html>

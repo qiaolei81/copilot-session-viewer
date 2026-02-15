@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis - Session <%= sessionId %></title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Focus indicators */
+    button:focus-visible, a:focus-visible {
+      outline: 2px solid #58a6ff;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.2);
+    }
+
+    /* Header */
+    .header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      background: #0d1117;
+      z-index: 10;
+    }
+    .nav-btn {
+      padding: 6px 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .nav-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+    }
+    h1 {
+      color: #58a6ff;
+      font-size: 20px;
+      flex: 1;
+    }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .summary-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .summary-card-label {
+      font-size: 12px;
+      color: #7d8590;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .summary-card-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .summary-card-sub {
+      font-size: 12px;
+      color: #7d8590;
+      margin-top: 2px;
+    }
+
+    /* Section */
+    .section {
+      margin: 24px 0;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #30363d;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 0;
+    }
+    .tab {
+      padding: 8px 16px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #7d8590;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .tab:hover {
+      color: #c9d1d9;
+    }
+    .tab.active {
+      color: #58a6ff;
+      border-bottom-color: #58a6ff;
+    }
+
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #161b22;
+      color: #7d8590;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #30363d;
+      position: sticky;
+      top: 57px;
+      z-index: 5;
+    }
+    .data-table td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #21262d;
+      vertical-align: top;
+    }
+    .data-table tr:hover td {
+      background: rgba(110, 118, 129, 0.05);
+    }
+    .data-table .mono {
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+    }
+    .data-table .message-cell {
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .data-table .sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .data-table .sortable:hover {
+      color: #58a6ff;
+    }
+    
+    /* Grouped turns table */
+    .group-header-row {
+      background: rgba(110, 118, 129, 0.08);
+    }
+    .group-header-row:hover td {
+      background: rgba(110, 118, 129, 0.12) !important;
+    }
+    .group-header-cell {
+      padding: 10px 12px !important;
+      border-bottom: 2px solid #30363d !important;
+      font-weight: 500;
+    }
+    .group-header-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .user-req-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(88, 166, 255, 0.15);
+      color: #58a6ff;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .user-message-text {
+      color: #e6edf3;
+      flex: 1;
+      line-height: 1.5;
+      word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .turn-row td {
+      border-bottom: 1px solid #21262d;
+    }
+    .turn-row:last-of-type td {
+      border-bottom: 2px solid #30363d;
+    }
+    .turn-cell {
+      color: #8b949e;
+    }
+    
+    /* Timeline column in table */
+    .timeline-cell {
+      padding: 6px 12px !important;
+    }
+    .timeline-bar-container {
+      position: relative;
+      width: 100%;
+      height: 20px;
+      background: rgba(110, 118, 129, 0.05);
+      border-radius: 3px;
+    }
+    .timeline-bar {
+      position: absolute;
+      height: 100%;
+      background: rgba(35, 134, 54, 0.7);
+      border-radius: 3px;
+      min-width: 2px;
+      transition: background 0.2s;
+    }
+    .timeline-bar:hover {
+      background: rgba(35, 134, 54, 0.9);
+    }
+
+    /* Duration bar */
+    .duration-bar-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .duration-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: #1f6feb;
+      min-width: 2px;
+      transition: width 0.3s;
+    }
+    .duration-bar.subagent { background: #3fb950; }
+    .duration-bar.subagent-failed { background: #f85149; }
+    .duration-bar.subagent-incomplete { background: #d29922; }
+    .duration-bar.tool { background: #9e6a03; }
+    .duration-bar.user { background: #1f6feb; }
+    .duration-bar.turn { background: #238636; }
+    .duration-bar.error { background: #da3633; }
+
+    .duration-text {
+      font-size: 12px;
+      color: #c9d1d9;
+      white-space: nowrap;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-subagent { background: #8957e5; color: #fff; }
+    .badge-tool { background: #9e6a03; color: #fff; }
+    .badge-turn { background: #238636; color: #fff; }
+    .badge-read { background: rgba(88, 166, 255, 0.15); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.3); }
+    .badge-write { background: rgba(63, 185, 80, 0.15); color: #3fb950; border: 1px solid rgba(63, 185, 80, 0.3); }
+    .badge-edit { background: rgba(210, 153, 34, 0.15); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.3); }
+    .badge-create { background: rgba(63, 185, 80, 0.15); color: #3fb950; border: 1px solid rgba(63, 185, 80, 0.3); }
+    .badge-bash { background: rgba(139, 148, 158, 0.15); color: #8b949e; border: 1px solid rgba(139, 148, 158, 0.3); }
+    .badge-search { background: rgba(191, 57, 137, 0.15); color: #f778ba; border: 1px solid rgba(191, 57, 137, 0.3); }
+    .badge-other { background: rgba(110, 118, 129, 0.15); color: #8b949e; border: 1px solid rgba(110, 118, 129, 0.3); }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding: 0;
+    }
+    .timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .timeline-item:last-child {
+      border-bottom: none;
+    }
+    .timeline-time {
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+      color: #7d8590;
+      min-width: 70px;
+      flex-shrink: 0;
+    }
+    .timeline-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .timeline-file {
+      color: #58a6ff;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .timeline-detail {
+      font-size: 12px;
+      color: #7d8590;
+      margin-top: 2px;
+    }
+
+    /* Gantt-like chart for subagents */
+    .gantt-container {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .gantt-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .gantt-row:last-child {
+      border-bottom: none;
+    }
+    .gantt-label {
+      min-width: 200px;
+      max-width: 200px;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .gantt-bar-area {
+      flex: 1;
+      min-width: 300px;
+      height: 24px;
+      position: relative;
+      background: rgba(110, 118, 129, 0.05);
+      border-radius: 4px;
+    }
+    .gantt-bar {
+      position: absolute;
+      height: 100%;
+      border-radius: 4px;
+      min-width: 3px;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .gantt-bar.subagent { background: rgba(63, 185, 80, 0.8); }
+    .gantt-bar.subagent-failed { background: rgba(248, 81, 73, 0.8); }
+    .gantt-bar.subagent-incomplete { background: rgba(210, 153, 34, 0.8); }
+    .gantt-bar.turn { background: rgba(35, 134, 54, 0.8); }
+    .gantt-bar.tool { background: rgba(158, 106, 3, 0.6); }
+
+    .gantt-time-axis {
+      display: flex;
+      justify-content: space-between;
+      margin-left: 212px;
+      padding: 4px 0;
+      font-size: 11px;
+      color: #7d8590;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      border-top: 1px solid #30363d;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #7d8590;
+      font-size: 14px;
+    }
+
+    /* Markdown Styles */
+    .section h1, .section h2, .section h3 {
+      color: #c9d1d9;
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    .section h1 { font-size: 2em; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+    .section h2 { font-size: 1.5em; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+    .section h3 { font-size: 1.25em; }
+    .section p { margin-bottom: 16px; }
+    .section ul, .section ol { margin-bottom: 16px; padding-left: 2em; }
+    .section li { margin-bottom: 8px; }
+    .section code {
+      background: #161b22;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      font-size: 85%;
+    }
+    .section pre {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+    .section pre code {
+      background: transparent;
+      padding: 0;
+    }
+    .section blockquote {
+      border-left: 4px solid #30363d;
+      padding-left: 16px;
+      color: #7d8590;
+      margin-bottom: 16px;
+    }
+    .section hr {
+      border: none;
+      border-top: 1px solid #21262d;
+      margin: 24px 0;
+    }
+    .section table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .section table th,
+    .section table td {
+      border: 1px solid #30363d;
+      padding: 8px 13px;
+      text-align: left;
+    }
+    .section table th {
+      background: #161b22;
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .gantt-label {
+        min-width: 120px;
+        max-width: 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="/session/<%= sessionId %>" class="nav-btn">← Back to Session</a>
+    <h1>⏱ Analysis: <%= sessionId %></h1>
+  </div>
+
+  <div class="container" id="app"></div>
+
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3.5.28/dist/vue.global.prod.js" integrity="sha384-EyKhbIJoP1t1fKIFRNEfYKy4uy8qxs7UNS4Cab53xyXqCTUB1PCoxeFsD0G/NX9W" crossorigin="anonymous"></script>
+
+  <script>
+    window.sessionData = {
+      sessionId: '<%= sessionId %>',
+      metadata: <%- JSON.stringify(metadata).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') %>
+    };
+  </script>
+
+  <script>
+    const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
+
+    const app = createApp({
+      setup() {
+        const sessionId = ref(window.sessionData.sessionId);
+        const metadata = ref(window.sessionData.metadata);
+        const events = ref([]);
+        const loading = ref(true);
+        const error = ref(null);
+        const activeTab = ref('turns');
+        const sortField = ref('timestamp');
+        const sortDir = ref('asc');
+        const insightReport = ref(null);
+        const insightLoading = ref(false);
+        const insightError = ref(null);
+        const insightGeneratedAt = ref(null);
+
+        // ── Helpers ──
+        const formatDuration = (ms) => {
+          if (ms == null || ms < 0) return '—';
+          if (ms < 1000) return Math.round(ms) + 'ms';
+          const s = ms / 1000;
+          if (s < 60) {
+            const rounded = Math.round(s * 10) / 10; // 四舍五入到一位小数
+            return (rounded % 1 === 0 ? Math.round(rounded) : rounded.toFixed(1)) + 's';
+          }
+          const m = Math.floor(s / 60);
+          const remainder = Math.floor(s % 60);
+          if (m < 60) return m + 'm ' + remainder + 's';
+          const h = Math.floor(m / 60);
+          return h + 'h ' + (m % 60) + 'm';
+        };
+
+        const formatTime = (ts) => {
+          if (!ts) return '';
+          const d = new Date(ts);
+          return String(d.getHours()).padStart(2, '0') + ':' +
+                 String(d.getMinutes()).padStart(2, '0') + ':' +
+                 String(d.getSeconds()).padStart(2, '0');
+        };
+
+        const formatDateTime = (ts) => {
+          if (!ts) return '';
+          return new Date(ts).toLocaleString();
+        };
+
+        // ── Session timeline ──
+        const sessionStart = computed(() => {
+          if (!events.value.length) return null;
+          return new Date(events.value[0].timestamp).getTime();
+        });
+
+        const sessionEnd = computed(() => {
+          if (!events.value.length) return null;
+          return new Date(events.value[events.value.length - 1].timestamp).getTime();
+        });
+
+        const totalDuration = computed(() => {
+          if (!sessionStart.value || !sessionEnd.value) return 0;
+          return sessionEnd.value - sessionStart.value;
+        });
+
+        // ── Sub-agent analysis ──
+        const subagentAnalysis = computed(() => {
+          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const results = [];
+          const startStack = [];
+
+          for (const ev of sorted) {
+            if (ev.type === 'subagent.started') {
+              startStack.push(ev);
+            } else if (ev.type === 'subagent.completed' || ev.type === 'subagent.failed') {
+              const name = ev.data?.agentDisplayName || ev.data?.agentName || 'SubAgent';
+              // Find matching start (by name, LIFO)
+              let startIdx = -1;
+              for (let i = startStack.length - 1; i >= 0; i--) {
+                const sName = startStack[i].data?.agentDisplayName || startStack[i].data?.agentName || 'SubAgent';
+                if (sName === name) {
+                  startIdx = i;
+                  break;
+                }
+              }
+              const startEv = startIdx >= 0 ? startStack.splice(startIdx, 1)[0] : null;
+              const startTime = startEv ? new Date(startEv.timestamp).getTime() : null;
+              const endTime = new Date(ev.timestamp).getTime();
+              const duration = startTime ? endTime - startTime : null;
+
+              // Count tool calls between start and end
+              let toolCalls = 0;
+              if (startEv) {
+                for (const e of sorted) {
+                  const t = new Date(e.timestamp).getTime();
+                  if (t >= startTime && t <= endTime && e.type === 'tool.execution_start') {
+                    toolCalls++;
+                  }
+                }
+              }
+
+              results.push({
+                name,
+                status: ev.type === 'subagent.completed' ? 'completed' : 'failed',
+                startTime: startEv?.timestamp || null,
+                endTime: ev.timestamp,
+                duration,
+                toolCalls
+              });
+            }
+          }
+
+          // Handle incomplete sub-agents (started but never completed/failed)
+          const sessionEndTime = sorted.length > 0 ? new Date(sorted[sorted.length - 1].timestamp).getTime() : Date.now();
+          for (const startEv of startStack) {
+            const name = startEv.data?.agentDisplayName || startEv.data?.agentName || 'SubAgent';
+            const startTime = new Date(startEv.timestamp).getTime();
+            const duration = sessionEndTime - startTime;
+
+            // Count tool calls after start
+            let toolCalls = 0;
+            for (const e of sorted) {
+              const t = new Date(e.timestamp).getTime();
+              if (t >= startTime && t <= sessionEndTime && e.type === 'tool.execution_start') {
+                toolCalls++;
+              }
+            }
+
+            results.push({
+              name,
+              status: 'incomplete',
+              startTime: startEv.timestamp,
+              endTime: sorted[sorted.length - 1]?.timestamp || startEv.timestamp,
+              duration,
+              toolCalls
+            });
+          }
+
+          return results.sort((a, b) => {
+            const tA = a.startTime ? new Date(a.startTime).getTime() : 0;
+            const tB = b.startTime ? new Date(b.startTime).getTime() : 0;
+            return tA - tB;
+          });
+        });
+
+        const maxSubagentDuration = computed(() => {
+          return Math.max(...subagentAnalysis.value.map(s => s.duration || 0), 1);
+        });
+
+        // ── Turn analysis ──
+        const turnAnalysis = computed(() => {
+          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const turnStarts = sorted.filter(e => e.type === 'assistant.turn_start');
+          const allUserMessages = sorted.filter(e => e.type === 'user.message');
+
+          return turnStarts.map((turn, idx) => {
+            const startTime = new Date(turn.timestamp).getTime();
+            const nextTurn = turnStarts[idx + 1];
+            const endTime = nextTurn
+              ? new Date(nextTurn.timestamp).getTime()
+              : sessionEnd.value || startTime;
+            const duration = endTime - startTime;
+
+            // Find user message before this turn
+            const turnIndex = sorted.indexOf(turn);
+            const userMessage = sorted
+              .slice(0, turnIndex)
+              .reverse()
+              .find(e => e.type === 'user.message');
+
+            const userReqNumber = userMessage
+              ? allUserMessages.indexOf(userMessage) + 1
+              : 0;
+
+            // Count tool calls in this turn
+            let toolCalls = 0;
+            for (const e of sorted) {
+              const t = new Date(e.timestamp).getTime();
+              if (t >= startTime && t <= endTime && e.type === 'tool.execution_start') {
+                toolCalls++;
+              }
+            }
+
+            return {
+              turnId: turn.data?.turnId ?? idx,
+              userReqNumber,
+              message: userMessage?.data?.content || '',
+              startTime: turn.timestamp,
+              endTime: nextTurn?.timestamp || events.value[events.value.length - 1]?.timestamp,
+              duration,
+              toolCalls
+            };
+          });
+        });
+
+        const maxTurnDuration = computed(() => {
+          return Math.max(...turnAnalysis.value.map(t => t.duration || 0), 1);
+        });
+
+        // ── Grouped turns by UserReq ──
+        const groupedTurns = computed(() => {
+          const groups = new Map();
+          
+          for (const turn of turnAnalysis.value) {
+            const reqNum = turn.userReqNumber || 0;
+            if (!groups.has(reqNum)) {
+              groups.set(reqNum, {
+                userReqNumber: reqNum,
+                message: turn.message,
+                turns: []
+              });
+            }
+            groups.get(reqNum).turns.push(turn);
+          }
+          
+          return Array.from(groups.values()).sort((a, b) => a.userReqNumber - b.userReqNumber);
+        });
+
+        // ── Tool operations analysis ──
+        const toolAnalysis = computed(() => {
+          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const toolGroups = new Map();
+
+          for (const ev of sorted) {
+            if (ev.type === 'tool.execution_start') {
+              const toolId = ev.data?.toolCallId;
+              if (toolId) {
+                toolGroups.set(toolId, { start: ev });
+              }
+            } else if (ev.type === 'tool.execution_complete') {
+              const toolId = ev.data?.toolCallId;
+              if (toolId && toolGroups.has(toolId)) {
+                toolGroups.get(toolId).complete = ev;
+              }
+            }
+          }
+
+          const results = [];
+          toolGroups.forEach((group, toolId) => {
+            const startTime = new Date(group.start.timestamp).getTime();
+            const endTime = group.complete
+              ? new Date(group.complete.timestamp).getTime()
+              : null;
+            const duration = endTime ? endTime - startTime : null;
+            const toolName = group.start.data?.toolName || group.start.data?.tool || 'unknown';
+            const args = group.start.data?.arguments || {};
+            const isError = group.complete?.data?.isError || !!group.complete?.data?.error;
+
+            // Extract file path or command
+            let description = '';
+            if (toolName === 'Bash' || toolName === 'bash' || toolName === 'exec') {
+              description = args.command || args.description || '';
+            } else if (['Read', 'read', 'Write', 'write', 'Edit', 'edit'].includes(toolName)) {
+              description = args.file_path || args.path || '';
+            } else if (['Glob', 'glob'].includes(toolName)) {
+              description = args.pattern || '';
+            } else if (['Grep', 'grep'].includes(toolName)) {
+              description = args.pattern || '';
+            } else if (['Task', 'task'].includes(toolName)) {
+              description = args.description || args.prompt?.substring(0, 80) || '';
+            } else {
+              description = args.description || args.command || args.file_path ||
+                          args.path || args.query || args.url || '';
+            }
+            if (description.length > 120) {
+              description = description.substring(0, 120) + '...';
+            }
+
+            results.push({
+              toolId,
+              toolName,
+              description,
+              startTime: group.start.timestamp,
+              endTime: group.complete?.timestamp || null,
+              duration,
+              isError,
+              isRunning: !group.complete
+            });
+          });
+
+          return results;
+        });
+
+        const sortedToolAnalysis = computed(() => {
+          const items = [...toolAnalysis.value];
+          items.sort((a, b) => {
+            if (sortField.value === 'duration') {
+              return sortDir.value === 'asc'
+                ? (a.duration || 0) - (b.duration || 0)
+                : (b.duration || 0) - (a.duration || 0);
+            }
+            if (sortField.value === 'toolName') {
+              const cmp = (a.toolName || '').localeCompare(b.toolName || '');
+              return sortDir.value === 'asc' ? cmp : -cmp;
+            }
+            // default: timestamp
+            const tA = new Date(a.startTime).getTime();
+            const tB = new Date(b.startTime).getTime();
+            return sortDir.value === 'asc' ? tA - tB : tB - tA;
+          });
+          return items;
+        });
+
+        const maxToolDuration = computed(() => {
+          return Math.max(...toolAnalysis.value.map(t => t.duration || 0), 1);
+        });
+
+        // ── File operations ──
+        const fileOperations = computed(() => {
+          const fileTools = ['view', 'read', 'write', 'edit', 'create', 'glob', 'grep', 'notebookedit'];
+          const ops = [];
+          
+          for (const ev of events.value) {
+            if (ev.type === 'tool.execution_start') {
+              const toolName = ev.data?.toolName?.toLowerCase() || '';
+              if (fileTools.includes(toolName)) {
+                const args = ev.data?.arguments || {};
+                const path = args.path || args.file || args.directory || '';
+                
+                if (path) {
+                  let opType = 'other';
+                  if (toolName === 'view' || toolName === 'read') opType = 'read';
+                  else if (toolName === 'write' || toolName === 'notebookedit' || toolName === 'create') opType = 'write';
+                  else if (toolName === 'edit') opType = 'edit';
+                  else if (toolName === 'glob' || toolName === 'grep') opType = 'search';
+                  
+                  ops.push({
+                    toolName,
+                    opType,
+                    filePath: path,
+                    timestamp: ev.timestamp,
+                    startTime: ev.timestamp
+                  });
+                }
+              }
+            }
+          }
+
+          return ops.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+        });
+
+        // ── Tool time by category ──
+        const toolTimeByCategory = computed(() => {
+          const catMap = {};
+          toolAnalysis.value.forEach(t => {
+            const name = (t.toolName || 'unknown').toLowerCase();
+            let cat;
+            if (['bash', 'exec'].includes(name)) cat = 'Bash/Exec';
+            else if (['read'].includes(name)) cat = 'Read';
+            else if (['write'].includes(name)) cat = 'Write';
+            else if (['edit'].includes(name)) cat = 'Edit';
+            else if (['glob'].includes(name)) cat = 'Glob';
+            else if (['grep'].includes(name)) cat = 'Grep';
+            else if (['task'].includes(name)) cat = 'Task (SubAgent)';
+            else if (['web_search', 'websearch'].includes(name)) cat = 'Web Search';
+            else if (['web_fetch', 'webfetch'].includes(name)) cat = 'Web Fetch';
+            else cat = t.toolName || 'Other';
+
+            if (!catMap[cat]) {
+              catMap[cat] = { category: cat, totalTime: 0, count: 0, errors: 0 };
+            }
+            catMap[cat].totalTime += (t.duration || 0);
+            catMap[cat].count++;
+            if (t.isError) catMap[cat].errors++;
+          });
+
+          return Object.values(catMap).sort((a, b) => b.totalTime - a.totalTime);
+        });
+
+        const maxCategoryTime = computed(() => {
+          return Math.max(...toolTimeByCategory.value.map(c => c.totalTime), 1);
+        });
+
+        // ── Summary stats ──
+        const totalToolTime = computed(() => {
+          return toolAnalysis.value.reduce((acc, t) => acc + (t.duration || 0), 0);
+        });
+
+        // ── Token Statistics ──
+        const tokenStats = computed(() => {
+          let totalTokens = 0;
+          let byCategory = {};
+          
+          for (const ev of events.value) {
+            if (ev.type === 'tool.execution_complete' && ev.data?.toolTelemetry?.metrics) {
+              const tokens = ev.data.toolTelemetry.metrics.resultForLlmLength || 0;
+              totalTokens += tokens;
+              
+              // Categorize by tool name
+              const toolName = ev.data.toolName || 'unknown';
+              if (!byCategory[toolName]) {
+                byCategory[toolName] = 0;
+              }
+              byCategory[toolName] += tokens;
+            }
+          }
+          
+          return {
+            total: totalTokens,
+            byCategory
+          };
+        });
+
+        // ── Gap Analysis ──
+        const gapAnalysis = computed(() => {
+          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const gaps = [];
+          
+          // Track user messages and assistant responses
+          for (let i = 0; i < sorted.length - 1; i++) {
+            const current = sorted[i];
+            const next = sorted[i + 1];
+            const currentTime = new Date(current.timestamp).getTime();
+            const nextTime = new Date(next.timestamp).getTime();
+            const duration = nextTime - currentTime;
+            
+            // Only report gaps > 100ms
+            if (duration < 100) continue;
+            
+            let gapType = null;
+            let description = '';
+            
+            // User message → assistant.turn_start (input consumption)
+            if (current.type === 'user.message' && next.type === 'assistant.turn_start') {
+              gapType = 'input-consumption';
+              const msgLength = (current.data?.message || '').length;
+              description = `LLM reading user input (${msgLength} chars)`;
+            }
+            
+            // assistant.turn_start → assistant.message (generation)
+            else if (current.type === 'assistant.turn_start' && next.type === 'assistant.message') {
+              gapType = 'llm-generation';
+              const outputLength = (next.data?.content || '').length;
+              description = `LLM generating response (${outputLength} chars output)`;
+            }
+            
+            // assistant.turn_start → first tool (generation before tool call)
+            else if (current.type === 'assistant.turn_start' && next.type === 'tool.execution_start') {
+              gapType = 'llm-generation';
+              const toolName = next.data?.toolName || 'unknown';
+              description = `LLM deciding to call ${toolName}`;
+            }
+            
+            // assistant.message → assistant.turn_start (thinking between turns)
+            else if (current.type === 'assistant.message' && next.type === 'assistant.turn_start') {
+              gapType = 'turn-gap';
+              description = 'Gap between assistant response and next turn';
+            }
+            
+            // tool.execution_complete → next event (post-processing)
+            else if (current.type === 'tool.execution_complete' && duration > 500) {
+              gapType = 'post-tool';
+              const toolName = current.data?.toolName || 'unknown';
+              description = `Processing ${toolName} result`;
+            }
+            
+            // Large gaps between any events
+            else if (duration > 5000) {
+              gapType = 'idle';
+              description = `${current.type} → ${next.type}`;
+            }
+            
+            if (gapType) {
+              gaps.push({
+                type: gapType,
+                description,
+                startTime: current.timestamp,
+                endTime: next.timestamp,
+                duration,
+                fromEvent: current.type,
+                toEvent: next.type,
+                fromData: current.data,
+                toData: next.data
+              });
+            }
+          }
+          
+          return gaps.sort((a, b) => (b.duration || 0) - (a.duration || 0));
+        });
+        
+        const maxGapDuration = computed(() => {
+          return Math.max(...gapAnalysis.value.map(g => g.duration || 0), 1);
+        });
+        
+        const gapStats = computed(() => {
+          const stats = {
+            'input-consumption': { count: 0, total: 0, avg: 0 },
+            'llm-generation': { count: 0, total: 0, avg: 0 },
+            'post-tool': { count: 0, total: 0, avg: 0 },
+            'turn-gap': { count: 0, total: 0, avg: 0 },
+            'idle': { count: 0, total: 0, avg: 0 }
+          };
+          
+          gapAnalysis.value.forEach(gap => {
+            if (stats[gap.type]) {
+              stats[gap.type].count++;
+              stats[gap.type].total += gap.duration;
+            }
+          });
+          
+          Object.keys(stats).forEach(key => {
+            if (stats[key].count > 0) {
+              stats[key].avg = stats[key].total / stats[key].count;
+            }
+          });
+          
+          return stats;
+        });
+
+        const successRate = computed(() => {
+          const total = toolAnalysis.value.length;
+          if (total === 0) return 100;
+          const errors = toolAnalysis.value.filter(t => !t.success).length;
+          return ((total - errors) / total * 100).toFixed(1);
+        });
+
+
+
+        const totalToolCount = computed(() => toolAnalysis.value.length);
+
+        const avgToolDuration = computed(() => {
+          if (!totalToolCount.value) return 0;
+          return totalToolTime.value / totalToolCount.value;
+        });
+
+        const longestTool = computed(() => {
+          if (!toolAnalysis.value.length) return null;
+          return toolAnalysis.value.reduce((max, t) => (t.duration || 0) > (max.duration || 0) ? t : max);
+        });
+
+        // ── Gantt chart positioning ──
+        const ganttPosition = (startTs, endTs) => {
+          if (!sessionStart.value || !totalDuration.value || !startTs) return { left: '0%', width: '0%' };
+          const s = new Date(startTs).getTime();
+          const e = endTs ? new Date(endTs).getTime() : s + 1000;
+          const left = ((s - sessionStart.value) / totalDuration.value) * 100;
+          const width = Math.max(((e - s) / totalDuration.value) * 100, 0.5);
+          return {
+            left: left + '%',
+            width: Math.min(width, 100 - left) + '%'
+          };
+        };
+
+        // ── Sort control ──
+        const toggleSort = (field) => {
+          if (sortField.value === field) {
+            sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortField.value = field;
+            sortDir.value = field === 'duration' ? 'desc' : 'asc';
+          }
+        };
+
+        const sortIcon = (field) => {
+          if (sortField.value !== field) return '↕';
+          return sortDir.value === 'asc' ? '↑' : '↓';
+        };
+
+        const getToolBadgeClass = (toolName) => {
+          const lower = (toolName || '').toLowerCase();
+          if (['bash', 'exec'].includes(lower)) return 'badge-bash';
+          if (lower === 'read') return 'badge-read';
+          if (lower === 'write' || lower === 'notebookedit') return 'badge-write';
+          if (lower === 'edit') return 'badge-edit';
+          if (lower === 'glob' || lower === 'grep') return 'badge-search';
+          if (lower === 'task') return 'badge-subagent';
+          return 'badge-other';
+        };
+
+        const getOpBadgeClass = (opType) => {
+          const classes = {
+            read: 'badge-read',
+            write: 'badge-write',
+            edit: 'badge-edit',
+            create: 'badge-create',
+            search: 'badge-search'
+          };
+          return classes[opType] || 'badge-other';
+        };
+
+        // ── Load events ──
+        onMounted(async () => {
+          try {
+            const resp = await fetch('/api/session/' + sessionId.value + '/events');
+            if (!resp.ok) throw new Error('Failed to load events: ' + resp.statusText);
+            const data = await resp.json();
+            events.value = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          } catch (err) {
+            error.value = err.message;
+          } finally {
+            loading.value = false;
+          }
+        });
+
+        // ── Copilot Insight ──
+        const insightStatus = ref('not_started'); // completed | generating | timeout | not_started
+        const insightLastUpdate = ref(null);
+        const insightStartedAt = ref(null);
+        const insightAgeMs = ref(0);
+        let pollInterval = null;
+        
+        const renderedInsight = computed(() => {
+          if (!insightReport.value) return '';
+          return marked.parse(insightReport.value);
+        });
+
+        const checkExistingInsight = async () => {
+          try {
+            const resp = await fetch(`/session/${sessionId.value}/insight`);
+            const data = await resp.json();
+            
+            insightStatus.value = data.status;
+            
+            if (data.status === 'completed') {
+              insightReport.value = data.report;
+              insightGeneratedAt.value = data.generatedAt;
+              stopPolling();
+            } else if (data.status === 'generating') {
+              insightReport.value = data.report;
+              insightStartedAt.value = data.startedAt;
+              insightLastUpdate.value = data.lastUpdate;
+              insightAgeMs.value = data.ageMs;
+              startPolling();
+            } else if (data.status === 'timeout') {
+              insightReport.value = data.report;
+              insightStartedAt.value = data.startedAt;
+              insightLastUpdate.value = data.lastUpdate;
+              insightAgeMs.value = data.ageMs;
+              stopPolling();
+            }
+          } catch (err) {
+            console.error('Failed to check insight:', err);
+          }
+        };
+        
+        const startPolling = () => {
+          stopPolling();
+          pollInterval = setInterval(checkExistingInsight, 2000); // Poll every 2 seconds
+        };
+        
+        const stopPolling = () => {
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+        };
+
+        const generateInsight = async (force = false) => {
+          insightLoading.value = true;
+          insightError.value = null;
+          
+          try {
+            const resp = await fetch(`/session/${sessionId.value}/insight`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ force })
+            });
+            
+            if (!resp.ok) {
+              const err = await resp.json();
+              throw new Error(err.error || 'Failed to generate insight');
+            }
+            
+            const data = await resp.json();
+            insightStatus.value = data.status;
+            insightReport.value = data.report;
+            
+            if (data.status === 'generating') {
+              insightStartedAt.value = data.startedAt;
+              startPolling();
+            } else if (data.status === 'completed') {
+              insightGeneratedAt.value = data.generatedAt;
+            }
+          } catch (err) {
+            insightError.value = err.message;
+          } finally {
+            insightLoading.value = false;
+          }
+        };
+
+        const regenerateInsight = async () => {
+          await generateInsight(true);
+        };
+
+        // Check for existing insight on mount
+        onMounted(async () => {
+          await checkExistingInsight();
+        });
+        
+        // Clean up polling on unmount
+        onUnmounted(() => {
+          stopPolling();
+        });
+
+        return {
+          sessionId, metadata, events, loading, error, activeTab,
+          sortField, sortDir,
+          insightReport, insightLoading, insightError, insightGeneratedAt,
+          insightStatus, insightLastUpdate, insightStartedAt, insightAgeMs,
+          renderedInsight, generateInsight, regenerateInsight,
+          formatDuration, formatTime, formatDateTime,
+          sessionStart, sessionEnd, totalDuration,
+          subagentAnalysis, maxSubagentDuration,
+          turnAnalysis, maxTurnDuration, groupedTurns,
+          toolAnalysis, sortedToolAnalysis, maxToolDuration,
+          fileOperations,
+          toolTimeByCategory, maxCategoryTime,
+          totalToolTime, totalToolCount, avgToolDuration, longestTool,
+          gapAnalysis, maxGapDuration, gapStats,
+          ganttPosition, toggleSort, sortIcon,
+          getToolBadgeClass, getOpBadgeClass
+        };
+      },
+
+      template: `
+        <div v-if="loading" class="empty-state" style="padding: 60px;">
+          ⏳ Loading events...
+        </div>
+
+        <div v-else-if="error" class="empty-state" style="padding: 60px; color: #f85149;">
+          ❌ {{ error }}
+        </div>
+
+        <div v-else>
+          <!-- Summary Cards -->
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="summary-card-label">Total Duration</div>
+              <div class="summary-card-value">{{ formatDuration(totalDuration) }}</div>
+              <div class="summary-card-sub">{{ formatTime(events[0]?.timestamp) }} → {{ formatTime(events[events.length-1]?.timestamp) }}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-card-label">Tool Calls</div>
+              <div class="summary-card-value">{{ totalToolCount }}</div>
+              <div class="summary-card-sub">Total tool time: {{ formatDuration(totalToolTime) }}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-card-label">Avg Tool Duration</div>
+              <div class="summary-card-value">{{ formatDuration(avgToolDuration) }}</div>
+              <div class="summary-card-sub" v-if="longestTool">
+                Longest: {{ longestTool.toolName }} ({{ formatDuration(longestTool.duration) }})
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-card-label">Sub-Agents</div>
+              <div class="summary-card-value">{{ subagentAnalysis.length }}</div>
+              <div class="summary-card-sub">{{ turnAnalysis.length }} turn{{ turnAnalysis.length !== 1 ? 's' : '' }}</div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="tabs">
+            <button :class="['tab', { active: activeTab === 'turns' }]" @click="activeTab = 'turns'">
+              Turns ({{ turnAnalysis.length }})
+            </button>
+            <button :class="['tab', { active: activeTab === 'subagents' }]" @click="activeTab = 'subagents'">
+              Sub-Agents ({{ subagentAnalysis.length }})
+            </button>
+            <button :class="['tab', { active: activeTab === 'categories' }]" @click="activeTab = 'categories'">
+              Tool Summary
+            </button>
+            <button :class="['tab', { active: activeTab === 'insight' }]" @click="activeTab = 'insight'">
+              💡 Copilot Insight
+            </button>
+          </div>
+
+          <!-- ═══ Turns Tab ═══ -->
+          <div v-if="activeTab === 'turns'" class="section">
+            <div v-if="!turnAnalysis.length" class="empty-state">
+              No turns found in this session.
+            </div>
+            <div v-else>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">Turn</th>
+                    <th style="width: 120px;">Start</th>
+                    <th style="width: 100px;">Duration</th>
+                    <th style="width: 80px;">Tools</th>
+                    <th style="min-width: 300px;">Timeline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template v-for="(group, gidx) in groupedTurns" :key="'group-' + gidx">
+                    <!-- Group header: User message -->
+                    <tr class="group-header-row">
+                      <td colspan="5" class="group-header-cell">
+                        <div class="group-header-content">
+                          <span class="user-req-badge">UserReq {{ group.userReqNumber }}</span>
+                          <span class="user-message-text">{{ group.message || 'No message' }}</span>
+                        </div>
+                      </td>
+                    </tr>
+                    <!-- Turn rows -->
+                    <tr v-for="(turn, tidx) in group.turns" :key="'turn-' + turn.turnId" class="turn-row">
+                      <td class="mono turn-cell">
+                        Turn {{ turn.turnId }}
+                      </td>
+                      <td class="mono">{{ formatTime(turn.startTime) }}</td>
+                      <td class="mono">{{ formatDuration(turn.duration) }}</td>
+                      <td class="mono">{{ turn.toolCalls }}</td>
+                      <td class="timeline-cell">
+                        <div class="timeline-bar-container">
+                          <div
+                            class="timeline-bar"
+                            :style="ganttPosition(turn.startTime, turn.endTime)"
+                            :title="'Turn ' + turn.turnId + ' — ' + formatDuration(turn.duration)"
+                          ></div>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ═══ Sub-Agents Tab ═══ -->
+          <div v-if="activeTab === 'subagents'" class="section">
+            <div v-if="!subagentAnalysis.length" class="empty-state">
+              No sub-agent activity found in this session.
+            </div>
+
+            <!-- Gantt Chart -->
+            <div v-else>
+              <div class="section-title">Sub-Agent Timeline</div>
+              <div class="gantt-container">
+                <div v-for="(sa, idx) in subagentAnalysis" :key="idx" class="gantt-row">
+                  <div class="gantt-label" :title="sa.name">
+                    <span :style="{ color: sa.status === 'completed' ? '#3fb950' : sa.status === 'failed' ? '#f85149' : '#d29922' }">
+                      {{ sa.status === 'completed' ? '✓' : sa.status === 'failed' ? '✗' : '⏳' }}
+                    </span>
+                    {{ sa.name }}
+                  </div>
+                  <div class="gantt-bar-area">
+                    <div
+                      :class="['gantt-bar', sa.status === 'completed' ? 'subagent' : sa.status === 'failed' ? 'subagent-failed' : 'subagent-incomplete']"
+                      :style="ganttPosition(sa.startTime, sa.endTime)"
+                      :title="sa.name + ' — ' + formatDuration(sa.duration)"
+                    >
+                      {{ formatDuration(sa.duration) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="gantt-time-axis">
+                  <span>{{ formatTime(events[0]?.timestamp) }}</span>
+                  <span>{{ formatTime(events[events.length-1]?.timestamp) }}</span>
+                </div>
+              </div>
+
+              <!-- Detail table -->
+              <div style="margin-top: 16px;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Agent Name</th>
+                      <th>Status</th>
+                      <th>Start</th>
+                      <th>End</th>
+                      <th>Duration</th>
+                      <th>Tool Calls</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(sa, idx) in subagentAnalysis" :key="idx">
+                      <td>{{ sa.name }}</td>
+                      <td>
+                        <span :style="{ color: sa.status === 'completed' ? '#3fb950' : sa.status === 'failed' ? '#f85149' : '#d29922' }">
+                          {{ sa.status === 'completed' ? '✓ Completed' : sa.status === 'failed' ? '✗ Failed' : '⏳ Incomplete' }}
+                        </span>
+                      </td>
+                      <td class="mono">{{ formatTime(sa.startTime) || '—' }}</td>
+                      <td class="mono">{{ formatTime(sa.endTime) }}</td>
+                      <td>
+                        <div class="duration-bar-container">
+                          <div
+                            :class="['duration-bar', sa.status === 'completed' ? 'subagent' : sa.status === 'failed' ? 'subagent-failed' : 'subagent-incomplete']"
+                            :style="{ width: ((sa.duration || 0) / maxSubagentDuration * 100) + '%', maxWidth: '120px' }"
+                          ></div>
+                          <span class="duration-text">{{ formatDuration(sa.duration) }}</span>
+                        </div>
+                      </td>
+                      <td class="mono">{{ sa.toolCalls }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ Tool Summary Tab ═══ -->
+          <div v-if="activeTab === 'categories'" class="section">
+            <div v-if="!toolTimeByCategory.length" class="empty-state">
+              No tool activity found in this session.
+            </div>
+            <div v-else>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Count</th>
+                    <th>Errors</th>
+                    <th>Error Rate</th>
+                    <th>Total Time</th>
+                    <th>Avg Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="cat in toolTimeByCategory" :key="cat.category">
+                    <td style="font-weight: 600;">{{ cat.category }}</td>
+                    <td class="mono">{{ cat.count }}</td>
+                    <td>
+                      <span v-if="cat.errors > 0" style="color: #f85149;" class="mono">{{ cat.errors }}</span>
+                      <span v-else class="mono" style="color: #7d8590;">0</span>
+                    </td>
+                    <td>
+                      <span v-if="cat.count > 0" :style="{ 
+                        color: (cat.errors / cat.count * 100) > 50 ? '#f85149' : (cat.errors / cat.count * 100) > 10 ? '#d29922' : '#3fb950' 
+                      }">
+                        {{ ((cat.errors / cat.count) * 100).toFixed(1) }}%
+                      </span>
+                      <span v-else>-</span>
+                    </td>
+                    <td>
+                      <div class="duration-bar-container">
+                        <div
+                          class="duration-bar tool"
+                          :style="{ width: (cat.totalTime / maxCategoryTime * 100) + '%', maxWidth: '150px' }"
+                        ></div>
+                        <span class="duration-text">{{ formatDuration(cat.totalTime) }}</span>
+                      </div>
+                    </td>
+                    <td class="duration-text">{{ formatDuration(cat.count > 0 ? cat.totalTime / cat.count : 0) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ═══ Copilot Insight Tab ═══ -->
+          <div v-if="activeTab === 'insight'" class="section">
+            <!-- Error State -->
+            <div v-if="insightError" class="empty-state" style="padding: 60px; color: #f85149;">
+              ❌ {{ insightError }}
+            </div>
+
+            <!-- Generating State -->
+            <div v-else-if="insightStatus === 'generating'" style="padding: 20px;">
+              <div style="
+                background: #0d1117;
+                border: 1px solid #30363d;
+                border-radius: 6px;
+                padding: 20px;
+                margin-bottom: 20px;
+              ">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                  <span style="font-size: 24px; margin-right: 10px;">⏳</span>
+                  <div>
+                    <div style="font-weight: 600; color: #58a6ff; margin-bottom: 5px;">
+                      Generating Copilot Insight...
+                    </div>
+                    <div style="font-size: 13px; color: #7d8590;">
+                      Started: {{ formatDateTime(insightStartedAt) }} • 
+                      Last update: {{ formatDateTime(insightLastUpdate) }} • 
+                      Age: {{ Math.floor(insightAgeMs / 1000) }}s
+                    </div>
+                  </div>
+                </div>
+                <div v-if="insightReport" v-html="renderedInsight" style="
+                  color: #c9d1d9;
+                  line-height: 1.6;
+                  opacity: 0.7;
+                "></div>
+              </div>
+            </div>
+
+            <!-- Timeout State -->
+            <div v-else-if="insightStatus === 'timeout'" style="padding: 20px;">
+              <div style="
+                background: #0d1117;
+                border: 1px solid #f85149;
+                border-radius: 6px;
+                padding: 20px;
+                margin-bottom: 20px;
+              ">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                  <div>
+                    <div style="font-weight: 600; color: #f85149; margin-bottom: 5px;">
+                      ⏱️ Generation Timed Out
+                    </div>
+                    <div style="font-size: 13px; color: #7d8590;">
+                      Started: {{ formatDateTime(insightStartedAt) }} • 
+                      Last update: {{ formatDateTime(insightLastUpdate) }} ({{ Math.floor(insightAgeMs / 1000 / 60) }}m ago)
+                    </div>
+                  </div>
+                  <button 
+                    @click="regenerateInsight"
+                    style="
+                      background: #f85149;
+                      color: #fff;
+                      border: none;
+                      padding: 8px 16px;
+                      border-radius: 6px;
+                      font-size: 13px;
+                      cursor: pointer;
+                      font-weight: 500;
+                    "
+                    @mouseover="$event.target.style.background='#ff7b72'"
+                    @mouseleave="$event.target.style.background='#f85149'"
+                  >
+                    🔄 Force Regenerate
+                  </button>
+                </div>
+                <div v-if="insightReport" v-html="renderedInsight" style="
+                  color: #c9d1d9;
+                  line-height: 1.6;
+                  opacity: 0.5;
+                "></div>
+              </div>
+            </div>
+
+            <!-- Not Started State -->
+            <div v-else-if="insightStatus === 'not_started'" style="padding: 40px; text-align: center;">
+              <p style="margin-bottom: 20px; color: #7d8590;">
+                Generate an AI-powered deep analysis of this session using Copilot CLI
+              </p>
+              <button 
+                @click="generateInsight(false)" 
+                :disabled="insightLoading"
+                style="
+                  background: #238636;
+                  color: #fff;
+                  border: none;
+                  padding: 10px 20px;
+                  border-radius: 6px;
+                  font-size: 14px;
+                  cursor: pointer;
+                  font-weight: 500;
+                "
+                @mouseover="$event.target.style.background='#2ea043'"
+                @mouseleave="$event.target.style.background='#238636'"
+              >
+                💡 Generate Copilot Insight
+              </button>
+            </div>
+
+            <!-- Completed State -->
+            <div v-else-if="insightStatus === 'completed'" style="padding: 20px;">
+              <div style="
+                background: #161b22;
+                border: 1px solid #30363d;
+                border-radius: 6px;
+                padding: 20px;
+                margin-bottom: 20px;
+              ">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                  <span style="color: #7d8590; font-size: 13px;">
+                    Generated: {{ formatDateTime(insightGeneratedAt) }}
+                  </span>
+                  <button 
+                    @click="regenerateInsight"
+                    style="
+                      background: transparent;
+                      color: #58a6ff;
+                      border: 1px solid #58a6ff;
+                      padding: 5px 12px;
+                      border-radius: 6px;
+                      font-size: 12px;
+                      cursor: pointer;
+                    "
+                    @mouseover="$event.target.style.background='rgba(88, 166, 255, 0.1)'"
+                    @mouseleave="$event.target.style.background='transparent'"
+                  >
+                    🔄 Regenerate
+                  </button>
+                </div>
+                <div v-html="renderedInsight" style="
+                  color: #c9d1d9;
+                  line-height: 1.6;
+                "></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>

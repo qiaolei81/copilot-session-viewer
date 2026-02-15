@@ -5,3 +5,20 @@ npm-debug.log*
 coverage/
 test-results/
 playwright-report/
+
+# Temporary test files
+test-*.js
+screenshot-*.js
+check-*.js
+capture-*.js
+debug-*.js
+verify-*.js
+generate-*.js
+final-test.js
+
+# Temporary screenshots
+*.png
+
+# Temporary documentation
+DIVIDER-*.md
+ESLINT.md

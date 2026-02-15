@@ -65,6 +65,42 @@
       background: #30363d;
       border-color: #58a6ff;
     }
+    .time-analyze-btn {
+      padding: 6px 12px;
+      background: #1f6feb;
+      border: 1px solid #388bfd;
+      border-radius: 6px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .time-analyze-btn:hover {
+      background: #388bfd;
+      border-color: #58a6ff;
+    }
+    .export-btn {
+      padding: 6px 12px;
+      background: #238636;
+      border: 1px solid #2ea043;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .export-btn:hover:not(:disabled) {
+      background: #2ea043;
+      border-color: #3fb950;
+    }
+    .export-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
     h1 { 
       color: #58a6ff; 
       font-size: 20px; 
@@ -867,6 +903,8 @@
       setup() {
         const sessionId = ref(window.sessionData.sessionId);
         const metadata = ref(window.sessionData.metadata);
+        const exporting = ref(false);
+        
         // Load sidebar state from localStorage
         const sidebarCollapsed = ref(
           localStorage.getItem('sidebarCollapsed') === 'true'
@@ -1457,6 +1495,32 @@
           return new Date(timestamp).toLocaleString();
         };
         
+        const exportSession = async () => {
+          exporting.value = true;
+          try {
+            const response = await fetch(`/session/${sessionId.value}/export`);
+            if (!response.ok) {
+              throw new Error('Share failed');
+            }
+            
+            // Download the file
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `session-${sessionId.value}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+          } catch (err) {
+            console.error('Share session error:', err);
+            alert('Failed to share session: ' + err.message);
+          } finally {
+            exporting.value = false;
+          }
+        };
+        
 
         // Lifecycle
         onMounted(async () => {
@@ -1551,6 +1615,7 @@
         return {
           sessionId,
           metadata,
+          exporting,
           sidebarCollapsed,
           expandedTools,
           expandedContent,
@@ -1590,7 +1655,8 @@
           scrollToTurn,
           jumpToTurn,
           getTurnNumber,
-          escapeHtml
+          escapeHtml,
+          exportSession
         };
       },
       
@@ -1599,6 +1665,12 @@
           <div class="header">
             <a href="/" class="home-btn">← Back to Home</a>
             <h1>📋 Session: {{ sessionId }}</h1>
+            <div style="display: flex; gap: 10px;">
+              <a :href="'/session/' + sessionId + '/time-analyze'" class="time-analyze-btn">⏱ Analysis</a>
+              <button @click="exportSession" class="export-btn" :disabled="exporting">
+                {{ exporting ? '⏳ Sharing...' : '📤 Share Session' }}
+              </button>
+            </div>
           </div>
           
           <div class="main-layout">
@@ -1607,13 +1679,9 @@
                 <div class="sidebar-section-title">Session Info</div>
                 <div class="session-info">
                   <div v-if="metadata.summary" class="session-summary-block">{{ metadata.summary }}</div>
-                  <div class="info-row" v-if="metadata.type">
-                    <span class="info-label">Source</span>
-                    <span class="info-value">
-                      <span :class="['source-badge', metadata.type === 'directory' ? 'source-cli' : 'source-vscode']">
-                        {{ metadata.type === 'directory' ? 'CLI' : 'VSCode' }}
-                      </span>
-                    </span>
+                  <div class="info-row" v-if="metadata.copilotVersion">
+                    <span class="info-label">CLI Version</span>
+                    <span class="info-value">{{ metadata.copilotVersion }}</span>
                   </div>
                   <div class="info-row" v-if="metadata.model">
                     <span class="info-label">Model</span>
