@@ -1479,6 +1479,12 @@
         const jumpToTurn = (turnId) => {
           const turn = turns.value.find(t => t.id === turnId);
           if (turn) {
+            // Update URL with eventType + eventName
+            const eventName = `UserReq${turn.userReqNumber}_Turn${turn.id}`;
+            const newUrl = `${window.location.pathname}?eventType=assistant.turn_start&eventName=${eventName}`;
+            window.history.pushState({}, '', newUrl);
+            
+            // Scroll to turn
             scrollToTurn(turn);
           }
         };
