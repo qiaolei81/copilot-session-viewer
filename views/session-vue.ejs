@@ -1560,8 +1560,8 @@
             if (eventTypeParam && eventNameParam) {
               console.log('[Navigation] Waiting for Vue to render...');
               // Wait for Vue to process the events and render
-              setTimeout(() => {
-                console.log('[Navigation] Timeout triggered, flatEvents count:', flatEvents.value?.length);
+              Vue.nextTick(() => {
+                console.log('[Navigation] nextTick - flatEvents count:', flatEvents.value?.length);
                 let targetEvent = null;
                 
                 if (eventTypeParam === 'assistant.turn_start') {
@@ -1578,31 +1578,41 @@
                 } else if (eventTypeParam === 'subagent.started') {
                   console.log('[Navigation] Searching for subagent:', eventNameParam);
                   // Find subagent by name
-                  const allSubagents = flatEvents.value.filter(e => e.type === 'subagent.started');
-                  console.log('[Navigation] Total subagents found:', allSubagents.length);
-                  allSubagents.forEach((sa, i) => {
-                    console.log(`  [${i}]`, sa.data?.agentDisplayName, sa.data?.agentName, sa.data?.label);
-                  });
-                  
                   targetEvent = flatEvents.value.find(event => 
                     event.type === 'subagent.started' && 
                     (event.data?.agentDisplayName === eventNameParam || 
                      event.data?.agentName === eventNameParam ||
                      event.data?.label === eventNameParam)
                   );
-                  console.log('[Navigation] Target event found:', targetEvent ? 'YES' : 'NO');
+                  console.log('[Navigation] Target event found:', targetEvent ? 'YES' : 'NO', 'virtualIndex:', targetEvent?.virtualIndex);
                 } else {
                   // Generic: match by type only
                   targetEvent = flatEvents.value.find(event => event.type === eventTypeParam);
                 }
                 
-                if (targetEvent && scrollerRef.value) {
-                  console.log('[Navigation] Jumping to event:', targetEvent.type, targetEvent.data?.agentDisplayName, 'at index', targetEvent.virtualIndex);
-                  scrollerRef.value.scrollToItem(targetEvent.virtualIndex);
+                if (targetEvent) {
+                  // Find target in filteredEvents (which may be different from flatEvents due to filters)
+                  const targetIndex = filteredEvents.value.findIndex(e => 
+                    e.virtualIndex === targetEvent.virtualIndex
+                  );
+                  console.log('[Navigation] Target in filteredEvents at index:', targetIndex);
+                  
+                  if (targetIndex >= 0 && scrollerRef.value) {
+                    console.log('[Navigation] Scrolling to index:', targetIndex);
+                    // Use retry mechanism like scrollToTurn
+                    const doScroll = (attempts) => {
+                      if (attempts <= 0 || !scrollerRef.value) return;
+                      scrollerRef.value.scrollToItem(targetIndex);
+                      setTimeout(() => doScroll(attempts - 1), 100);
+                    };
+                    setTimeout(() => doScroll(3), 50);
+                  } else {
+                    console.log('[Navigation] Failed - targetIndex:', targetIndex, 'scrollerRef:', !!scrollerRef.value);
+                  }
                 } else {
-                  console.log('[Navigation] Failed - targetEvent:', !!targetEvent, 'scrollerRef:', !!scrollerRef.value);
+                  console.log('[Navigation] Target event not found');
                 }
-              }, 1000);
+              });
             }
           } catch (error) {
             console.error('Error loading events:', error);
