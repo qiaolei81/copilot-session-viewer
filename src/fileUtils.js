@@ -94,7 +94,7 @@ async function getFirstUserMessage(filePath, maxLength = 200) {
       }
     }
     return '';
-  } catch (err) {
+  } catch (_err) {
     return '';
   }
 }

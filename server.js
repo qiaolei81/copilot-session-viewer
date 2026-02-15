@@ -33,10 +33,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://cdn.jsdelivr.net"]
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://cdn.jsdelivr.net'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://cdn.jsdelivr.net']
     }
   }
 }));
@@ -121,13 +121,13 @@ async function getSessionEvents(sessionId) {
     } else {
       eventsFile = path.join(SESSION_DIR, `${sessionId}.jsonl`);
     }
-  } catch (err) {
+  } catch (_err) {
     eventsFile = path.join(SESSION_DIR, `${sessionId}.jsonl`);
   }
   
   try {
     await fs.promises.access(eventsFile);
-  } catch (err) {
+  } catch (_err) {
     return [];
   }
   
@@ -337,7 +337,7 @@ app.get('/session/:id/share', async (req, res) => {
     
     try {
       await fs.promises.access(sessionPath);
-    } catch (err) {
+    } catch (_err) {
       return res.status(404).json({ error: 'Session not found' });
     }
     
@@ -440,7 +440,7 @@ app.post('/session/import', uploadLimiter, upload.single('zipFile'), async (req,
         const eventsFile = path.join(sessionPath, 'events.jsonl');
         try {
           await fs.promises.access(eventsFile);
-        } catch (err) {
+        } catch (_err) {
           await fs.promises.rm(extractDir, { recursive: true, force: true });
           return res.status(400).json({ error: 'Invalid session structure (no events.jsonl)' });
         }
@@ -486,7 +486,7 @@ app.use((req, res) => {
 });
 
 // Global error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('Unhandled error:', err.stack);
   
   const statusCode = err.status || 500;

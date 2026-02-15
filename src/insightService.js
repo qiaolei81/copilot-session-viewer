@@ -38,7 +38,7 @@ class InsightService {
           report,
           generatedAt: stats.mtime
         };
-      } catch (err) {
+      } catch (_err) {
         // File doesn't exist, continue to generation
       }
     }
@@ -55,7 +55,7 @@ class InsightService {
       if (err.code === 'EEXIST') {
         // Another process is generating, check if it's stale
         try {
-          const lockData = JSON.parse(await fs.readFile(lockFile, 'utf-8'));
+          const _lockData = JSON.parse(await fs.readFile(lockFile, 'utf-8'));
           const lockStats = await fs.stat(lockFile);
           const ageMs = Date.now() - lockStats.mtime.getTime();
           
@@ -79,8 +79,8 @@ class InsightService {
             startTime: new Date().toISOString(),
             pid: process.pid
           }), { flag: 'wx' });
-        } catch (retryErr) {
-          throw new Error('Failed to acquire lock for insight generation');
+        } catch (_retryErr) {
+          throw new Error('Failed to acquire lock for insight generation', { cause: _retryErr });
         }
       } else {
         throw err;
@@ -90,16 +90,16 @@ class InsightService {
     // Check if events file exists
     try {
       await fs.access(eventsFile);
-    } catch (err) {
+    } catch (_err) {
       await fs.unlink(lockFile);
-      throw new Error('Events file not found');
+      throw new Error('Events file not found', { cause: _err });
     }
 
     // Clean up old files if force regenerate
     if (forceRegenerate) {
       try {
         await fs.unlink(insightFile);
-      } catch (err) {
+      } catch (_err) {
         // File might not exist
       }
     }
@@ -273,7 +273,7 @@ Output in clean Markdown with ## headers. Keep it concise but insightful (<2000 
         report,
         generatedAt: stats.mtime
       };
-    } catch (err) {
+    } catch (_err) {
       // Check if generation is in progress
       try {
         await fs.access(lockFile);
@@ -283,7 +283,7 @@ Output in clean Markdown with ## headers. Keep it concise but insightful (<2000 
           startedAt: stats.birthtime,
           lastUpdate: stats.mtime
         };
-      } catch (lockErr) {
+      } catch (_lockErr) {
         return { status: 'not_started' };
       }
     }
