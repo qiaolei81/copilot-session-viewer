@@ -1537,7 +1537,7 @@
         onMounted(async () => {
           // Load events asynchronously
           try {
-            const response = await fetch(`/api/session/${sessionId.value}/events`);
+            const response = await fetch(`/api/sessions/${sessionId.value}/events`);
             if (!response.ok) {
               throw new Error(`Failed to load events: ${response.statusText}`);
             }
