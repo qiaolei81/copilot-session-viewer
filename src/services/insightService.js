@@ -142,6 +142,14 @@ class InsightService {
 
     // Pipe events file to stdin
     const eventsStream = fsSync.createReadStream(eventsFile);
+    // Handle EPIPE: if copilot exits before stdin is fully written, suppress the error
+    copilotProcess.stdin.on('error', (err) => {
+      if (err.code === 'EPIPE') {
+        eventsStream.destroy();
+      } else {
+        console.error('❌ stdin error:', err);
+      }
+    });
     eventsStream.pipe(copilotProcess.stdin);
 
     // Capture output
