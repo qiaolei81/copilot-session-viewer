@@ -228,6 +228,15 @@
     .turn-cell {
       color: #8b949e;
     }
+    .turn-link {
+      color: #58a6ff;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .turn-link:hover {
+      color: #79c0ff;
+      text-decoration: underline;
+    }
     
     /* Timeline column in table */
     .timeline-cell {
@@ -1293,7 +1302,13 @@
                     <!-- Turn rows -->
                     <tr v-for="(turn, tidx) in group.turns" :key="'turn-' + turn.turnId" class="turn-row">
                       <td class="mono turn-cell">
-                        Turn {{ turn.turnId }}
+                        <a 
+                          :href="`/session/${sessionId}?turn=${turn.turnId}`"
+                          class="turn-link"
+                          :title="'View events from here'"
+                        >
+                          Turn {{ turn.turnId }}
+                        </a>
                       </td>
                       <td class="mono">{{ formatTime(turn.startTime) }}</td>
                       <td class="mono">{{ formatDuration(turn.duration) }}</td>

@@ -1549,6 +1549,19 @@
             eventsLoading.value = false;
           }
           
+          // Check for ?turn=<id> query parameter and jump to that turn
+          const urlParams = new URLSearchParams(window.location.search);
+          const turnParam = urlParams.get('turn');
+          if (turnParam) {
+            const turnId = parseInt(turnParam, 10);
+            if (!isNaN(turnId)) {
+              // Wait a bit for Vue to render the list
+              setTimeout(() => {
+                jumpToTurn(turnId);
+              }, 500);
+            }
+          }
+          
           window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'b') {
               e.preventDefault();
