@@ -129,10 +129,9 @@ class InsightService {
     const copilotPath = 'copilot';
     const args = ['--config-dir', tmpDir, '--yolo', '-p', prompt];
     
-    const envPath = config.getBrewPath() + process.env.PATH;
-    
+    // Use system PATH - copilot should be in the user's PATH
     const copilotProcess = spawn(copilotPath, args, {
-      env: { ...process.env, PATH: envPath },
+      env: { ...process.env },
       cwd: sessionPath,
       stdio: ['pipe', 'pipe', 'pipe']
     });

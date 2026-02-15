@@ -20,12 +20,5 @@ module.exports = {
   // Request Limits
   RATE_LIMIT_WINDOW_MS: 15 * 60 * 1000, // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: 5,
-  REQUEST_TIMEOUT_MS: 30 * 1000, // 30 seconds
-  
-  // Path Configuration
-  getBrewPath() {
-    return process.platform === 'darwin'
-      ? '/opt/homebrew/bin:'
-      : '';
-  }
+  REQUEST_TIMEOUT_MS: 30 * 1000 // 30 seconds
 };
