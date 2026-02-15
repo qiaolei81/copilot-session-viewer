@@ -8,7 +8,15 @@ const globalLimiter = rateLimit({
   message: { error: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path.startsWith('/public') // Skip static files
+  skip: (req) => {
+    // Skip static files
+    if (req.path.startsWith('/public')) return true;
+
+    // Skip insight status checks (GET requests)
+    if (req.method === 'GET' && req.path.includes('/insight')) return true;
+
+    return false;
+  }
 });
 
 // Rate limiting for insight generation (stricter for POST)
