@@ -23,11 +23,11 @@ const insightGenerationLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Rate limiting for insight status/retrieval (more lenient for GET/DELETE)
+// Rate limiting for insight status/retrieval (very lenient for GET/DELETE)
 const insightAccessLimiter = rateLimit({
-  windowMs: config.RATE_LIMIT_WINDOW_MS, // 15 minutes
-  max: config.RATE_LIMIT_MAX_REQUESTS, // 10 requests per window
-  message: { error: 'Too many insight requests. Please try again later.' },
+  windowMs: 1 * 60 * 1000, // 1 minute (shorter window)
+  max: 50, // 50 requests per minute (very lenient)
+  message: { error: 'Too many insight requests. Please try again in a minute.' },
   standardHeaders: true,
   legacyHeaders: false
 });

@@ -77,7 +77,7 @@ function createApp(options = {}) {
 
   // Insight routes with appropriate rate limiting
   app.post('/session/:id/insight', insightGenerationLimiter, insightController.generateInsight.bind(insightController));
-  app.get('/session/:id/insight', insightAccessLimiter, insightController.getInsightStatus.bind(insightController));
+  app.get('/session/:id/insight', insightController.getInsightStatus.bind(insightController)); // Remove rate limiting for GET
   app.delete('/session/:id/insight', insightAccessLimiter, insightController.deleteInsight.bind(insightController));
 
   // Upload rate limiting
