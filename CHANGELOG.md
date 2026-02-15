@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minimal `.npmignore` configuration for optimized package publishing (82% size reduction)
 
 ### Changed
+- Insight output file renamed from `insight-report.md` to `copilot-insight.md`
+- Insight prompt rewritten to enforce ≤500 character output (down from ~2000 words)
+- Insight now focuses on three essentials: health score, top issue, key recommendation
 - Insight generation rate limiting: 3 requests per 5 minutes (more user-friendly window)
 - Insight access operations: 50 requests per minute (very lenient for status checks)
 - Package size optimized from 298kB to 52kB for npm publishing
