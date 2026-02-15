@@ -237,6 +237,15 @@
       color: #79c0ff;
       text-decoration: underline;
     }
+    .subagent-link {
+      color: #58a6ff;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .subagent-link:hover {
+      color: #79c0ff;
+      text-decoration: underline;
+    }
     
     /* Timeline column in table */
     .timeline-cell {
@@ -1341,10 +1350,16 @@
               <div class="gantt-container">
                 <div v-for="(sa, idx) in subagentAnalysis" :key="idx" class="gantt-row">
                   <div class="gantt-label" :title="sa.name">
-                    <span :style="{ color: sa.status === 'completed' ? '#3fb950' : sa.status === 'failed' ? '#f85149' : '#d29922' }">
-                      {{ sa.status === 'completed' ? '✓' : sa.status === 'failed' ? '✗' : '⏳' }}
-                    </span>
-                    {{ sa.name }}
+                    <a 
+                      :href="`/session/${sessionId}?timestamp=${encodeURIComponent(sa.startTime)}`"
+                      class="subagent-link"
+                      :title="'View events from here'"
+                    >
+                      <span :style="{ color: sa.status === 'completed' ? '#3fb950' : sa.status === 'failed' ? '#f85149' : '#d29922' }">
+                        {{ sa.status === 'completed' ? '✓' : sa.status === 'failed' ? '✗' : '⏳' }}
+                      </span>
+                      {{ sa.name }}
+                    </a>
                   </div>
                   <div class="gantt-bar-area">
                     <div
@@ -1377,7 +1392,15 @@
                   </thead>
                   <tbody>
                     <tr v-for="(sa, idx) in subagentAnalysis" :key="idx">
-                      <td>{{ sa.name }}</td>
+                      <td>
+                        <a 
+                          :href="`/session/${sessionId}?timestamp=${encodeURIComponent(sa.startTime)}`"
+                          class="subagent-link"
+                          :title="'View events from here'"
+                        >
+                          {{ sa.name }}
+                        </a>
+                      </td>
                       <td>
                         <span :style="{ color: sa.status === 'completed' ? '#3fb950' : sa.status === 'failed' ? '#f85149' : '#d29922' }">
                           {{ sa.status === 'completed' ? '✓ Completed' : sa.status === 'failed' ? '✗ Failed' : '⏳ Incomplete' }}

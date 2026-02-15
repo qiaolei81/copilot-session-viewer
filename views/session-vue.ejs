@@ -1552,6 +1552,8 @@
           // Check for ?turn=<id> query parameter and jump to that turn
           const urlParams = new URLSearchParams(window.location.search);
           const turnParam = urlParams.get('turn');
+          const timestampParam = urlParams.get('timestamp');
+          
           if (turnParam) {
             const turnId = parseInt(turnParam, 10);
             if (!isNaN(turnId)) {
@@ -1560,6 +1562,27 @@
                 jumpToTurn(turnId);
               }, 500);
             }
+          } else if (timestampParam) {
+            // Find event closest to timestamp and scroll to it
+            setTimeout(() => {
+              const targetTime = new Date(timestampParam).getTime();
+              let closestEvent = null;
+              let minDiff = Infinity;
+              
+              for (const event of flatEvents.value) {
+                const eventTime = new Date(event.timestamp).getTime();
+                const diff = Math.abs(eventTime - targetTime);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  closestEvent = event;
+                }
+              }
+              
+              if (closestEvent && scrollerRef.value) {
+                const index = closestEvent.virtualIndex;
+                scrollerRef.value.scrollToItem(index);
+              }
+            }, 500);
           }
           
           window.addEventListener('keydown', (e) => {
