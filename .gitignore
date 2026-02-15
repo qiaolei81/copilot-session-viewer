@@ -34,3 +34,6 @@ sessions/
 # Local notes
 NOTES*.md
 TODO*.md
+
+# CI test sessions
+.test-sessions/

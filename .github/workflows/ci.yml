@@ -37,11 +37,22 @@ jobs:
       - name: Run unit tests
         run: npm test
       
+      - name: Setup test session directory
+        run: mkdir -p ${{ github.workspace }}/.test-sessions
+      
+      - name: Generate test session data
+        run: node __tests__/fixtures/generate-test-session.js
+        env:
+          SESSION_DIR: ${{ github.workspace }}/.test-sessions
+      
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       
       - name: Run E2E tests
         run: npm run test:e2e
+        env:
+          SESSION_DIR: ${{ github.workspace }}/.test-sessions
+          PORT: 3838
       
       - name: Upload test results
         if: failure()
