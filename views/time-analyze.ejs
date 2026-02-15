@@ -1080,7 +1080,7 @@
         // ── Load events ──
         onMounted(async () => {
           try {
-            const resp = await fetch('/api/session/' + sessionId.value + '/events');
+            const resp = await fetch('/api/sessions/' + sessionId.value + '/events');
             if (!resp.ok) throw new Error('Failed to load events: ' + resp.statusText);
             const data = await resp.json();
             events.value = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
