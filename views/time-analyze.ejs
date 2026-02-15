@@ -683,7 +683,7 @@
             return {
               turnId: turn.data?.turnId ?? idx,
               userReqNumber,
-              message: userMessage?.data?.content || '',
+              message: userMessage?.data?.content || userMessage?.data?.transformedContent || '',
               startTime: turn.timestamp,
               endTime: nextTurn?.timestamp || events.value[events.value.length - 1]?.timestamp,
               duration,
