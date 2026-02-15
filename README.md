@@ -24,7 +24,7 @@ Then open http://localhost:3838
 ### Install from source
 
 ```bash
-git clone https://github.com/yourusername/copilot-session-viewer.git
+git clone https://github.com/qiaolei81/copilot-session-viewer.git
 cd copilot-session-viewer
 npm install
 npm start
