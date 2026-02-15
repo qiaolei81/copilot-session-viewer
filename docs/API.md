@@ -150,7 +150,7 @@ GET /session/:sessionId/download
 **ZIP Contents:**
 - `events.jsonl` - Event stream data
 - `workspace.yaml` - Session metadata
-- `insight-report.md` - AI analysis (if available)
+- `copilot-insight.md` - AI analysis (if available)
 
 **Example:**
 ```bash
@@ -244,7 +244,7 @@ GET /session/:sessionId/insight
 ```json
 {
   "exists": true,
-  "path": "/path/to/insight-report.md",
+  "path": "/path/to/copilot-insight.md",
   "size": 15420,
   "lastModified": "2026-02-15T02:35:00.000Z"
 }

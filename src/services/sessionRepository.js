@@ -85,7 +85,7 @@ class SessionRepository {
     const workspaceFile = path.join(fullPath, 'workspace.yaml');
     const eventsFile = path.join(fullPath, 'events.jsonl');
     const importedMarkerFile = path.join(fullPath, '.imported');
-    const insightReportFile = path.join(fullPath, 'insight-report.md');
+    const insightReportFile = path.join(fullPath, 'copilot-insight.md');
 
     // Check if workspace.yaml exists
     if (!await fileExists(workspaceFile)) {

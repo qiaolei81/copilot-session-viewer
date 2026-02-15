@@ -111,7 +111,7 @@ npx @qiaolei81/copilot-session-viewer
 │  Data Layer (~/.copilot/session-state/)         │
 │  • events.jsonl (event streams)                 │
 │  • workspace.yaml (metadata)                    │
-│  • insight-report.md (AI analysis)              │
+│  • copilot-insight.md (AI analysis)              │
 └─────────────────────────────────────────────────┘
 ```
 

@@ -257,7 +257,7 @@ ENABLE_INSIGHTS=false npx @qiaolei81/copilot-session-viewer
 
 ### Insight Permission Issues
 
-**Issue:** `Error: EACCES: permission denied, open 'insight-report.md'`
+**Issue:** `Error: EACCES: permission denied, open 'copilot-insight.md'`
 
 **Solution:**
 ```bash
@@ -266,7 +266,7 @@ chmod 755 ~/.copilot/session-state/YOUR_SESSION_ID/
 chmod 644 ~/.copilot/session-state/YOUR_SESSION_ID/*
 
 # If insight file exists but can't be overwritten
-rm ~/.copilot/session-state/YOUR_SESSION_ID/insight-report.md
+rm ~/.copilot/session-state/YOUR_SESSION_ID/copilot-insight.md
 ```
 
 ---

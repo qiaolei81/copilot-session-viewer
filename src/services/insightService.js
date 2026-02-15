@@ -24,8 +24,8 @@ class InsightService {
    */
   async generateInsight(sessionId, forceRegenerate = false) {
     const sessionPath = path.join(this.sessionDir, sessionId);
-    const insightFile = path.join(sessionPath, 'insight-report.md');
-    const lockFile = path.join(sessionPath, 'insight-report.md.lock');
+    const insightFile = path.join(sessionPath, 'copilot-insight.md');
+    const lockFile = path.join(sessionPath, 'copilot-insight.md.lock');
     const eventsFile = path.join(sessionPath, 'events.jsonl');
 
     // Check if complete insight exists
@@ -124,7 +124,7 @@ class InsightService {
     await fs.mkdir(tmpDir, { recursive: true });
 
     const prompt = this._buildPrompt();
-    const outputFile = path.join(sessionPath, 'insight-report.md.tmp');
+    const outputFile = path.join(sessionPath, 'copilot-insight.md.tmp');
 
     // Spawn copilot directly (no shell)
     const copilotPath = 'copilot';
@@ -202,42 +202,18 @@ class InsightService {
    * @private
    */
   _buildPrompt() {
-    return `Analyze this GitHub Copilot CLI session data (JSONL format, one event per line) and generate a deep, actionable insight report.
+    return `Analyze this GitHub Copilot CLI session data (JSONL format) and produce a concise insight.
 
-CRITICAL: Output ONLY the analysis report. Do NOT include thinking blocks, reasoning steps, or meta-commentary about your analysis process. Go straight to insights.
+CRITICAL CONSTRAINTS:
+- Your ENTIRE output must be UNDER 500 characters (not words — characters, including spaces and punctuation).
+- Output ONLY the analysis. No thinking blocks, no meta-commentary.
 
-Focus on:
-1. **Session Health Score** (0-100): Calculate based on success rate, completion rate, and performance
-   - Red flags: error rate >50%, incomplete sub-agents, timeout patterns
-   
-2. **Critical Issues** (if any):
-   - What went wrong and why (root cause analysis)
-   - Impact on user workflow
-   - Specific failing patterns (e.g., "all 'create' calls missing file_text parameter")
+Include:
+1. **Health Score** (0-100) based on success/error rates
+2. **Top Issue**: The single most impactful problem with root cause
+3. **Key Recommendation**: One specific, actionable improvement
 
-3. **Performance Bottlenecks**:
-   - Slowest operations with timing data
-   - Where LLM is spending most time
-   - Tool execution delays vs LLM thinking time
-
-4. **Sub-Agent Effectiveness**:
-   - Which sub-agents succeeded/failed and why
-   - Completion patterns and failure points
-   - Resource utilization (tool calls per sub-agent)
-
-5. **Tool Usage Intelligence**:
-   - Most/least used tools
-   - Error patterns per tool type
-   - Unused but potentially helpful tools
-
-6. **Workflow Recommendations**:
-   - Actionable improvements (specific, not generic)
-   - Configuration tuning suggestions
-   - Anti-patterns detected
-
-Use data-driven language with specific numbers. Be critical, not descriptive. Focus on "why" and "what to do" rather than "what happened".
-
-Output in clean Markdown with ## headers. Keep it concise but insightful (<2000 words).`;
+Be data-driven with specific numbers. No filler or generic advice.`;
   }
 
   /**
@@ -262,8 +238,8 @@ Output in clean Markdown with ## headers. Keep it concise but insightful (<2000 
    */
   async getInsightStatus(sessionId) {
     const sessionPath = path.join(this.sessionDir, sessionId);
-    const insightFile = path.join(sessionPath, 'insight-report.md');
-    const lockFile = path.join(sessionPath, 'insight-report.md.lock');
+    const insightFile = path.join(sessionPath, 'copilot-insight.md');
+    const lockFile = path.join(sessionPath, 'copilot-insight.md.lock');
 
     try {
       const report = await fs.readFile(insightFile, 'utf-8');
@@ -295,8 +271,8 @@ Output in clean Markdown with ## headers. Keep it concise but insightful (<2000 
    */
   async deleteInsight(sessionId) {
     const sessionPath = path.join(this.sessionDir, sessionId);
-    const insightFile = path.join(sessionPath, 'insight-report.md');
-    
+    const insightFile = path.join(sessionPath, 'copilot-insight.md');
+
     try {
       await fs.unlink(insightFile);
       return { success: true };
