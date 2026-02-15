@@ -95,7 +95,6 @@ test.describe('Infinite Scroll', () => {
 
   test('should hide Load More button when no more sessions available', async ({ page }) => {
     // Keep clicking Load More until no more sessions
-    let previousCount = 0;
     let currentCount = await page.locator('.recent-item').count();
     let attempts = 0;
     const maxAttempts = 10; // Prevent infinite loop
@@ -107,7 +106,7 @@ test.describe('Infinite Scroll', () => {
         break;
       }
 
-      previousCount = currentCount;
+      const previousCount = currentCount;
       await loadMoreButton.click();
       await page.waitForTimeout(2000);
       currentCount = await page.locator('.recent-item').count();

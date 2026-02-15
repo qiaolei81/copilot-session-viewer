@@ -125,7 +125,7 @@ test.describe('Session Detail Page', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for page content to load - try multiple possible selectors
-    const pageLoaded = await Promise.race([
+    const _pageLoaded = await Promise.race([
       page.waitForSelector('.container', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('body', { timeout: 5000 })
     ]);
@@ -165,7 +165,7 @@ test.describe('Session Detail Page', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for page content to load - try multiple possible selectors
-    const pageLoaded = await Promise.race([
+    const _pageLoaded = await Promise.race([
       page.waitForSelector('.container', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('body', { timeout: 5000 })
     ]);
@@ -198,7 +198,7 @@ test.describe('Session Detail Page', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for page content to load - try multiple possible selectors
-    const pageLoaded = await Promise.race([
+    const _pageLoaded = await Promise.race([
       page.waitForSelector('.container', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('body', { timeout: 5000 })
     ]);
