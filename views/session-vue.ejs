@@ -1548,49 +1548,51 @@
               throw new Error(`Failed to load events: ${response.statusText}`);
             }
             loadedEvents.value = await response.json();
+            
+            // Check for URL query parameters and jump to event AFTER events are loaded
+            const urlParams = new URLSearchParams(window.location.search);
+            const eventTypeParam = urlParams.get('eventType');
+            const eventNameParam = urlParams.get('eventName');
+            
+            if (eventTypeParam && eventNameParam) {
+              // Wait for Vue to process the events and render
+              setTimeout(() => {
+                let targetEvent = null;
+                
+                if (eventTypeParam === 'assistant.turn_start') {
+                  // Parse "UserReq1_Turn0" format
+                  const match = eventNameParam.match(/UserReq(\d+)_Turn(\d+)/);
+                  if (match) {
+                    const turnId = parseInt(match[2], 10);
+                    if (!isNaN(turnId)) {
+                      jumpToTurn(turnId);
+                      return;
+                    }
+                  }
+                } else if (eventTypeParam === 'subagent.started') {
+                  // Find subagent by name
+                  targetEvent = flatEvents.value.find(event => 
+                    event.type === 'subagent.started' && 
+                    (event.data?.agentDisplayName === eventNameParam || 
+                     event.data?.agentName === eventNameParam ||
+                     event.data?.label === eventNameParam)
+                  );
+                } else {
+                  // Generic: match by type only
+                  targetEvent = flatEvents.value.find(event => event.type === eventTypeParam);
+                }
+                
+                if (targetEvent && scrollerRef.value) {
+                  console.log('Jumping to event:', targetEvent.type, targetEvent.data?.agentDisplayName, 'at index', targetEvent.virtualIndex);
+                  scrollerRef.value.scrollToItem(targetEvent.virtualIndex);
+                }
+              }, 800);
+            }
           } catch (error) {
             console.error('Error loading events:', error);
             eventsError.value = error.message;
           } finally {
             eventsLoading.value = false;
-          }
-          
-          // Check for URL query parameters and jump to event
-          const urlParams = new URLSearchParams(window.location.search);
-          const eventTypeParam = urlParams.get('eventType');
-          const eventNameParam = urlParams.get('eventName');
-          
-          if (eventTypeParam && eventNameParam) {
-            setTimeout(() => {
-              let targetEvent = null;
-              
-              if (eventTypeParam === 'assistant.turn_start') {
-                // Parse "UserReq1_Turn0" format
-                const match = eventNameParam.match(/UserReq(\d+)_Turn(\d+)/);
-                if (match) {
-                  const turnId = parseInt(match[2], 10);
-                  if (!isNaN(turnId)) {
-                    jumpToTurn(turnId);
-                    return;
-                  }
-                }
-              } else if (eventTypeParam === 'subagent.started') {
-                // Find subagent by name
-                targetEvent = flatEvents.value.find(event => 
-                  event.type === 'subagent.started' && 
-                  (event.data?.agentDisplayName === eventNameParam || 
-                   event.data?.agentName === eventNameParam ||
-                   event.data?.label === eventNameParam)
-                );
-              } else {
-                // Generic: match by type only
-                targetEvent = flatEvents.value.find(event => event.type === eventTypeParam);
-              }
-              
-              if (targetEvent && scrollerRef.value) {
-                scrollerRef.value.scrollToItem(targetEvent.virtualIndex);
-              }
-            }, 500);
           }
           
           window.addEventListener('keydown', (e) => {
