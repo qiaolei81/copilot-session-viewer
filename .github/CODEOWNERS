@@ -1,0 +1,31 @@
+# CODEOWNERS
+# Each line is a file pattern followed by one or more owners.
+# The last matching pattern takes precedence.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo
+* @qiaolei81
+
+# Specific file types
+*.js @qiaolei81
+*.vue @qiaolei81
+*.ejs @qiaolei81
+
+# Configuration files
+package.json @qiaolei81
+package-lock.json @qiaolei81
+eslint.config.mjs @qiaolei81
+
+# GitHub workflows
+.github/workflows/* @qiaolei81
+
+# Documentation (you might want to make this less strict)
+*.md @qiaolei81
+
+# Tests
+__tests__/* @qiaolei81
+
+# Source code
+/src/* @qiaolei81
+/views/* @qiaolei81
+/server.js @qiaolei81
