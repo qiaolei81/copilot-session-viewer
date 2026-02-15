@@ -22,3 +22,15 @@ final-test.js
 # Temporary documentation
 DIVIDER-*.md
 ESLINT.md
+
+# Claude Code local settings
+.claude/
+*.local.json
+
+# Session data (if any test sessions)
+sessions/
+*.jsonl
+
+# Local notes
+NOTES*.md
+TODO*.md

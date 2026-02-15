@@ -2,6 +2,7 @@
   "name": "copilot-session-viewer",
   "version": "1.0.0",
   "description": "Web UI for viewing GitHub Copilot CLI session logs",
+  "author": "Lei Qiao <qiaolei81@gmail.com>",
   "main": "server.js",
   "bin": {
     "copilot-session-viewer": "./bin/copilot-session-viewer"
