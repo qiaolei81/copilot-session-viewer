@@ -1563,23 +1563,37 @@
               }, 500);
             }
           } else if (timestampParam) {
-            // Find event closest to timestamp and scroll to it
+            // Find event with matching timestamp (and optional type filter)
             setTimeout(() => {
-              const targetTime = new Date(timestampParam).getTime();
-              let closestEvent = null;
-              let minDiff = Infinity;
+              const targetTime = timestampParam;
+              const typeFilter = urlParams.get('type'); // Optional: filter by event type
               
-              for (const event of flatEvents.value) {
-                const eventTime = new Date(event.timestamp).getTime();
-                const diff = Math.abs(eventTime - targetTime);
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  closestEvent = event;
+              let targetEvent = null;
+              
+              // First try: exact timestamp + type match (for subagents)
+              if (typeFilter) {
+                targetEvent = flatEvents.value.find(event => 
+                  event.timestamp === targetTime && event.type === typeFilter
+                );
+              }
+              
+              // Fallback: find closest event by timestamp
+              if (!targetEvent) {
+                const targetTimeMs = new Date(targetTime).getTime();
+                let minDiff = Infinity;
+                
+                for (const event of flatEvents.value) {
+                  const eventTime = new Date(event.timestamp).getTime();
+                  const diff = Math.abs(eventTime - targetTimeMs);
+                  if (diff < minDiff) {
+                    minDiff = diff;
+                    targetEvent = event;
+                  }
                 }
               }
               
-              if (closestEvent && scrollerRef.value) {
-                const index = closestEvent.virtualIndex;
+              if (targetEvent && scrollerRef.value) {
+                const index = targetEvent.virtualIndex;
                 scrollerRef.value.scrollToItem(index);
               }
             }, 500);

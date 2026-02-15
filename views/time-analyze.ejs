@@ -1381,7 +1381,7 @@
                 <div v-for="(sa, idx) in subagentAnalysis" :key="idx" class="gantt-row">
                   <div class="gantt-label" :title="sa.name">
                     <a 
-                      :href="'/session/' + sessionId + '?timestamp=' + encodeURIComponent(sa.startTime)"
+                      :href="'/session/' + sessionId + '?timestamp=' + encodeURIComponent(sa.startTime) + '&type=subagent.started'"
                       class="subagent-link"
                       :title="'View events from here'"
                     >
@@ -1424,7 +1424,7 @@
                     <tr v-for="(sa, idx) in subagentAnalysis" :key="idx">
                       <td>
                         <a 
-                          :href="'/session/' + sessionId + '?timestamp=' + encodeURIComponent(sa.startTime)"
+                          :href="'/session/' + sessionId + '?timestamp=' + encodeURIComponent(sa.startTime) + '&type=subagent.started'"
                           class="subagent-link"
                           :title="'View events from here'"
                         >
