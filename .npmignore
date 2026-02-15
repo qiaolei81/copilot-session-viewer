@@ -1,65 +1,24 @@
-# Test files
+# Development and testing
 __tests__/
-*.test.js
-*.spec.js
-coverage/
+.github/
+eslint.config.mjs
+.claude/
+
+# Documentation (keep only README.md)
+docs/
+CONTRIBUTING.md
+AGENTS.md
+RELEASE.md
+
+# Test artifacts
 test-results/
 playwright-report/
 playwright.config.js
 jest.config.js
 
-# Development files
-.github/
-.vscode/
-.idea/
-*.log
-npm-debug.log*
-
-# Documentation (keep README.md)
-docs/
-CONTRIBUTING.md
-CODE_OF_CONDUCT.md
-
-# Local config
-.env
-.env.*
-!.env.example
-
-# Build artifacts
-*.tgz
-
-# IDE
-.DS_Store
-*.swp
-*.swo
-
-# Temporary files
-tmp/
-temp/
-screenshots/
-test-*.js
-debug-*.js
-
-# Git
-.git
-.gitignore
-.gitattributes
-
-# CI/CD (not needed in package)
-.github/
-
-# Claude Code
-.claude/
+# Scripts
+scripts/
 
 # Session data
 sessions/
 *.jsonl
-
-# ESLint (modern flat config)
-eslint.config.mjs
-
-# Nodemon
-nodemon.json
-
-# AGENTS.md (optional - uncomment if you want to exclude)
-# AGENTS.md
