@@ -52,156 +52,130 @@ test.describe('Session Detail Page', () => {
     await expect(page.locator('.session-info')).toBeVisible();
   });
 
-  test.skip('should display event list', async ({ page }) => {
-    // TODO: Update this test for new Vue-based UI
+  test('should display event list', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
     
     // Wait for Vue to mount and events to load
     await page.waitForSelector('.main-layout', { timeout: 10000 });
-    await page.waitForSelector('.event', { timeout: 10000 });
+    await page.waitForSelector('.event-header', { timeout: 10000 });
     
     // Check events are displayed
-    const events = page.locator('.event');
-    await expect(events).not.toHaveCount(0);
+    const events = page.locator('.event-header');
+    await expect(events.first()).toBeVisible();
+    const count = await events.count();
+    expect(count).toBeGreaterThan(0);
   });
 
-  test.skip('should filter events by search', async ({ page }) => {
-    // TODO: Update this test for new Vue-based UI
+  test('should filter events by search', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
     
     // Wait for Vue to mount and events to load
     await page.waitForSelector('.main-layout', { timeout: 10000 });
-    await page.waitForSelector('.event', { timeout: 10000 });
+    await page.waitForSelector('.event-header', { timeout: 10000 });
     
-    // CRITICAL: Wait for virtual scroller to fully stabilize
+    // Wait for virtual scroller to stabilize
     await page.waitForTimeout(1000);
     
     // Get initial event count
-    const initialCount = await page.locator('.event').count();
-    expect(initialCount).toBeGreaterThan(0);  // Ensure events are visible
-    
-    // Type in search box - use generic term
-    const searchInput = page.locator('input[placeholder*="Search"]');
-    await searchInput.fill('e');  // Single letter - will definitely match something
-    
-    // Wait for debounce + search to complete (counter appears)
-    await page.waitForFunction(
-      () => {
-        const counter = document.querySelector('.search-result-count');
-        return counter && counter.textContent.trim().length > 0;
-      },
-      { timeout: 10000 }  // Increased timeout to 10s
-    );
-    
-    // Check search result counter is shown
-    const counter = page.locator('.search-result-count');
-    await expect(counter).toBeVisible();
-    const counterText = await counter.textContent();
-    
-    // Should either show count or "No matches"
-    expect(counterText).toMatch(/\d+ results?|No matches/);
-  });
-
-  test.skip('should clear search filter', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
-    await page.waitForSelector('.event', { timeout: 10000 });
-    
-    // CRITICAL: Wait for virtual scroller to fully stabilize
-    await page.waitForTimeout(1000);
-    
-    // Ensure events are visible before searching
-    const initialCount = await page.locator('.event').count();
+    const initialCount = await page.locator('.event-header').count();
     expect(initialCount).toBeGreaterThan(0);
     
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    // Type in search box
+    const searchInput = page.locator('input[placeholder="🔍 Search events..."]');
+    await searchInput.fill('assistant.message');
     
-    // Search for single letter - guaranteed to match
-    await searchInput.fill('e');
+    // Wait for debounce + search to complete
+    await page.waitForTimeout(800);
     
-    // Wait for search to complete (counter appears)
-    await page.waitForFunction(
-      () => {
-        const counter = document.querySelector('.search-result-count');
-        return counter && counter.textContent.trim().length > 0;
-      },
-      { timeout: 10000 }  // Increased timeout
-    );
+    // Get filtered count
+    const filteredCount = await page.locator('.event-header').count();
     
-    const filteredCount = await page.locator('.event').count();
+    // Filtered count should be less than or equal to initial
+    expect(filteredCount).toBeLessThanOrEqual(initialCount);
+  });
+
+  test('should clear search filter', async ({ page }) => {
+    await page.goto(`/session/${SESSION_ID}`);
+    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.waitForSelector('.event-header', { timeout: 10000 });
+    
+    // Wait for virtual scroller to stabilize
+    await page.waitForTimeout(1000);
+    
+    const searchInput = page.locator('input[placeholder="🔍 Search events..."]');
+    
+    // Search for something specific
+    await searchInput.fill('assistant.message');
+    await page.waitForTimeout(800);
+    
+    const filteredCount = await page.locator('.event-header').count();
     
     // Clear search
     await searchInput.clear();
+    await page.waitForTimeout(800);
     
-    // Wait for counter to disappear (indicates search cleared)
-    await page.waitForFunction(
-      () => document.querySelector('.search-result-count') === null,
-      { timeout: 10000 }  // Increased timeout
-    );
+    const clearedCount = await page.locator('.event-header').count();
     
-    const clearedCount = await page.locator('.event').count();
-    
-    // Count should increase after clearing (or at minimum, be equal if filter matched all)
+    // Count should increase after clearing
     expect(clearedCount).toBeGreaterThanOrEqual(filteredCount);
   });
 
-  test.skip('should expand and collapse tool details', async ({ page }) => {
-    // TODO: Update this test for new Vue-based UI
+  test('should expand and collapse tool details', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
-    await page.waitForSelector('.event', { timeout: 10000 });
+    await page.waitForSelector('.event-header', { timeout: 10000 });
     
-    // Find a tool call event
-    const toolEvent = page.locator('.event').filter({ hasText: 'tool.execution_start' }).first();
+    // Wait for events to load
+    await page.waitForTimeout(1000);
     
-    if (await toolEvent.count() > 0) {
-      // Click to expand
-      await toolEvent.locator('.tool-header-line').click();
+    // Find a tool call (look for tool-name class)
+    const toolHeader = page.locator('.tool-name').first();
+    
+    if (await toolHeader.count() > 0) {
+      // Get parent element (clickable area)
+      const toolRow = toolHeader.locator('..');
       
-      // Check details are visible
-      await expect(toolEvent.locator('.tool-details')).toBeVisible();
+      // Click to expand
+      await toolRow.click();
+      await page.waitForTimeout(300);
+      
+      // Check expand icon changed (▶ → ▼)
+      await expect(toolRow).toContainText('▼');
       
       // Click again to collapse
-      await toolEvent.locator('.tool-header-line').click();
+      await toolRow.click();
+      await page.waitForTimeout(300);
       
-      // Check details are hidden
-      await expect(toolEvent.locator('.tool-details')).not.toBeVisible();
+      // Check expand icon changed back (▼ → ▶)
+      await expect(toolRow).toContainText('▶');
     }
   });
 
-  test.skip('should toggle content visibility', async ({ page }) => {
-    // TODO: Update this test for new Vue-based UI
+  test('should toggle content visibility', async ({ page }) => {
     await page.goto(`/session/${SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
-    await page.waitForSelector('.event', { timeout: 10000 });
+    await page.waitForSelector('.event-header', { timeout: 10000 });
+    
+    // Wait for events to load
+    await page.waitForTimeout(1000);
     
     // Find an event with "Show more" button
-    const showMoreButton = page.locator('button[data-content-id]').filter({ hasText: 'Show more' }).first();
+    const showMoreButton = page.locator('button').filter({ hasText: 'Show more ▼' }).first();
     
     if (await showMoreButton.count() > 0) {
-      // Get the content ID
-      const contentId = await showMoreButton.getAttribute('data-content-id');
-      
       // Click "Show more"
       await showMoreButton.click();
-      
-      // Wait for Vue to update
-      await page.waitForTimeout(500);
-      
-      // Find button by content ID (more stable than hasText filter)
-      const button = page.locator(`button[data-content-id="${contentId}"]`);
+      await page.waitForTimeout(300);
       
       // Button text should change to "Show less"
-      await expect(button).toContainText('Show less', { timeout: 10000 });
+      await expect(showMoreButton).toContainText('Show less ▲');
       
       // Click "Show less"
-      await button.click();
-      
-      // Wait for Vue to update
-      await page.waitForTimeout(500);
+      await showMoreButton.click();
+      await page.waitForTimeout(300);
       
       // Button text should change back
-      await expect(button).toContainText('Show more', { timeout: 10000 });
+      await expect(showMoreButton).toContainText('Show more ▼');
     }
   });
 
