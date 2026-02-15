@@ -65,7 +65,8 @@ class InsightService {
               status: 'generating',
               report: '# Generating Copilot Insight...\n\nAnother request is currently generating this insight. Please wait.',
               startedAt: lockStats.birthtime,
-              lastUpdate: lockStats.mtime
+              lastUpdate: lockStats.mtime,
+              ageMs: Date.now() - lockStats.birthtime.getTime()
             };
           }
           
@@ -280,7 +281,8 @@ Output in clean Markdown with ## headers. Keep it concise but insightful (<2000 
         return {
           status: 'generating',
           startedAt: stats.birthtime,
-          lastUpdate: stats.mtime
+          lastUpdate: stats.mtime,
+          ageMs: Date.now() - stats.birthtime.getTime()
         };
       } catch (_lockErr) {
         return { status: 'not_started' };
