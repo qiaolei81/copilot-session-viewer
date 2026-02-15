@@ -229,12 +229,30 @@
     }
     .status-badge.model {
       padding: 2px 8px;
-      background: rgba(139, 92, 246, 0.15);
-      color: #a78bfa;
       border-radius: 12px;
       font-size: 11px;
       font-weight: 600;
       font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    }
+    /* Claude - Anthropic orange/brown */
+    .status-badge.model-claude {
+      background: rgba(204, 120, 92, 0.15);
+      color: #e8956f;
+    }
+    /* GPT - OpenAI green */
+    .status-badge.model-gpt {
+      background: rgba(16, 163, 127, 0.15);
+      color: #1ec99d;
+    }
+    /* Gemini - Google blue */
+    .status-badge.model-gemini {
+      background: rgba(66, 133, 244, 0.15);
+      color: #5e9aff;
+    }
+    /* Fallback for other models */
+    .status-badge.model-other {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
     }
     .status-badge.version {
       padding: 2px 8px;
@@ -490,8 +508,16 @@
       }
       // Add model and version badges
       if (session.selectedModel) {
-        const modelShort = session.selectedModel.replace('claude-', '').replace('gpt-', '');
-        badges += `<span class="status-badge model" title="Model: ${escapeHtml(session.selectedModel)}">${escapeHtml(modelShort)}</span>`;
+        const modelShort = session.selectedModel.replace('claude-', '').replace('gpt-', '').replace('gemini-', '');
+        let modelClass = 'model-other';
+        if (session.selectedModel.includes('claude')) {
+          modelClass = 'model-claude';
+        } else if (session.selectedModel.includes('gpt')) {
+          modelClass = 'model-gpt';
+        } else if (session.selectedModel.includes('gemini')) {
+          modelClass = 'model-gemini';
+        }
+        badges += `<span class="status-badge model ${modelClass}" title="Model: ${escapeHtml(session.selectedModel)}">${escapeHtml(modelShort)}</span>`;
       }
       if (session.copilotVersion) {
         badges += `<span class="status-badge version" title="Copilot CLI version">${escapeHtml(session.copilotVersion)}</span>`;
