@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-02-16
+
+### Added
+- Infinite scroll functionality for homepage session list
+- "Load More Sessions" button for manual session loading
+- Seamless scroll-triggered loading when approaching bottom of page
+- API endpoint `/api/sessions/load-more` for paginated session loading
+
+### Changed
+- Replaced traditional pagination with infinite scroll on homepage
+- Homepage now loads initial 20 sessions instead of all sessions
+- Session count display removed from homepage for cleaner UI
+- Updated JavaScript to handle dynamic session loading and rendering
+
+### Removed
+- Session count display "(showing X of Y)" from homepage header
+- Unused logger utility (`src/utils/logger.js`) - dead code cleanup
+- Pagination parameters from homepage (legacy support maintained in API)
+
+### Fixed
+- Updated unit tests to reflect infinite scroll functionality
+- Improved performance for sites with large numbers of sessions
+- Memory usage optimization by loading sessions progressively
+
+## [0.1.2] - 2026-02-15
+
+### Fixed
+- Content Security Policy configuration (removed unsafe-inline and unsafe-eval)
+- Missing repository URL in README installation instructions
+- Version inconsistencies across documentation files
+
+### Added
+- Session pagination support for better performance with large session counts
+- API endpoint pagination with backward compatibility
+
+## [0.1.1] - 2026-02-15
+
+### Internal
+- Project improvements and bug fixes
+
 ## [0.1.0] - 2026-02-15
 
 ### Added
@@ -27,4 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CORS restricted to localhost
 - File upload size limits (50MB)
 
+[0.1.3]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.3
+[0.1.2]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.2
+[0.1.1]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.1
 [0.1.0]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.0

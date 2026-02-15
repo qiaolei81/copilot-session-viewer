@@ -317,11 +317,50 @@
         max-width: 100%;
       }
     }
-    
+
     @media (min-width: 769px) and (max-width: 1200px) {
       .recent-list {
         grid-template-columns: repeat(2, 1fr);
       }
+    }
+
+    /* Load more button and loading indicator */
+    .load-more-btn {
+      padding: 12px 32px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #c9d1d9;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 44px;
+    }
+    .load-more-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+      color: #58a6ff;
+      transform: translateY(-1px);
+    }
+    .load-more-btn:active {
+      transform: translateY(0);
+    }
+    .loading-spinner {
+      color: #58a6ff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .loading-spinner::before {
+      content: '⏳';
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -348,29 +387,142 @@
       Session ID can be found in <span class="hint-code">~/.copilot/session-state/</span>
     </p>
     
-    <% if (sessions.length > 0) { %>
+    <% if (sessions && sessions.length > 0) { %>
       <div class="recent-sessions">
         <div class="sessions-header">
-          <div class="recent-title">All Sessions (<%= sessions.length %>)</div>
+          <div class="recent-title">
+            Sessions
+          </div>
           <a class="import-link" id="importLink">Import session from zip</a>
         </div>
-        <input 
-          type="file" 
-          id="fileInput" 
-          name="sessionZip" 
-          accept=".zip" 
+        <input
+          type="file"
+          id="fileInput"
+          name="sessionZip"
+          accept=".zip"
           style="display: none;"
         >
         <div id="importStatus" class="import-status"></div>
         <div id="sessions-container"></div>
+
+        <!-- Load more button and loading indicator -->
+        <div id="load-more-section" style="text-align: center; margin-top: 20px; display: none;">
+          <button id="load-more-btn" class="load-more-btn">Load More Sessions</button>
+        </div>
+        <div id="loading-indicator" style="text-align: center; margin-top: 20px; display: none;">
+          <div class="loading-spinner">Loading more sessions...</div>
+        </div>
       </div>
     <% } %>
   </div>
   
+  <!-- JSON data embedded safely -->
+  <script type="application/json" id="sessions-data"><%- JSON.stringify(sessions || []) %></script>
+  <script type="application/json" id="meta-data"><%- JSON.stringify({ totalSessions: totalSessions || 0, hasMore: hasMore || false }) %></script>
+
   <script>
-    // Sessions data from server (escaped to prevent XSS)
-    const sessionsData = <%- JSON.stringify(sessions).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') %>;
-    
+    // Parse JSON data safely from script tags
+    const initialSessions = JSON.parse(document.getElementById('sessions-data').textContent);
+    const metaData = JSON.parse(document.getElementById('meta-data').textContent);
+    const totalSessionsFromServer = metaData.totalSessions;
+    const hasMoreFromServer = metaData.hasMore;
+
+    // Infinite scroll state
+    let allSessions = [...initialSessions];
+    let currentOffset = initialSessions.length;
+    let hasMore = hasMoreFromServer;
+    let isLoading = false;
+    // Load more sessions
+    async function loadMoreSessions() {
+      if (isLoading || !hasMore) return;
+
+      isLoading = true;
+      const loadMoreBtn = document.getElementById('load-more-btn');
+      const loadingIndicator = document.getElementById('loading-indicator');
+      const loadMoreSection = document.getElementById('load-more-section');
+
+      // Show loading, hide button
+      loadMoreSection.style.display = 'none';
+      loadingIndicator.style.display = 'block';
+
+      try {
+        const response = await fetch(`/api/sessions/load-more?offset=${currentOffset}&limit=20`);
+        if (!response.ok) {
+          throw new Error('Failed to load more sessions');
+        }
+
+        const data = await response.json();
+        allSessions.push(...data.sessions);
+        currentOffset += data.sessions.length;
+        hasMore = data.hasMore;
+
+        // Re-render all sessions
+        renderAllSessions();
+        updateLoadMoreButton();
+
+      } catch (err) {
+        console.error('Error loading more sessions:', err);
+        // Show button again on error
+        loadMoreSection.style.display = hasMore ? 'block' : 'none';
+      } finally {
+        isLoading = false;
+        loadingIndicator.style.display = 'none';
+      }
+    }
+
+    // Update load more button visibility
+    function updateLoadMoreButton() {
+      const loadMoreSection = document.getElementById('load-more-section');
+      loadMoreSection.style.display = hasMore && !isLoading ? 'block' : 'none';
+    }
+
+    // Render all sessions (grouped by date)
+    function renderAllSessions() {
+      const container = document.getElementById('sessions-container');
+      container.innerHTML = ''; // Clear existing
+
+      if (allSessions.length === 0) return;
+
+      const grouped = groupSessionsByDate(allSessions);
+      const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a)); // Descending
+
+      sortedDates.forEach(dateKey => {
+        const dateHeader = document.createElement('div');
+        dateHeader.className = 'date-group-header';
+        dateHeader.textContent = formatDateHeader(grouped[dateKey][0].createdAt);
+        container.appendChild(dateHeader);
+
+        const grid = document.createElement('div');
+        grid.className = 'recent-list';
+        grouped[dateKey].forEach(session => {
+          grid.innerHTML += renderSessionCard(session);
+        });
+        container.appendChild(grid);
+      });
+    }
+
+    // Check if user has scrolled near bottom
+    function checkScrollPosition() {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+
+      // Load more when user is within 500px of bottom
+      if (scrollTop + windowHeight >= docHeight - 500 && hasMore && !isLoading) {
+        loadMoreSessions();
+      }
+    }
+
+    // Throttle scroll events for performance
+    let scrollTimeout;
+    function throttledScroll() {
+      if (scrollTimeout) return;
+      scrollTimeout = setTimeout(() => {
+        checkScrollPosition();
+        scrollTimeout = null;
+      }, 100);
+    }
+
     function viewSession(e) {
       e.preventDefault();
       const sessionId = document.getElementById('sessionInput').value.trim();
@@ -586,26 +738,15 @@
 
     // Render grouped sessions
     document.addEventListener('DOMContentLoaded', function() {
-      if (sessionsData.length === 0) return;
-      
-      const grouped = groupSessionsByDate(sessionsData);
-      const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a)); // Descending
-      
-      const container = document.getElementById('sessions-container');
-      
-      sortedDates.forEach(dateKey => {
-        const dateHeader = document.createElement('div');
-        dateHeader.className = 'date-group-header';
-        dateHeader.textContent = formatDateHeader(grouped[dateKey][0].createdAt);
-        container.appendChild(dateHeader);
-        
-        const grid = document.createElement('div');
-        grid.className = 'recent-list';
-        grouped[dateKey].forEach(session => {
-          grid.innerHTML += renderSessionCard(session);
-        });
-        container.appendChild(grid);
-      });
+      // Initial render
+      renderAllSessions();
+      updateLoadMoreButton();
+
+      // Add scroll listener for infinite scroll
+      window.addEventListener('scroll', throttledScroll);
+
+      // Add click listener for load more button
+      document.getElementById('load-more-btn').addEventListener('click', loadMoreSessions);
     });
   </script>
   

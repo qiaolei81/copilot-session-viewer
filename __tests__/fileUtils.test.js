@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const { fileExists, countLines, parseYAML, shouldSkipEntry } = require('../src/fileUtils');
+const { fileExists, countLines, parseYAML, shouldSkipEntry } = require('../src/utils/fileUtils');
 
 // Create temp directory for testing
 const TMP_DIR = path.join(__dirname, 'tmp');

@@ -8,8 +8,8 @@ const fsSync = require('fs');
 const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
-const config = require('./config');
-const processManager = require('./processManager');
+const config = require('../config');
+const processManager = require('../utils/processManager');
 
 class InsightService {
   constructor(sessionDir) {

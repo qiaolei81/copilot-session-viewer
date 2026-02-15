@@ -27,7 +27,7 @@ function buildMetadata(session) {
  * @returns {boolean} True if valid
  */
 function isValidSessionId(sessionId) {
-  return /^[a-zA-Z0-9_-]+$/.test(sessionId) && sessionId.length < 256;
+  return typeof sessionId === 'string' && /^[a-zA-Z0-9_-]+$/.test(sessionId) && sessionId.length < 256;
 }
 
 module.exports = {

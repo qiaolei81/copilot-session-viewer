@@ -66,6 +66,92 @@ async function parseYAML(filePath) {
 }
 
 /**
+ * Efficiently read session metadata in a single pass
+ * Combines getFirstUserMessage, getSessionDuration, getSessionMetadata
+ * @param {string} filePath - Path to .jsonl file
+ * @param {number} maxMessageLength - Max characters for first message (default 200)
+ * @returns {Promise<Object>} Combined metadata object
+ */
+async function getSessionMetadataOptimized(filePath, maxMessageLength = 200) {
+  try {
+    const stream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+    let firstUserMessage = '';
+    let firstTimestamp = null;
+    let lastTimestamp = null;
+    let copilotVersion = null;
+    let selectedModel = null;
+
+    for await (const line of rl) {
+      if (!line.trim()) continue;
+
+      try {
+        const event = JSON.parse(line);
+
+        // Extract timestamp for duration calculation
+        if (event.timestamp) {
+          const ts = new Date(event.timestamp).getTime();
+          if (!isNaN(ts)) {
+            if (!firstTimestamp) firstTimestamp = ts;
+            lastTimestamp = ts;
+          }
+        }
+
+        // Get first user message
+        if (!firstUserMessage && event.type === 'user.message') {
+          const msg = event.data?.message || event.data?.content || event.data?.text || '';
+          if (msg) {
+            firstUserMessage = msg.length > maxMessageLength ? msg.substring(0, maxMessageLength) + '...' : msg;
+          }
+        }
+
+        // Get copilot version from session start
+        if (event.type === 'session.start' && event.data?.copilotVersion && !copilotVersion) {
+          copilotVersion = event.data.copilotVersion;
+        }
+
+        // Get selected model
+        if ((event.type === 'session.start' || event.type === 'session.model_change') && !selectedModel) {
+          if (event.data?.selectedModel) {
+            selectedModel = event.data.selectedModel;
+          } else if (event.data?.newModel) {
+            selectedModel = event.data.newModel;
+          } else if (event.data?.model) {
+            selectedModel = event.data.model;
+          }
+        }
+      } catch {
+        // Skip malformed JSON lines
+      }
+    }
+
+    rl.close();
+    stream.destroy();
+
+    // Calculate duration
+    const duration = firstTimestamp && lastTimestamp && lastTimestamp > firstTimestamp
+      ? lastTimestamp - firstTimestamp
+      : null;
+
+    return {
+      firstUserMessage: firstUserMessage || '',
+      duration,
+      copilotVersion: copilotVersion || null,
+      selectedModel: selectedModel || null
+    };
+  } catch (err) {
+    console.error(`Error reading session metadata from ${filePath}:`, err.message);
+    return {
+      firstUserMessage: '',
+      duration: null,
+      copilotVersion: null,
+      selectedModel: null
+    };
+  }
+}
+
+/**
  * Get the first user message from a .jsonl events file
  * Reads line by line and stops at the first user.message event
  * @param {string} filePath - Path to .jsonl file
@@ -203,5 +289,6 @@ module.exports = {
   getFirstUserMessage,
   getSessionDuration,
   getSessionMetadata,
+  getSessionMetadataOptimized, // New optimized function
   shouldSkipEntry
 };

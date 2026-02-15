@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
-const Session = require('./session');
-const { fileExists, countLines, parseYAML, getFirstUserMessage, getSessionDuration, getSessionMetadata, shouldSkipEntry } = require('./fileUtils');
+const Session = require('../models/Session');
+const { fileExists, countLines, parseYAML, getSessionMetadataOptimized, shouldSkipEntry } = require('../utils/fileUtils');
 
 /**
  * Session Repository - Data access layer for sessions
@@ -94,22 +94,27 @@ class SessionRepository {
 
     const workspace = await parseYAML(workspaceFile);
     const eventCount = await fileExists(eventsFile) ? await countLines(eventsFile) : 0;
-    const duration = await fileExists(eventsFile) ? await getSessionDuration(eventsFile) : null;
     const isImported = await fileExists(importedMarkerFile);
     const hasInsight = await fileExists(insightReportFile);
-    
-    // Get session metadata (copilotVersion, selectedModel)
-    const metadata = await fileExists(eventsFile) ? await getSessionMetadata(eventsFile) : { copilotVersion: null, selectedModel: null };
 
-    // Fallback: if no summary in workspace, extract first user message from events
-    if (!workspace.summary && await fileExists(eventsFile)) {
-      const firstMsg = await getFirstUserMessage(eventsFile);
-      if (firstMsg) {
-        workspace.summary = firstMsg;
+    let duration = null;
+    let copilotVersion = null;
+    let selectedModel = null;
+
+    // Use optimized metadata extraction if events file exists
+    if (await fileExists(eventsFile)) {
+      const optimizedMetadata = await getSessionMetadataOptimized(eventsFile);
+      duration = optimizedMetadata.duration;
+      copilotVersion = optimizedMetadata.copilotVersion;
+      selectedModel = optimizedMetadata.selectedModel;
+
+      // Fallback: if no summary in workspace, use first user message from optimized read
+      if (!workspace.summary && optimizedMetadata.firstUserMessage) {
+        workspace.summary = optimizedMetadata.firstUserMessage;
       }
     }
 
-    return Session.fromDirectory(fullPath, entry, stats, workspace, eventCount, duration, isImported, hasInsight, metadata.copilotVersion, metadata.selectedModel);
+    return Session.fromDirectory(fullPath, entry, stats, workspace, eventCount, duration, isImported, hasInsight, copilotVersion, selectedModel);
   }
 
   /**
@@ -119,11 +124,20 @@ class SessionRepository {
   async _createFileSession(entry, fullPath, stats) {
     const sessionId = entry.replace('.jsonl', '');
     const eventCount = await countLines(fullPath);
-    const firstMsg = await getFirstUserMessage(fullPath);
-    const duration = await getSessionDuration(fullPath);
-    const metadata = await getSessionMetadata(fullPath);
 
-    return Session.fromFile(fullPath, sessionId, stats, eventCount, firstMsg, duration, metadata.copilotVersion, metadata.selectedModel);
+    // Use optimized single-pass metadata extraction
+    const optimizedMetadata = await getSessionMetadataOptimized(fullPath);
+
+    return Session.fromFile(
+      fullPath,
+      sessionId,
+      stats,
+      eventCount,
+      optimizedMetadata.firstUserMessage,
+      optimizedMetadata.duration,
+      optimizedMetadata.copilotVersion,
+      optimizedMetadata.selectedModel
+    );
   }
 
   /**
