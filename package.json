@@ -1,5 +1,5 @@
 {
-  "name": "copilot-session-viewer",
+  "name": "@qiaolei81/copilot-session-viewer",
   "version": "0.1.0",
   "description": "Web UI for viewing GitHub Copilot CLI session logs",
   "author": "Lei Qiao <qiaolei81@gmail.com>",

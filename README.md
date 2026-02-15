@@ -1,6 +1,6 @@
 # Copilot Session Viewer
 
-[![npm version](https://img.shields.io/npm/v/copilot-session-viewer.svg)](https://www.npmjs.com/package/copilot-session-viewer)
+[![npm version](https://img.shields.io/npm/v/@qiaolei81/copilot-session-viewer.svg)](https://www.npmjs.com/package/@qiaolei81/copilot-session-viewer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
 
@@ -15,7 +15,7 @@ A web-based visualization and analysis interface for GitHub Copilot CLI session 
 ### Install via npm (recommended)
 
 ```bash
-npm install -g copilot-session-viewer
+npm install -g @qiaolei81/copilot-session-viewer
 copilot-session-viewer
 ```
 
