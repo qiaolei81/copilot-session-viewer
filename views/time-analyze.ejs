@@ -61,10 +61,9 @@
     /* Summary cards */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(6, 1fr);
       gap: 12px;
       margin: 20px auto;
-      max-width: 1200px;
     }
     .summary-card {
       background: #161b22;
@@ -359,7 +358,32 @@
     /* Gantt-like chart for subagents */
     .gantt-container {
       overflow-x: auto;
+      overflow-y: visible;
       padding-bottom: 8px;
+      padding-top: 22px;
+      position: relative;
+    }
+    .gantt-crosshair {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(139, 148, 158, 0.5);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .gantt-crosshair-label {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #30363d;
+      color: #e6edf3;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      pointer-events: none;
     }
     .gantt-row {
       display: flex;
@@ -740,6 +764,38 @@
         const showMarkerLegend = ref(false);
         const copyLabel = ref('📊 Copy as Mermaid Gantt');
 
+        // Gantt crosshair
+        const ganttCrosshairX = ref(null); // px from left of gantt-container
+        const ganttCrosshairTime = ref('');
+        const onGanttMouseMove = (e) => {
+          const container = e.currentTarget;
+          // Find the first gantt-bar-area to get the bar column bounds
+          const barArea = container.querySelector('.gantt-bar-area');
+          if (!barArea) return;
+          const barRect = barArea.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const barLeft = barRect.left - containerRect.left;
+          const barRight = barLeft + barRect.width;
+          const mouseX = e.clientX - containerRect.left;
+
+          if (mouseX >= barLeft && mouseX <= barRight) {
+            ganttCrosshairX.value = mouseX;
+            // Compute timestamp from position
+            const pct = (mouseX - barLeft) / barRect.width;
+            const ts = sessionStart.value + pct * totalDuration.value;
+            const d = new Date(ts);
+            const h = String(d.getHours()).padStart(2, '0');
+            const m = String(d.getMinutes()).padStart(2, '0');
+            const s = String(d.getSeconds()).padStart(2, '0');
+            ganttCrosshairTime.value = h + ':' + m + ':' + s;
+          } else {
+            ganttCrosshairX.value = null;
+          }
+        };
+        const onGanttMouseLeave = () => {
+          ganttCrosshairX.value = null;
+        };
+
         const copyTimelineMarkdown = async () => {
           const items = unifiedTimelineItems.value;
           if (!items.length) return;
@@ -887,6 +943,62 @@
           return [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         });
 
+        // ── Map tool.execution_start events to owning subagent via parentToolCallId ──
+        const subagentToolMap = computed(() => {
+          const sorted = sortedEvents.value;
+
+          // 1. Collect all subagent toolCallIds
+          const subagentToolCallIds = new Set();
+          for (const ev of sorted) {
+            if (ev.type === 'subagent.started') {
+              const tcid = ev.data?.toolCallId;
+              if (tcid) subagentToolCallIds.add(tcid);
+            }
+          }
+
+          // 2. Build id → event lookup
+          const idMap = new Map();
+          for (const ev of sorted) {
+            if (ev.id) idMap.set(ev.id, ev);
+          }
+
+          // 3. For each tool.execution_start, walk parentId to find assistant.message,
+          //    then read data.parentToolCallId
+          const toolToSubagent = new Map(); // tool event id → subagent toolCallId
+          const startIdByToolCallId = new Map(); // data.toolCallId → subagent toolCallId (for matching complete events)
+          for (const ev of sorted) {
+            if (ev.type !== 'tool.execution_start') continue;
+            let current = ev.parentId;
+            let depth = 0;
+            while (current && depth < 10) {
+              const parent = idMap.get(current);
+              if (!parent) break;
+              if (parent.type === 'assistant.message') {
+                const ptcid = parent.data?.parentToolCallId;
+                if (ptcid && subagentToolCallIds.has(ptcid)) {
+                  toolToSubagent.set(ev.id, ptcid);
+                  const tcid = ev.data?.toolCallId;
+                  if (tcid) startIdByToolCallId.set(tcid, ptcid);
+                }
+                break;
+              }
+              current = parent.parentId;
+              depth++;
+            }
+          }
+
+          // 4. Map tool.execution_complete events via their toolCallId
+          for (const ev of sorted) {
+            if (ev.type !== 'tool.execution_complete') continue;
+            const tcid = ev.data?.toolCallId;
+            if (tcid && startIdByToolCallId.has(tcid)) {
+              toolToSubagent.set(ev.id, startIdByToolCallId.get(tcid));
+            }
+          }
+
+          return toolToSubagent;
+        });
+
         // ── Sub-agent analysis ──
         const subagentAnalysis = computed(() => {
           const sorted = sortedEvents.value;
@@ -898,13 +1010,25 @@
               startStack.push(ev);
             } else if (ev.type === 'subagent.completed' || ev.type === 'subagent.failed') {
               const name = ev.data?.agentDisplayName || ev.data?.agentName || 'SubAgent';
-              // Find matching start (by name, LIFO)
+              // Find matching start by toolCallId, with name-based LIFO fallback
+              const tcid = ev.data?.toolCallId;
               let startIdx = -1;
-              for (let i = startStack.length - 1; i >= 0; i--) {
-                const sName = startStack[i].data?.agentDisplayName || startStack[i].data?.agentName || 'SubAgent';
-                if (sName === name) {
-                  startIdx = i;
-                  break;
+              if (tcid) {
+                for (let i = startStack.length - 1; i >= 0; i--) {
+                  if (startStack[i].data?.toolCallId === tcid) {
+                    startIdx = i;
+                    break;
+                  }
+                }
+              }
+              // Fallback to name-based LIFO if no toolCallId match
+              if (startIdx < 0) {
+                for (let i = startStack.length - 1; i >= 0; i--) {
+                  const sName = startStack[i].data?.agentDisplayName || startStack[i].data?.agentName || 'SubAgent';
+                  if (sName === name) {
+                    startIdx = i;
+                    break;
+                  }
                 }
               }
               const startEv = startIdx >= 0 ? startStack.splice(startIdx, 1)[0] : null;
@@ -912,16 +1036,28 @@
               const endTime = new Date(ev.timestamp).getTime();
               const duration = startTime ? endTime - startTime : null;
 
-              // Count tool calls between start and end
+              // Count tool calls using parentToolCallId attribution (not time-window)
+              const subagentTcid = startEv?.data?.toolCallId;
               let toolCalls = 0;
               const innerEvents = [];
               if (startEv) {
                 for (const e of sorted) {
+                  if (e.type === 'tool.execution_start') {
+                    if (subagentTcid && subagentToolMap.value.get(e.id) === subagentTcid) {
+                      toolCalls++;
+                    }
+                  }
+                  // Keep time-window for innerEvents/markers (visual only)
                   const t = new Date(e.timestamp).getTime();
                   if (t >= startTime && t <= endTime) {
-                    if (e.type === 'tool.execution_start') toolCalls++;
                     if (TRACKABLE_EVENT_TYPES.has(e.type)) {
-                      innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                      if (e.type !== 'tool.execution_start' && e.type !== 'tool.execution_complete') {
+                        // Non-tool trackable events: use time-window
+                        innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                      } else if (subagentTcid && subagentToolMap.value.get(e.id) === subagentTcid) {
+                        // Tool events: only include if attributed to this subagent
+                        innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                      }
                     }
                   }
                 }
@@ -949,15 +1085,25 @@
             const startTime = new Date(startEv.timestamp).getTime();
             const duration = sessionEndTime - startTime;
 
-            // Count tool calls after start
+            // Count tool calls using parentToolCallId attribution (not time-window)
+            const subagentTcid = startEv.data?.toolCallId;
             let toolCalls = 0;
             const innerEvents = [];
             for (const e of sorted) {
+              if (e.type === 'tool.execution_start') {
+                if (subagentTcid && subagentToolMap.value.get(e.id) === subagentTcid) {
+                  toolCalls++;
+                }
+              }
+              // Keep time-window for innerEvents/markers (visual only)
               const t = new Date(e.timestamp).getTime();
               if (t >= startTime && t <= sessionEndTime) {
-                if (e.type === 'tool.execution_start') toolCalls++;
                 if (TRACKABLE_EVENT_TYPES.has(e.type)) {
-                  innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                  if (e.type !== 'tool.execution_start' && e.type !== 'tool.execution_complete') {
+                    innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                  } else if (subagentTcid && subagentToolMap.value.get(e.id) === subagentTcid) {
+                    innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                  }
                 }
               }
             }
@@ -994,7 +1140,6 @@
           const successRate = agents.length ? ((completed / agents.length) * 100).toFixed(0) : 100;
 
           // Merge overlapping intervals to get actual wall-clock time in subagents
-          // and build merged interval list for tool counting (single pass)
           const intervals = agents
             .filter(a => a.startTime && a.endTime)
             .map(a => [new Date(a.startTime).getTime(), new Date(a.endTime).getTime()])
@@ -1009,19 +1154,8 @@
           }
           const totalTime = mergedIntervals.reduce((sum, iv) => sum + (iv.e - iv.s), 0);
 
-          // Count tool calls using merged intervals with binary search (O(n log k))
-          let totalTools = 0;
-          for (const ev of sortedEvents.value) {
-            if (ev.type !== 'tool.execution_start') continue;
-            const t = new Date(ev.timestamp).getTime();
-            let lo = 0, hi = mergedIntervals.length - 1;
-            while (lo <= hi) {
-              const mid = (lo + hi) >> 1;
-              if (t < mergedIntervals[mid].s) hi = mid - 1;
-              else if (t > mergedIntervals[mid].e) lo = mid + 1;
-              else { totalTools++; break; }
-            }
-          }
+          // Sum per-subagent tool counts (already correctly attributed via parentToolCallId)
+          const totalTools = agents.reduce((sum, a) => sum + (a.toolCalls || 0), 0);
 
           return { completed, failed, incomplete, totalTime, totalTools, successRate };
         });
@@ -1074,21 +1208,40 @@
             buckets.get(bucketIdx).push(ev);
           }
 
+          // Helper: interpolate color from tool yellow to error red based on error ratio
+          const toolErrorColor = (errorRatio) => {
+            // 0 = #d29922 (yellow), 1 = #f85149 (red)
+            const r = Math.round(210 + (248 - 210) * errorRatio);
+            const g = Math.round(153 + (81 - 153) * errorRatio);
+            const b = Math.round(34 + (73 - 34) * errorRatio);
+            return 'rgb(' + r + ',' + g + ',' + b + ')';
+          };
+
+          const isToolError = (ev) => {
+            return ev.type === 'tool.execution_complete' && (ev.data?.isError || !!ev.data?.error);
+          };
+
           const toolMarkers = [];
           for (const [bucketIdx, group] of buckets) {
             const bucketMid = startTime + (bucketIdx + 0.5) * bucketSize;
             const relPos = ((bucketMid - startTime) / duration) * 100;
             const pos = Math.max(0, Math.min(100, relPos));
 
+            // Count errors in this bucket
+            const errorCount = group.filter(isToolError).length;
+            const completeCount = group.filter(ev => ev.type === 'tool.execution_complete').length;
+            const errorRatio = completeCount > 0 ? errorCount / completeCount : 0;
+
             if (group.length === 1) {
               const ev = group[0];
               const cat = EVENT_MARKER_CATEGORIES[ev.type] || {};
+              const color = isToolError(ev) ? '#f85149' : cat.color || '#8b949e';
               toolMarkers.push({
                 type: ev.type,
                 position: pos,
-                color: cat.color || '#8b949e',
+                color,
                 shape: cat.shape || 'circle',
-                label: cat.label || ev.type,
+                label: isToolError(ev) ? (cat.label || ev.type) + ' (error)' : (cat.label || ev.type),
                 timestamp: ev.timestamp,
                 toolName: ev.data?.toolName || null,
               });
@@ -1100,17 +1253,20 @@
                 const lbl = cat.label || ev.type;
                 typeCounts[lbl] = (typeCounts[lbl] || 0) + 1;
               });
+              if (errorCount > 0) typeCounts['Errors'] = errorCount;
               const summaryParts = Object.entries(typeCounts).map(([l, c]) => c + ' ' + l);
-              const dominantType = group.reduce((best, ev) => {
-                const cnt = group.filter(e => e.type === ev.type).length;
-                return cnt > best.cnt ? { type: ev.type, cnt } : best;
-              }, { type: group[0].type, cnt: 0 }).type;
-              const dominantCat = EVENT_MARKER_CATEGORIES[dominantType] || {};
+              const clusterColor = errorRatio > 0 ? toolErrorColor(errorRatio) : ((() => {
+                const dominantType = group.reduce((best, ev) => {
+                  const cnt = group.filter(e => e.type === ev.type).length;
+                  return cnt > best.cnt ? { type: ev.type, cnt } : best;
+                }, { type: group[0].type, cnt: 0 }).type;
+                return (EVENT_MARKER_CATEGORIES[dominantType] || {}).color || '#8b949e';
+              })());
 
               toolMarkers.push({
                 type: 'cluster',
                 position: pos,
-                color: dominantCat.color || '#8b949e',
+                color: clusterColor,
                 shape: 'cluster',
                 label: summaryParts.join(', '),
                 count: group.length,
@@ -1128,25 +1284,38 @@
           const duration = gapEnd - gapStart;
           const gapEvents = [];
           const eventCounts = {};
+          let toolCalls = 0;
           for (const e of sorted) {
             const t = new Date(e.timestamp).getTime();
             if (t >= gapStart && t <= gapEnd) {
-              if (TRACKABLE_EVENT_TYPES.has(e.type)) {
-                gapEvents.push({ type: e.type, timestamp: t, data: e.data });
+              // For tool events, only include those NOT attributed to a subagent
+              if (e.type.startsWith('tool.')) {
+                const isSubagentTool = e.id && subagentToolMap.value.has(e.id);
+                if (!isSubagentTool) {
+                  if (TRACKABLE_EVENT_TYPES.has(e.type)) {
+                    gapEvents.push({ type: e.type, timestamp: t, data: e.data });
+                  }
+                  if (e.type === 'tool.execution_start') {
+                    toolCalls++;
+                  }
+                  eventCounts.tool = (eventCounts.tool || 0) + 1;
+                }
+              } else {
+                if (TRACKABLE_EVENT_TYPES.has(e.type)) {
+                  gapEvents.push({ type: e.type, timestamp: t, data: e.data });
+                }
+                let cat = 'other';
+                if (e.type.startsWith('assistant.')) cat = 'message';
+                else if (e.type.startsWith('user.')) cat = 'user';
+                else if (e.type.startsWith('session.')) cat = 'session';
+                eventCounts[cat] = (eventCounts[cat] || 0) + 1;
               }
-              // Count by category for summary
-              let cat = 'other';
-              if (e.type.startsWith('tool.')) cat = 'tool';
-              else if (e.type.startsWith('assistant.')) cat = 'message';
-              else if (e.type.startsWith('user.')) cat = 'user';
-              else if (e.type.startsWith('session.')) cat = 'session';
-              eventCounts[cat] = (eventCounts[cat] || 0) + 1;
             }
           }
 
           // Build summary string
           const parts = [];
-          if (eventCounts.tool) parts.push(eventCounts.tool + ' tool event' + (eventCounts.tool > 1 ? 's' : ''));
+          if (toolCalls) parts.push(toolCalls + ' tool' + (toolCalls > 1 ? 's' : ''));
           if (eventCounts.message) parts.push(eventCounts.message + ' message' + (eventCounts.message > 1 ? 's' : ''));
           if (eventCounts.user) parts.push(eventCounts.user + ' user msg');
           if (eventCounts.session) parts.push(eventCounts.session + ' session event' + (eventCounts.session > 1 ? 's' : ''));
@@ -1159,6 +1328,7 @@
             itemType: 'agent-op',
             name: 'Main Agent',
             summary,
+            toolCalls,
             startTime: new Date(gapStart).toISOString(),
             endTime: new Date(gapEnd).toISOString(),
             duration,
@@ -1650,6 +1820,8 @@
             llmTime,
             userThinkingPct: total > 0 ? (userThinkingTime / total * 100).toFixed(0) : 0,
             agentWorkingPct: total > 0 ? (agentWorkingTime / total * 100).toFixed(0) : 0,
+            llmPct: total > 0 ? (llmTime / total * 100).toFixed(0) : 0,
+            toolPct: total > 0 ? (totalToolTime.value / total * 100).toFixed(0) : 0,
           };
         });
 
@@ -1751,25 +1923,6 @@
               items.push({
                 ...item,
                 rowType: item.itemType === 'agent-op' ? 'main-agent' : 'subagent',
-              });
-            }
-          }
-
-          // Tool summary section
-          const cats = toolTimeByCategory.value;
-          if (cats.length) {
-            items.push({ rowType: 'divider' });
-
-            // Compute maxTime for proportional bars
-            const maxTime = Math.max(...cats.map(c => c.totalTime), 1);
-            for (const cat of cats) {
-              items.push({
-                rowType: 'tool-summary',
-                category: cat.category,
-                count: cat.count,
-                totalTime: cat.totalTime,
-                errors: cat.errors,
-                barWidthPct: (cat.totalTime / maxTime) * 100,
               });
             }
           }
@@ -1960,6 +2113,7 @@
           subagentAnalysis, maxSubagentDuration, subagentTimelineItems, subagentStats,
           EVENT_MARKER_CATEGORIES, showMarkerLegend,
           copyLabel, copyTimelineMarkdown,
+          ganttCrosshairX, ganttCrosshairTime, onGanttMouseMove, onGanttMouseLeave,
           turnAnalysis, maxTurnDuration, groupedTurns,
           unifiedTimelineItems,
           toolAnalysis, sortedToolAnalysis, maxToolDuration,
@@ -1985,21 +2139,19 @@
         <div v-else>
           <!-- Summary Cards -->
           <div class="summary-grid">
-            <div class="summary-card">
+            <div class="summary-card" title="Wall-clock time from first event to last event in this session.">
               <div class="summary-card-label">Total Duration</div>
               <div class="summary-card-value">{{ formatDuration(totalDuration) }}</div>
-              <div class="summary-card-sub">
-                LLM {{ formatDuration(timeBreakdown.llmTime) }}
-                · Tools {{ formatDuration(totalToolTime) }}
-                <span v-if="timeBreakdown.userThinkingTime > 1000"> · User {{ formatDuration(timeBreakdown.userThinkingTime) }}</span>
+              <div class="summary-card-sub" v-if="sessionStart" style="margin-top: 2px; font-size: 10px; opacity: 0.7;">
+                {{ formatDateTime(sessionStart) }} → {{ formatDateTime(sessionEnd) }}
               </div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card" title="Number of user messages that triggered agent work. Each request may involve multiple LLM turns.">
               <div class="summary-card-label">User Requests</div>
               <div class="summary-card-value">{{ groupedTurns.length }}</div>
               <div class="summary-card-sub">{{ turnAnalysis.length }} turn{{ turnAnalysis.length !== 1 ? 's' : '' }}</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card" title="Total tool executions (Read, Write, Edit, Bash, Grep, etc.) across the entire session, including subagent tools.">
               <div class="summary-card-label">Tool Calls</div>
               <div class="summary-card-value">{{ totalToolCount }}</div>
               <div class="summary-card-sub">
@@ -2007,7 +2159,7 @@
                 <span v-if="errorCount > 0" style="color: #f85149;"> · {{ errorCount }} error{{ errorCount !== 1 ? 's' : '' }}</span>
               </div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card" title="Spawned subagents (via Task tool). Shows completed/failed/incomplete counts, total wall-clock time, and tool calls attributed to subagents.">
               <div class="summary-card-label">Sub-Agents</div>
               <div class="summary-card-value">{{ subagentAnalysis.length }}</div>
               <div class="summary-card-sub">
@@ -2018,7 +2170,15 @@
                 · {{ subagentStats.totalTools }} tools
               </div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card" title="Estimated LLM reasoning time (total duration minus tool execution and user thinking time). Breakdown shows LLM percentage, tool wall-clock time, and user idle time.">
+              <div class="summary-card-label">Time Breakdown</div>
+              <div class="summary-card-value">{{ formatDuration(timeBreakdown.llmTime) }} <span style="font-size: 14px; opacity: 0.6;">({{ timeBreakdown.llmPct }}% LLM Reasoning)</span></div>
+              <div class="summary-card-sub">
+                Tools {{ formatDuration(totalToolTime) }} ({{ timeBreakdown.toolPct }}%)
+                <span v-if="timeBreakdown.userThinkingTime > 1000"> · User {{ formatDuration(timeBreakdown.userThinkingTime) }} ({{ timeBreakdown.userThinkingPct }}%)</span>
+              </div>
+            </div>
+            <div class="summary-card" title="File system operations: reads (Read/Glob), edits (Edit), writes (Write), and searches (Grep).">
               <div class="summary-card-label">File Operations</div>
               <div class="summary-card-value">{{ fileStats.totalOps }}</div>
               <div class="summary-card-sub">
@@ -2069,16 +2229,30 @@
                   <span>Main Agent</span>
                 </div>
                 <div class="event-legend-item">
-                  <span class="event-legend-swatch" style="background: rgba(158, 106, 3, 0.6);"></span>
-                  <span>Tool Category</span>
+                  <span class="event-legend-swatch" style="background: #d29922;"></span>
+                  <span>Tool (no errors)</span>
                 </div>
-                <div v-for="(cat, type) in EVENT_MARKER_CATEGORIES" :key="type" class="event-legend-item">
-                  <span class="event-legend-swatch" :style="{ background: cat.color, borderRadius: cat.shape === 'circle' ? '50%' : cat.shape === 'diamond' ? '1px' : '2px', transform: cat.shape === 'diamond' ? 'rotate(45deg)' : 'none' }"></span>
-                  <span>{{ cat.label }}</span>
+                <div class="event-legend-item">
+                  <span class="event-legend-swatch" style="background: linear-gradient(to right, #d29922, #f85149);"></span>
+                  <span>Tool (error gradient)</span>
                 </div>
+                <div class="event-legend-item">
+                  <span class="event-legend-swatch" style="background: #f85149;"></span>
+                  <span>Tool Error (100%)</span>
+                </div>
+                <template v-for="(cat, type) in EVENT_MARKER_CATEGORIES" :key="type">
+                  <div v-if="type && !type.startsWith('tool.')" class="event-legend-item">
+                    <span class="event-legend-swatch" :style="{ background: cat.color, borderRadius: cat.shape === 'circle' ? '50%' : cat.shape === 'diamond' ? '1px' : '2px', transform: cat.shape === 'diamond' ? 'rotate(45deg)' : 'none' }"></span>
+                    <span>{{ cat.label }}</span>
+                  </div>
+                </template>
               </div>
 
-              <div class="gantt-container">
+              <div class="gantt-container" @mousemove="onGanttMouseMove" @mouseleave="onGanttMouseLeave">
+                <!-- Crosshair -->
+                <div v-if="ganttCrosshairX !== null" class="gantt-crosshair" :style="{ left: ganttCrosshairX + 'px' }">
+                  <div class="gantt-crosshair-label">{{ ganttCrosshairTime }}</div>
+                </div>
                 <template v-for="(item, idx) in unifiedTimelineItems" :key="'utl-' + idx">
 
                   <!-- Divider row -->
@@ -2206,29 +2380,34 @@
                     </div>
                   </div>
 
-                  <!-- Tool Summary row -->
-                  <div v-else-if="item.rowType === 'tool-summary'" class="gantt-row">
-                    <div class="gantt-label tool-summary" :title="item.category + ' (' + item.count + ' calls)'">
-                      <span class="tool-cat-icon">🔧</span>
-                      {{ item.category }}
-                      <span class="tool-cat-count">({{ item.count }})</span>
-                    </div>
-                    <div class="gantt-bar-area">
-                      <div
-                        class="gantt-bar tool-summary"
-                        :style="{ left: '0%', width: item.barWidthPct + '%' }"
-                        :title="item.category + ' — ' + formatDuration(item.totalTime) + ' (' + item.count + ' calls)'"
-                      >
-                        {{ formatDuration(item.totalTime) }}
-                      </div>
-                    </div>
-                  </div>
-
                 </template>
 
                 <div class="gantt-time-axis">
                   <span>{{ formatTime(events[0]?.timestamp) }}</span>
                   <span>{{ formatTime(events[events.length-1]?.timestamp) }}</span>
+                </div>
+              </div>
+
+              <!-- Tool Summary -->
+              <div v-if="toolTimeByCategory.length" style="margin-top: 24px;">
+                <h3 style="color: #e6edf3; font-size: 14px; margin-bottom: 12px;">🔧 Tool Summary</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px;">
+                  <div
+                    v-for="cat in toolTimeByCategory"
+                    :key="cat.category"
+                    style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px 12px; display: flex; align-items: center; gap: 10px;"
+                  >
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                        <span style="color: #d29922; font-weight: 500; font-size: 13px;">{{ cat.category }}</span>
+                        <span style="color: #7d8590; font-size: 11px;">{{ cat.count }} call{{ cat.count !== 1 ? 's' : '' }}<span v-if="cat.errors" style="color: #f85149;"> · {{ cat.errors }} err</span></span>
+                      </div>
+                      <div style="background: #21262d; border-radius: 3px; height: 6px; overflow: hidden;">
+                        <div :style="{ width: (cat.totalTime / maxCategoryTime * 100) + '%', height: '100%', background: 'rgba(158, 106, 3, 0.7)', borderRadius: '3px' }"></div>
+                      </div>
+                      <div style="color: #7d8590; font-size: 11px; margin-top: 3px;">{{ formatDuration(cat.totalTime) }}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

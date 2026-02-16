@@ -104,6 +104,22 @@ class SessionService {
       metadata.model = modelChangeEvent.data.newModel || modelChangeEvent.data.model;
     }
 
+    // Derive "updated" from last event timestamp (more accurate than filesystem mtime)
+    if (events.length) {
+      const lastEvent = events[events.length - 1];
+      if (lastEvent?.timestamp) {
+        metadata.updated = lastEvent.timestamp;
+      }
+    }
+
+    // Derive "created" from first event timestamp if available
+    if (events.length) {
+      const firstEvent = events[0];
+      if (firstEvent?.timestamp) {
+        metadata.created = firstEvent.timestamp;
+      }
+    }
+
     return { session, events, metadata };
   }
 }
