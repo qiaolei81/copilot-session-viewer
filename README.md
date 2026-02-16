@@ -8,6 +8,15 @@
 
 A modern web-based viewer for analyzing GitHub Copilot CLI session logs with virtual scrolling, infinite loading, time analysis, and AI-powered insights.
 
+### Session List
+![Session List](docs/images/homepage.png)
+
+### Session Detail — Event Stream with Virtual Scrolling
+![Session Detail](docs/images/session-detail.png)
+
+### Time Analysis — Gantt Timeline & Sub-Agent Breakdown
+![Time Analysis](docs/images/time-analysis.png)
+
 ---
 
 ## ⚡ Quick Start
@@ -163,10 +172,6 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [vue-virtual-scroller](https://github.com/Akryum/vue-virtual-scroller) - High-performance virtual scrolling
 - [Express.js](https://expressjs.com/) - Web application framework
 - [EJS](https://ejs.co/) - Templating engine
-
----
-
-**Status:** ✅ Active Development | **Last Updated:** 2026-02-16
 
 ---
 

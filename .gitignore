@@ -18,6 +18,7 @@ final-test.js
 
 # Temporary screenshots
 *.png
+!docs/images/*.png
 
 # Temporary documentation
 DIVIDER-*.md
