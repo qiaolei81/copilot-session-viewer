@@ -100,7 +100,8 @@ describe('Session', () => {
         isImported: false,
         hasInsight: false,
         copilotVersion: null,
-        selectedModel: null
+        selectedModel: null,
+        sessionStatus: 'completed'
       });
     });
   });

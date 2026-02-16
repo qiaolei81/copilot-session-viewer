@@ -15,7 +15,6 @@
       line-height: 1.5;
     }
     .container {
-      max-width: 1400px;
       margin: 0 auto;
       padding: 0 20px;
     }
@@ -64,7 +63,8 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 12px;
-      margin: 20px 0;
+      margin: 20px auto;
+      max-width: 1200px;
     }
     .summary-card {
       background: #161b22;
@@ -407,6 +407,141 @@
     .gantt-bar.subagent-incomplete { background: rgba(210, 153, 34, 0.8); }
     .gantt-bar.turn { background: rgba(35, 134, 54, 0.8); }
     .gantt-bar.tool { background: rgba(158, 106, 3, 0.6); }
+    .gantt-bar.agent-op {
+      background: rgba(139, 148, 158, 0.3);
+      border: 1px dashed rgba(139, 148, 158, 0.5);
+    }
+
+    /* Event markers on gantt bars */
+    .gantt-bar { overflow: visible; }
+    .event-marker {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .event-marker:hover {
+      transform: translate(-50%, -50%) scale(1.8);
+      z-index: 10;
+    }
+    .event-marker--circle {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .event-marker--diamond {
+      width: 6px;
+      height: 6px;
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+    .event-marker:hover .event-marker--diamond-inner {
+      transform: scale(1.8);
+    }
+    .event-marker--square {
+      width: 5px;
+      height: 5px;
+      border-radius: 1px;
+    }
+    .event-marker--triangle {
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 7px solid currentColor;
+    }
+    .event-marker--cluster {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* Event marker tooltip */
+    .event-marker-tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #c9d1d9;
+      white-space: nowrap;
+      z-index: 100;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .event-marker:hover .event-marker-tooltip {
+      display: block;
+    }
+
+    /* Gantt label for agent-op */
+    .gantt-label.agent-op {
+      color: #7d8590;
+      font-style: italic;
+    }
+    .gantt-label.agent-op .agent-op-icon {
+      color: #8b949e;
+      margin-right: 4px;
+    }
+    .gantt-label.agent-op .agent-op-summary {
+      font-size: 11px;
+      color: #6e7681;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Event legend */
+    .event-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+    .event-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #8b949e;
+    }
+    .event-legend-swatch {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .legend-toggle-btn {
+      background: none;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 8px;
+      transition: all 0.2s;
+    }
+    .legend-toggle-btn:hover {
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
 
     .gantt-time-axis {
       display: flex;
@@ -417,6 +552,69 @@
       color: #7d8590;
       font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
       border-top: 1px solid #30363d;
+    }
+
+    /* Unified timeline: indented child rows */
+    .gantt-row.indented .gantt-label {
+      padding-left: 20px;
+    }
+
+    /* Unified timeline: user-req row */
+    .gantt-bar.user-req {
+      background: rgba(88, 166, 255, 0.35);
+      border: 1px solid rgba(88, 166, 255, 0.6);
+    }
+    .gantt-label.user-req {
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .gantt-label.user-req .user-req-badge {
+      margin-right: 6px;
+    }
+    .gantt-label.user-req .user-req-msg {
+      font-weight: 400;
+      font-size: 11px;
+      color: #8b949e;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Unified timeline: tool-summary row */
+    .gantt-bar.tool-summary {
+      background: rgba(158, 106, 3, 0.6);
+    }
+    .gantt-label.tool-summary {
+      color: #d29922;
+      font-weight: 500;
+    }
+    .gantt-label.tool-summary .tool-cat-icon {
+      margin-right: 4px;
+    }
+    .gantt-label.tool-summary .tool-cat-count {
+      color: #7d8590;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    /* Unified timeline: divider row */
+    .gantt-divider {
+      border-bottom: 1px solid #30363d;
+      padding: 4px 0;
+      margin: 2px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #7d8590;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .gantt-divider::before,
+    .gantt-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #30363d;
     }
 
     /* Empty state */
@@ -502,7 +700,11 @@
 <body>
   <div class="header">
     <a href="/session/<%= sessionId %>" class="nav-btn">← Back to Session</a>
-    <h1>⏱ Analysis: <%= sessionId %></h1>
+    <h1>⏱ Analysis: <%= sessionId %>
+      <% if (metadata.sessionStatus === 'wip') { %>
+        <span style="font-size: 12px; padding: 2px 8px; border-radius: 3px; background: rgba(210, 153, 34, 0.2); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.4); vertical-align: middle; margin-left: 8px;">🔄 WIP</span>
+      <% } %>
+    </h1>
   </div>
 
   <div class="container" id="app"></div>
@@ -527,13 +729,113 @@
         const events = ref([]);
         const loading = ref(true);
         const error = ref(null);
-        const activeTab = ref('turns');
+        const activeTab = ref('timeline');
         const sortField = ref('timestamp');
         const sortDir = ref('asc');
         const insightReport = ref(null);
+        const insightLog = ref(null);
         const insightLoading = ref(false);
         const insightError = ref(null);
         const insightGeneratedAt = ref(null);
+        const showMarkerLegend = ref(false);
+        const copyLabel = ref('📊 Copy as Mermaid Gantt');
+
+        const copyTimelineMarkdown = async () => {
+          const items = unifiedTimelineItems.value;
+          if (!items.length) return;
+
+          // Helper: convert timestamp to Unix epoch milliseconds
+          const toEpochMs = (ts) => {
+            if (!ts) return 0;
+            return new Date(ts).getTime();
+          };
+
+          // Sanitize label for Mermaid: strip chars that break syntax or could escape the code block
+          const sanitize = (str) => (str || '').replace(/[`\n\r]/g, '').replace(/[:;#]/g, '-').replace(/\s+/g, ' ').trim().substring(0, 100);
+
+          // Deduplicate task IDs within the mermaid block
+          const usedIds = {};
+          const uniqueId = (base) => {
+            const clean = base.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+            if (!usedIds[clean]) { usedIds[clean] = 1; return clean; }
+            usedIds[clean]++;
+            return clean + '_' + usedIds[clean];
+          };
+
+          const lines = [];
+          lines.push('```mermaid');
+          lines.push('gantt');
+          lines.push('    title Session Timeline – ' + sanitize(sessionId.value));
+          lines.push('    dateFormat x');
+          lines.push('    axisFormat %H:%M:%S');
+          lines.push('');
+
+          for (const item of items) {
+            if (item.rowType === 'user-req') {
+              const msg = sanitize(item.message || 'No message').substring(0, 40);
+              const label = 'UserReq ' + item.userReqNumber + ' – ' + msg + ' (' + formatDuration(item.duration) + ')';
+              const id = uniqueId('userreq_' + item.userReqNumber);
+              const start = toEpochMs(item.startTime);
+              const end = toEpochMs(item.endTime);
+              lines.push('    ' + label + '    :milestone, ' + id + ', ' + start + ', ' + end);
+            } else if (item.rowType === 'subagent') {
+              const start = toEpochMs(item.startTime);
+              const end = toEpochMs(item.endTime);
+              const toolInfo = (item.toolCalls != null ? item.toolCalls : 0) + ' tools';
+              const label = sanitize(item.name) + ' – ' + formatDuration(item.duration) + ' (' + toolInfo + ')';
+              const id = uniqueId(item.name);
+              const tag = item.status === 'failed' ? 'crit, '
+                : item.status === 'incomplete' ? 'active, ' : '';
+              lines.push('    ' + label + '    :' + tag + id + ', ' + start + ', ' + end);
+            } else if (item.rowType === 'main-agent') {
+              const start = toEpochMs(item.startTime);
+              const end = toEpochMs(item.endTime);
+              const detail = sanitize(item.summary || 'idle');
+              const label = 'Main Agent – ' + formatDuration(item.duration) + ' (' + detail + ')';
+              const id = uniqueId('main_agent');
+              lines.push('    ' + label + '    :' + id + ', ' + start + ', ' + end);
+            }
+          }
+
+          lines.push('```');
+          lines.push('');
+
+          const md = lines.join('\n');
+
+          try {
+            await navigator.clipboard.writeText(md);
+            copyLabel.value = '✅ Copied!';
+          } catch (err) {
+            // Fallback for non-secure contexts
+            const textarea = document.createElement('textarea');
+            textarea.value = md;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            copyLabel.value = '✅ Copied!';
+          }
+          setTimeout(() => { copyLabel.value = '📊 Copy as Mermaid Gantt'; }, 2000);
+        };
+
+        // 事件标记类别定义
+        const EVENT_MARKER_CATEGORIES = {
+          'tool.execution_start':        { color: '#d29922', shape: 'diamond', label: 'Tool Start' },
+          'tool.execution_complete':     { color: '#e3b341', shape: 'diamond', label: 'Tool Complete' },
+          'assistant.message':           { color: '#8b949e', shape: 'circle',  label: 'Message' },
+          'user.message':                { color: '#79c0ff', shape: 'square',  label: 'User Message' },
+          'session.start':               { color: '#56d364', shape: 'square',  label: 'Session Start' },
+          'session.resume':              { color: '#56d364', shape: 'square',  label: 'Session Resume' },
+          'session.error':               { color: '#f85149', shape: 'triangle', label: 'Error' },
+          'session.truncation':          { color: '#f0883e', shape: 'triangle', label: 'Truncation' },
+          'session.compaction_start':    { color: '#a371f7', shape: 'square',  label: 'Compaction Start' },
+          'session.compaction_complete': { color: '#bc8cff', shape: 'square',  label: 'Compaction End' },
+          'session.model_change':        { color: '#f778ba', shape: 'square',  label: 'Model Change' },
+          'abort':                       { color: '#ff7b72', shape: 'triangle', label: 'Abort' },
+        };
+        const TRACKABLE_EVENT_TYPES = new Set(Object.keys(EVENT_MARKER_CATEGORIES));
 
         // ── Helpers ──
         const formatDuration = (ms) => {
@@ -580,9 +882,14 @@
           return sessionEnd.value - sessionStart.value;
         });
 
+        // ── Shared sorted events (computed once, reused everywhere) ──
+        const sortedEvents = computed(() => {
+          return [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        });
+
         // ── Sub-agent analysis ──
         const subagentAnalysis = computed(() => {
-          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const sorted = sortedEvents.value;
           const results = [];
           const startStack = [];
 
@@ -607,14 +914,21 @@
 
               // Count tool calls between start and end
               let toolCalls = 0;
+              const innerEvents = [];
               if (startEv) {
                 for (const e of sorted) {
                   const t = new Date(e.timestamp).getTime();
-                  if (t >= startTime && t <= endTime && e.type === 'tool.execution_start') {
-                    toolCalls++;
+                  if (t >= startTime && t <= endTime) {
+                    if (e.type === 'tool.execution_start') toolCalls++;
+                    if (TRACKABLE_EVENT_TYPES.has(e.type)) {
+                      innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                    }
                   }
                 }
               }
+
+              // Build event markers with clustering
+              const innerEventMarkers = buildEventMarkers(innerEvents, startTime, duration);
 
               results.push({
                 name,
@@ -622,7 +936,8 @@
                 startTime: startEv?.timestamp || null,
                 endTime: ev.timestamp,
                 duration,
-                toolCalls
+                toolCalls,
+                innerEventMarkers
               });
             }
           }
@@ -636,12 +951,18 @@
 
             // Count tool calls after start
             let toolCalls = 0;
+            const innerEvents = [];
             for (const e of sorted) {
               const t = new Date(e.timestamp).getTime();
-              if (t >= startTime && t <= sessionEndTime && e.type === 'tool.execution_start') {
-                toolCalls++;
+              if (t >= startTime && t <= sessionEndTime) {
+                if (e.type === 'tool.execution_start') toolCalls++;
+                if (TRACKABLE_EVENT_TYPES.has(e.type)) {
+                  innerEvents.push({ type: e.type, timestamp: t, data: e.data });
+                }
               }
             }
+
+            const innerEventMarkers = buildEventMarkers(innerEvents, startTime, duration);
 
             results.push({
               name,
@@ -649,7 +970,8 @@
               startTime: startEv.timestamp,
               endTime: sorted[sorted.length - 1]?.timestamp || startEv.timestamp,
               duration,
-              toolCalls
+              toolCalls,
+              innerEventMarkers
             });
           }
 
@@ -664,9 +986,228 @@
           return Math.max(...subagentAnalysis.value.map(s => s.duration || 0), 1);
         });
 
+        const subagentStats = computed(() => {
+          const agents = subagentAnalysis.value;
+          const completed = agents.filter(a => a.status === 'completed').length;
+          const failed = agents.filter(a => a.status === 'failed').length;
+          const incomplete = agents.filter(a => a.status === 'incomplete').length;
+          const successRate = agents.length ? ((completed / agents.length) * 100).toFixed(0) : 100;
+
+          // Merge overlapping intervals to get actual wall-clock time in subagents
+          // and build merged interval list for tool counting (single pass)
+          const intervals = agents
+            .filter(a => a.startTime && a.endTime)
+            .map(a => [new Date(a.startTime).getTime(), new Date(a.endTime).getTime()])
+            .sort((a, b) => a[0] - b[0]);
+          const mergedIntervals = [];
+          for (const [s, e] of intervals) {
+            if (!mergedIntervals.length || s >= mergedIntervals[mergedIntervals.length - 1].e) {
+              mergedIntervals.push({ s, e });
+            } else if (e > mergedIntervals[mergedIntervals.length - 1].e) {
+              mergedIntervals[mergedIntervals.length - 1].e = e;
+            }
+          }
+          const totalTime = mergedIntervals.reduce((sum, iv) => sum + (iv.e - iv.s), 0);
+
+          // Count tool calls using merged intervals with binary search (O(n log k))
+          let totalTools = 0;
+          for (const ev of sortedEvents.value) {
+            if (ev.type !== 'tool.execution_start') continue;
+            const t = new Date(ev.timestamp).getTime();
+            let lo = 0, hi = mergedIntervals.length - 1;
+            while (lo <= hi) {
+              const mid = (lo + hi) >> 1;
+              if (t < mergedIntervals[mid].s) hi = mid - 1;
+              else if (t > mergedIntervals[mid].e) lo = mid + 1;
+              else { totalTools++; break; }
+            }
+          }
+
+          return { completed, failed, incomplete, totalTime, totalTools, successRate };
+        });
+
+        // ── Event marker builder (shared by subagent + agent-op) ──
+        const buildEventMarkers = (innerEvents, startTime, duration) => {
+          if (!innerEvents.length || !duration) return [];
+
+          // Separate high-priority events (always shown individually) from tool events (clustered)
+          const HIGH_PRIORITY_TYPES = new Set([
+            'session.start', 'session.resume', 'session.error',
+            'session.truncation', 'session.compaction_start', 'session.compaction_complete',
+            'session.model_change', 'abort', 'user.message',
+          ]);
+
+          const hiPriEvents = [];
+          const toolEvents = [];
+          for (const ev of innerEvents) {
+            if (HIGH_PRIORITY_TYPES.has(ev.type)) {
+              hiPriEvents.push(ev);
+            } else {
+              toolEvents.push(ev);
+            }
+          }
+
+          // Build individual markers for high-priority events (never clustered)
+          const hiPriMarkers = hiPriEvents.map(ev => {
+            const relPos = ((ev.timestamp - startTime) / duration) * 100;
+            const cat = EVENT_MARKER_CATEGORIES[ev.type] || {};
+            return {
+              type: ev.type,
+              position: Math.max(0, Math.min(100, relPos)),
+              color: cat.color || '#8b949e',
+              shape: cat.shape || 'circle',
+              label: cat.label || ev.type,
+              timestamp: ev.timestamp,
+              toolName: ev.data?.toolName || null,
+            };
+          });
+
+          // Cluster tool events into fixed time buckets
+          // Adaptive: aim for ~20 buckets max, with a minimum of 5 minutes per bucket
+          const MIN_BUCKET_MS = 5 * 60 * 1000; // 5 minutes
+          const bucketSize = Math.max(MIN_BUCKET_MS, duration / 20);
+
+          const buckets = new Map(); // bucketIndex -> events[]
+          for (const ev of toolEvents) {
+            const bucketIdx = Math.floor((ev.timestamp - startTime) / bucketSize);
+            if (!buckets.has(bucketIdx)) buckets.set(bucketIdx, []);
+            buckets.get(bucketIdx).push(ev);
+          }
+
+          const toolMarkers = [];
+          for (const [bucketIdx, group] of buckets) {
+            const bucketMid = startTime + (bucketIdx + 0.5) * bucketSize;
+            const relPos = ((bucketMid - startTime) / duration) * 100;
+            const pos = Math.max(0, Math.min(100, relPos));
+
+            if (group.length === 1) {
+              const ev = group[0];
+              const cat = EVENT_MARKER_CATEGORIES[ev.type] || {};
+              toolMarkers.push({
+                type: ev.type,
+                position: pos,
+                color: cat.color || '#8b949e',
+                shape: cat.shape || 'circle',
+                label: cat.label || ev.type,
+                timestamp: ev.timestamp,
+                toolName: ev.data?.toolName || null,
+              });
+            } else {
+              // Summarize the cluster
+              const typeCounts = {};
+              group.forEach(ev => {
+                const cat = EVENT_MARKER_CATEGORIES[ev.type] || {};
+                const lbl = cat.label || ev.type;
+                typeCounts[lbl] = (typeCounts[lbl] || 0) + 1;
+              });
+              const summaryParts = Object.entries(typeCounts).map(([l, c]) => c + ' ' + l);
+              const dominantType = group.reduce((best, ev) => {
+                const cnt = group.filter(e => e.type === ev.type).length;
+                return cnt > best.cnt ? { type: ev.type, cnt } : best;
+              }, { type: group[0].type, cnt: 0 }).type;
+              const dominantCat = EVENT_MARKER_CATEGORIES[dominantType] || {};
+
+              toolMarkers.push({
+                type: 'cluster',
+                position: pos,
+                color: dominantCat.color || '#8b949e',
+                shape: 'cluster',
+                label: summaryParts.join(', '),
+                count: group.length,
+                items: group,
+              });
+            }
+          }
+
+          // Merge and sort by position
+          return [...hiPriMarkers, ...toolMarkers].sort((a, b) => a.position - b.position);
+        };
+
+        // ── Build Agent Operation item for gaps ──
+        const buildAgentOpItem = (sorted, gapStart, gapEnd) => {
+          const duration = gapEnd - gapStart;
+          const gapEvents = [];
+          const eventCounts = {};
+          for (const e of sorted) {
+            const t = new Date(e.timestamp).getTime();
+            if (t >= gapStart && t <= gapEnd) {
+              if (TRACKABLE_EVENT_TYPES.has(e.type)) {
+                gapEvents.push({ type: e.type, timestamp: t, data: e.data });
+              }
+              // Count by category for summary
+              let cat = 'other';
+              if (e.type.startsWith('tool.')) cat = 'tool';
+              else if (e.type.startsWith('assistant.')) cat = 'message';
+              else if (e.type.startsWith('user.')) cat = 'user';
+              else if (e.type.startsWith('session.')) cat = 'session';
+              eventCounts[cat] = (eventCounts[cat] || 0) + 1;
+            }
+          }
+
+          // Build summary string
+          const parts = [];
+          if (eventCounts.tool) parts.push(eventCounts.tool + ' tool event' + (eventCounts.tool > 1 ? 's' : ''));
+          if (eventCounts.message) parts.push(eventCounts.message + ' message' + (eventCounts.message > 1 ? 's' : ''));
+          if (eventCounts.user) parts.push(eventCounts.user + ' user msg');
+          if (eventCounts.session) parts.push(eventCounts.session + ' session event' + (eventCounts.session > 1 ? 's' : ''));
+          if (eventCounts.other) parts.push(eventCounts.other + ' other');
+          const summary = parts.length ? parts.join(', ') : 'idle';
+
+          const innerEventMarkers = buildEventMarkers(gapEvents, gapStart, duration);
+
+          return {
+            itemType: 'agent-op',
+            name: 'Main Agent',
+            summary,
+            startTime: new Date(gapStart).toISOString(),
+            endTime: new Date(gapEnd).toISOString(),
+            duration,
+            eventCounts,
+            innerEventMarkers,
+          };
+        };
+
+        // ── Subagent timeline items (subagent bars + agent-op gaps) ──
+        const subagentTimelineItems = computed(() => {
+          const agents = subagentAnalysis.value;
+          if (!agents.length) return [];
+
+          const sorted = sortedEvents.value;
+          const items = [];
+
+          for (let i = 0; i < agents.length; i++) {
+            const sa = agents[i];
+
+            // Before first subagent: check gap from session start
+            if (i === 0 && sa.startTime) {
+              const gapStart = sessionStart.value;
+              const gapEnd = new Date(sa.startTime).getTime();
+              if (gapEnd - gapStart > 500) {
+                items.push(buildAgentOpItem(sorted, gapStart, gapEnd));
+              }
+            }
+
+            // Add subagent itself
+            items.push({ ...sa, itemType: 'subagent' });
+
+            // Gap between this and next subagent (or session end)
+            const nextSa = agents[i + 1];
+            const gapStart = new Date(sa.endTime).getTime();
+            const gapEnd = nextSa
+              ? new Date(nextSa.startTime).getTime()
+              : sessionEnd.value;
+
+            if (gapEnd - gapStart > 500) {
+              items.push(buildAgentOpItem(sorted, gapStart, gapEnd));
+            }
+          }
+
+          return items;
+        });
+
         // ── Turn analysis ──
         const turnAnalysis = computed(() => {
-          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const sorted = sortedEvents.value;
           const turnStarts = sorted.filter(e => e.type === 'assistant.turn_start');
           const allUserMessages = sorted.filter(e => e.type === 'user.message');
 
@@ -735,7 +1276,7 @@
 
         // ── Tool operations analysis ──
         const toolAnalysis = computed(() => {
-          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const sorted = sortedEvents.value;
           const toolGroups = new Map();
 
           for (const ev of sorted) {
@@ -856,6 +1397,19 @@
           return ops.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
         });
 
+        const fileStats = computed(() => {
+          const ops = fileOperations.value;
+          const uniqueFiles = new Set(ops.map(o => o.filePath));
+          return {
+            uniqueCount: uniqueFiles.size,
+            totalOps: ops.length,
+            reads: ops.filter(o => o.opType === 'read').length,
+            writes: ops.filter(o => o.opType === 'write').length,
+            edits: ops.filter(o => o.opType === 'edit').length,
+            searches: ops.filter(o => o.opType === 'search').length
+          };
+        });
+
         // ── Tool time by category ──
         const toolTimeByCategory = computed(() => {
           const catMap = {};
@@ -889,8 +1443,37 @@
         });
 
         // ── Summary stats ──
+        // Wall-clock tool time: merge overlapping intervals to avoid double-counting parallel tools
         const totalToolTime = computed(() => {
-          return toolAnalysis.value.reduce((acc, t) => acc + (t.duration || 0), 0);
+          const intervals = toolAnalysis.value
+            .filter(t => t.duration && t.startTime && t.endTime)
+            .map(t => ({
+              start: new Date(t.startTime).getTime(),
+              end: new Date(t.endTime).getTime()
+            }))
+            .sort((a, b) => a.start - b.start);
+
+          if (!intervals.length) return 0;
+
+          // Merge overlapping intervals
+          let totalMs = 0;
+          let curStart = intervals[0].start;
+          let curEnd = intervals[0].end;
+
+          for (let i = 1; i < intervals.length; i++) {
+            if (intervals[i].start <= curEnd) {
+              // Overlapping — extend current interval
+              curEnd = Math.max(curEnd, intervals[i].end);
+            } else {
+              // Gap — commit current interval and start new one
+              totalMs += curEnd - curStart;
+              curStart = intervals[i].start;
+              curEnd = intervals[i].end;
+            }
+          }
+          totalMs += curEnd - curStart; // commit last interval
+
+          return totalMs;
         });
 
         // ── Token Statistics ──
@@ -920,7 +1503,7 @@
 
         // ── Gap Analysis ──
         const gapAnalysis = computed(() => {
-          const sorted = [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const sorted = sortedEvents.value;
           const gaps = [];
           
           // Track user messages and assistant responses
@@ -1027,8 +1610,47 @@
         const successRate = computed(() => {
           const total = toolAnalysis.value.length;
           if (total === 0) return 100;
-          const errors = toolAnalysis.value.filter(t => !t.success).length;
+          const errors = toolAnalysis.value.filter(t => t.isError).length;
           return ((total - errors) / total * 100).toFixed(1);
+        });
+
+        const errorCount = computed(() => {
+          return toolAnalysis.value.filter(t => t.isError).length;
+        });
+
+        // Time breakdown: user thinking vs agent working
+        // "User thinking" = gaps where the agent has finished and is waiting for the next user message
+        // "Agent working" = totalDuration - userThinkingTime
+        const timeBreakdown = computed(() => {
+          const sorted = sortedEvents.value;
+          let userThinkingTime = 0;
+
+          for (let i = 0; i < sorted.length - 1; i++) {
+            const current = sorted[i];
+            const next = sorted[i + 1];
+
+            // User thinking = from any non-user event to the next user.message
+            // This captures when the agent is done and waiting for the user to type
+            if (next.type === 'user.message' && current.type !== 'user.message') {
+              const gap = new Date(next.timestamp).getTime() - new Date(current.timestamp).getTime();
+              if (gap > 1000) { // Only count gaps > 1s as intentional user thinking
+                userThinkingTime += gap;
+              }
+            }
+          }
+
+          const total = totalDuration.value || 0;
+          const agentWorkingTime = Math.max(total - userThinkingTime, 0);
+          // LLM time = agent working time minus tool wall-clock time
+          const llmTime = Math.max(agentWorkingTime - totalToolTime.value, 0);
+
+          return {
+            userThinkingTime,
+            agentWorkingTime,
+            llmTime,
+            userThinkingPct: total > 0 ? (userThinkingTime / total * 100).toFixed(0) : 0,
+            agentWorkingPct: total > 0 ? (agentWorkingTime / total * 100).toFixed(0) : 0,
+          };
         });
 
 
@@ -1037,12 +1659,122 @@
 
         const avgToolDuration = computed(() => {
           if (!totalToolCount.value) return 0;
-          return totalToolTime.value / totalToolCount.value;
+          const rawSum = toolAnalysis.value.reduce((acc, t) => acc + (t.duration || 0), 0);
+          return rawSum / totalToolCount.value;
         });
 
         const longestTool = computed(() => {
           if (!toolAnalysis.value.length) return null;
           return toolAnalysis.value.reduce((max, t) => (t.duration || 0) > (max.duration || 0) ? t : max);
+        });
+
+        // ── Unified Timeline Items ──
+        const unifiedTimelineItems = computed(() => {
+          const items = [];
+          const groups = groupedTurns.value;
+          const agents = subagentAnalysis.value;
+          const sorted = sortedEvents.value;
+
+          if (groups.length) {
+            for (let gi = 0; gi < groups.length; gi++) {
+              const group = groups[gi];
+              const turns = group.turns;
+              if (!turns.length) continue;
+
+              const reqStart = new Date(turns[0].startTime).getTime();
+              const reqEnd = new Date(turns[turns.length - 1].endTime).getTime();
+
+              // 1. Push user-req header row
+              items.push({
+                rowType: 'user-req',
+                userReqNumber: group.userReqNumber,
+                message: group.message,
+                startTime: turns[0].startTime,
+                endTime: turns[turns.length - 1].endTime,
+                duration: reqEnd - reqStart,
+              });
+
+              // 2. Find subagents within this UserReq time range
+              const reqAgents = agents.filter(sa => {
+                if (!sa.startTime) return false;
+                const saStart = new Date(sa.startTime).getTime();
+                return saStart >= reqStart && saStart <= reqEnd;
+              });
+
+              if (reqAgents.length) {
+                // Build subagent + gap items scoped to this UserReq
+                for (let i = 0; i < reqAgents.length; i++) {
+                  const sa = reqAgents[i];
+
+                  // Gap before first subagent (from reqStart) or between subagents
+                  const gapStart = i === 0
+                    ? reqStart
+                    : new Date(reqAgents[i - 1].endTime).getTime();
+                  const gapEnd = new Date(sa.startTime).getTime();
+
+                  if (gapEnd - gapStart > 500) {
+                    const agentOp = buildAgentOpItem(sorted, gapStart, gapEnd);
+                    agentOp.rowType = 'main-agent';
+                    items.push(agentOp);
+                  }
+
+                  // Add subagent
+                  items.push({
+                    ...sa,
+                    rowType: 'subagent',
+                    itemType: 'subagent',
+                  });
+
+                  // Gap after last subagent to reqEnd
+                  if (i === reqAgents.length - 1) {
+                    const trailingStart = new Date(sa.endTime).getTime();
+                    const trailingEnd = reqEnd;
+                    if (trailingEnd - trailingStart > 500) {
+                      const agentOp = buildAgentOpItem(sorted, trailingStart, trailingEnd);
+                      agentOp.rowType = 'main-agent';
+                      items.push(agentOp);
+                    }
+                  }
+                }
+              } else {
+                // No subagents — show single Main Agent bar spanning entire UserReq
+                if (reqEnd - reqStart > 0) {
+                  const agentOp = buildAgentOpItem(sorted, reqStart, reqEnd);
+                  agentOp.rowType = 'main-agent';
+                  items.push(agentOp);
+                }
+              }
+            }
+          } else if (subagentTimelineItems.value.length) {
+            // No UserReq groups, but subagents exist — flat fallback
+            for (const item of subagentTimelineItems.value) {
+              items.push({
+                ...item,
+                rowType: item.itemType === 'agent-op' ? 'main-agent' : 'subagent',
+              });
+            }
+          }
+
+          // Tool summary section
+          const cats = toolTimeByCategory.value;
+          if (cats.length) {
+            items.push({ rowType: 'divider' });
+
+            // Compute maxTime for proportional bars
+            const maxTime = Math.max(...cats.map(c => c.totalTime), 1);
+            for (const cat of cats) {
+              items.push({
+                rowType: 'tool-summary',
+                category: cat.category,
+                count: cat.count,
+                totalTime: cat.totalTime,
+                errors: cat.errors,
+                barWidthPct: (cat.totalTime / maxTime) * 100,
+              });
+            }
+          }
+
+          return items;
         });
 
         // ── Gantt chart positioning ──
@@ -1052,36 +1784,6 @@
           const e = endTs ? new Date(endTs).getTime() : s + 1000;
           const left = ((s - sessionStart.value) / totalDuration.value) * 100;
           const width = Math.max(((e - s) / totalDuration.value) * 100, 0.5);
-          return {
-            left: left + '%',
-            width: Math.min(width, 100 - left) + '%'
-          };
-        };
-
-        // ── Turn-specific timeline (starts from first turn) ──
-        const turnTimelineStart = computed(() => {
-          if (!turnAnalysis.value.length) return null;
-          const firstTurn = turnAnalysis.value[0];
-          return new Date(firstTurn.startTime).getTime();
-        });
-
-        const turnTimelineEnd = computed(() => {
-          if (!turnAnalysis.value.length) return null;
-          const lastTurn = turnAnalysis.value[turnAnalysis.value.length - 1];
-          return new Date(lastTurn.endTime).getTime();
-        });
-
-        const turnTimelineDuration = computed(() => {
-          if (!turnTimelineStart.value || !turnTimelineEnd.value) return 0;
-          return turnTimelineEnd.value - turnTimelineStart.value;
-        });
-
-        const turnGanttPosition = (startTs, endTs) => {
-          if (!turnTimelineStart.value || !turnTimelineDuration.value || !startTs) return { left: '0%', width: '0%' };
-          const s = new Date(startTs).getTime();
-          const e = endTs ? new Date(endTs).getTime() : s + 1000;
-          const left = ((s - turnTimelineStart.value) / turnTimelineDuration.value) * 100;
-          const width = Math.max(((e - s) / turnTimelineDuration.value) * 100, 0.5);
           return {
             left: left + '%',
             width: Math.min(width, 100 - left) + '%'
@@ -1155,25 +1857,32 @@
           try {
             const resp = await fetch(`/session/${sessionId.value}/insight`);
             const data = await resp.json();
-            
+
             insightStatus.value = data.status;
-            
+
             if (data.status === 'completed') {
               insightReport.value = data.report;
+              insightLog.value = null;
               insightGeneratedAt.value = data.generatedAt;
               stopPolling();
             } else if (data.status === 'generating') {
-              insightReport.value = data.report;
+              insightLog.value = data.log || null;
               insightStartedAt.value = data.startedAt;
               insightLastUpdate.value = data.lastUpdate;
               insightAgeMs.value = data.ageMs;
               startPolling();
+              // Auto-scroll log to bottom
+              Vue.nextTick(() => {
+                const el = document.getElementById('insight-log');
+                if (el) el.scrollTop = el.scrollHeight;
+              });
             } else if (data.status === 'timeout') {
-              insightReport.value = data.report;
+              insightLog.value = data.log || null;
               insightStartedAt.value = data.startedAt;
               insightLastUpdate.value = data.lastUpdate;
               insightAgeMs.value = data.ageMs;
-              stopPolling();
+              // Keep polling — the process may still finish and write the report
+              startPolling();
             }
           } catch (err) {
             console.error('Failed to check insight:', err);
@@ -1195,27 +1904,28 @@
         const generateInsight = async (force = false) => {
           insightLoading.value = true;
           insightError.value = null;
-          
+          insightLog.value = null;
+
           try {
             const resp = await fetch(`/session/${sessionId.value}/insight`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ force })
             });
-            
+
             if (!resp.ok) {
               const err = await resp.json();
               throw new Error(err.error || 'Failed to generate insight');
             }
-            
+
             const data = await resp.json();
             insightStatus.value = data.status;
-            insightReport.value = data.report;
-            
+
             if (data.status === 'generating') {
               insightStartedAt.value = data.startedAt;
               startPolling();
             } else if (data.status === 'completed') {
+              insightReport.value = data.report;
               insightGeneratedAt.value = data.generatedAt;
             }
           } catch (err) {
@@ -1242,19 +1952,23 @@
         return {
           sessionId, metadata, events, loading, error, activeTab,
           sortField, sortDir,
-          insightReport, insightLoading, insightError, insightGeneratedAt,
+          insightReport, insightLog, insightLoading, insightError, insightGeneratedAt,
           insightStatus, insightLastUpdate, insightStartedAt, insightAgeMs,
           renderedInsight, generateInsight, regenerateInsight,
           formatDuration, formatTime, formatDateTime,
           sessionStart, sessionEnd, totalDuration,
-          subagentAnalysis, maxSubagentDuration,
+          subagentAnalysis, maxSubagentDuration, subagentTimelineItems, subagentStats,
+          EVENT_MARKER_CATEGORIES, showMarkerLegend,
+          copyLabel, copyTimelineMarkdown,
           turnAnalysis, maxTurnDuration, groupedTurns,
+          unifiedTimelineItems,
           toolAnalysis, sortedToolAnalysis, maxToolDuration,
-          fileOperations,
+          fileOperations, fileStats,
           toolTimeByCategory, maxCategoryTime,
           totalToolTime, totalToolCount, avgToolDuration, longestTool,
+          successRate, errorCount, timeBreakdown,
           gapAnalysis, maxGapDuration, gapStats,
-          ganttPosition, turnGanttPosition, toggleSort, sortIcon,
+          ganttPosition, toggleSort, sortIcon,
           getToolBadgeClass, getOpBadgeClass
         };
       },
@@ -1274,233 +1988,250 @@
             <div class="summary-card">
               <div class="summary-card-label">Total Duration</div>
               <div class="summary-card-value">{{ formatDuration(totalDuration) }}</div>
-              <div class="summary-card-sub">{{ formatTime(events[0]?.timestamp) }} → {{ formatTime(events[events.length-1]?.timestamp) }}</div>
+              <div class="summary-card-sub">
+                LLM {{ formatDuration(timeBreakdown.llmTime) }}
+                · Tools {{ formatDuration(totalToolTime) }}
+                <span v-if="timeBreakdown.userThinkingTime > 1000"> · User {{ formatDuration(timeBreakdown.userThinkingTime) }}</span>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-card-label">User Requests</div>
+              <div class="summary-card-value">{{ groupedTurns.length }}</div>
+              <div class="summary-card-sub">{{ turnAnalysis.length }} turn{{ turnAnalysis.length !== 1 ? 's' : '' }}</div>
             </div>
             <div class="summary-card">
               <div class="summary-card-label">Tool Calls</div>
               <div class="summary-card-value">{{ totalToolCount }}</div>
-              <div class="summary-card-sub">Total tool time: {{ formatDuration(totalToolTime) }}</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-card-label">Avg Tool Duration</div>
-              <div class="summary-card-value">{{ formatDuration(avgToolDuration) }}</div>
-              <div class="summary-card-sub" v-if="longestTool">
-                Longest: {{ longestTool.toolName }} ({{ formatDuration(longestTool.duration) }})
+              <div class="summary-card-sub">
+                <span :style="{ color: successRate >= 95 ? '#3fb950' : successRate >= 80 ? '#d29922' : '#f85149' }">{{ successRate }}%</span> success
+                <span v-if="errorCount > 0" style="color: #f85149;"> · {{ errorCount }} error{{ errorCount !== 1 ? 's' : '' }}</span>
               </div>
             </div>
             <div class="summary-card">
               <div class="summary-card-label">Sub-Agents</div>
               <div class="summary-card-value">{{ subagentAnalysis.length }}</div>
-              <div class="summary-card-sub">{{ turnAnalysis.length }} turn{{ turnAnalysis.length !== 1 ? 's' : '' }}</div>
+              <div class="summary-card-sub">
+                <span :style="{ color: subagentStats.successRate >= 95 ? '#3fb950' : subagentStats.successRate >= 80 ? '#d29922' : '#f85149' }">{{ subagentStats.completed }}✓</span>
+                <span v-if="subagentStats.failed > 0" style="color: #f85149;"> · {{ subagentStats.failed }}✗</span>
+                <span v-if="subagentStats.incomplete > 0" style="color: #d29922;"> · {{ subagentStats.incomplete }}⏳</span>
+                · {{ formatDuration(subagentStats.totalTime) }}
+                · {{ subagentStats.totalTools }} tools
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-card-label">File Operations</div>
+              <div class="summary-card-value">{{ fileStats.totalOps }}</div>
+              <div class="summary-card-sub">
+                {{ fileStats.reads }} reads · {{ fileStats.edits }} edits · {{ fileStats.writes }} writes · {{ fileStats.searches }} searches
+              </div>
             </div>
           </div>
 
           <!-- Tabs -->
           <div class="tabs">
-            <button :class="['tab', { active: activeTab === 'turns' }]" @click="activeTab = 'turns'">
-              Turns ({{ turnAnalysis.length }})
-            </button>
-            <button :class="['tab', { active: activeTab === 'subagents' }]" @click="activeTab = 'subagents'">
-              Sub-Agents ({{ subagentAnalysis.length }})
-            </button>
-            <button :class="['tab', { active: activeTab === 'categories' }]" @click="activeTab = 'categories'">
-              Tool Summary
+            <button :class="['tab', { active: activeTab === 'timeline' }]" @click="activeTab = 'timeline'">
+              📊 Timeline
             </button>
             <button :class="['tab', { active: activeTab === 'insight' }]" @click="activeTab = 'insight'">
-              💡 Copilot Insight
+              💡 Agent Review
             </button>
           </div>
 
-          <!-- ═══ Turns Tab ═══ -->
-          <div v-if="activeTab === 'turns'" class="section">
-            <div v-if="!turnAnalysis.length" class="empty-state">
-              No turns found in this session.
+          <!-- ═══ Unified Timeline Tab ═══ -->
+          <div v-if="activeTab === 'timeline'" class="section">
+            <div v-if="!unifiedTimelineItems.length" class="empty-state">
+              No timeline data found in this session.
             </div>
             <div v-else>
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th style="width: 80px;">Turn</th>
-                    <th style="width: 120px;">Start</th>
-                    <th style="width: 100px;">Duration</th>
-                    <th style="width: 80px;">Tools</th>
-                    <th style="min-width: 300px;">Timeline</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <template v-for="(group, gidx) in groupedTurns" :key="'group-' + gidx">
-                    <!-- Group header: User message -->
-                    <tr class="group-header-row">
-                      <td colspan="5" class="group-header-cell">
-                        <div class="group-header-content">
-                          <span class="user-req-badge">UserReq {{ group.userReqNumber }}</span>
-                          <span class="user-message-text">{{ group.message || 'No message' }}</span>
-                        </div>
-                      </td>
-                    </tr>
-                    <!-- Turn rows -->
-                    <tr v-for="(turn, tidx) in group.turns" :key="'turn-' + turn.turnId" class="turn-row">
-                      <td class="mono turn-cell">
-                        <a 
-                          :href="'/session/' + sessionId + '?eventType=assistant.turn_start&eventName=UserReq' + group.userReqNumber + '_Turn' + turn.turnId"
-                          class="turn-link"
-                          :title="'View events from here'"
-                        >
-                          Turn {{ turn.turnId }}
-                        </a>
-                      </td>
-                      <td class="mono">{{ formatTime(turn.startTime) }}</td>
-                      <td class="mono">{{ formatDuration(turn.duration) }}</td>
-                      <td class="mono">{{ turn.toolCalls }}</td>
-                      <td class="timeline-cell">
-                        <div class="timeline-bar-container">
-                          <div
-                            class="timeline-bar"
-                            :style="turnGanttPosition(turn.startTime, turn.endTime)"
-                            :title="'Turn ' + turn.turnId + ' — ' + formatDuration(turn.duration)"
-                          ></div>
-                        </div>
-                      </td>
-                    </tr>
-                  </template>
-                </tbody>
-              </table>
-            </div>
-          </div>
+              <!-- Section A: Gantt Chart -->
+              <div class="section-title" style="display: flex; align-items: center;">
+                Timeline
+                <button class="legend-toggle-btn" @click="showMarkerLegend = !showMarkerLegend">
+                  {{ showMarkerLegend ? 'Hide Legend' : 'Show Legend' }}
+                </button>
+                <button class="legend-toggle-btn" @click="copyTimelineMarkdown">
+                  {{ copyLabel }}
+                </button>
+              </div>
 
-          <!-- ═══ Sub-Agents Tab ═══ -->
-          <div v-if="activeTab === 'subagents'" class="section">
-            <div v-if="!subagentAnalysis.length" class="empty-state">
-              No sub-agent activity found in this session.
-            </div>
+              <!-- Event Legend -->
+              <div v-show="showMarkerLegend" class="event-legend">
+                <div class="event-legend-item">
+                  <span class="event-legend-swatch" style="background: rgba(88, 166, 255, 0.5);"></span>
+                  <span>User Request</span>
+                </div>
+                <div class="event-legend-item">
+                  <span class="event-legend-swatch" style="background: rgba(63, 185, 80, 0.8);"></span>
+                  <span>Sub-Agent</span>
+                </div>
+                <div class="event-legend-item">
+                  <span class="event-legend-swatch" style="background: rgba(139, 148, 158, 0.3); border: 1px dashed rgba(139, 148, 158, 0.5);"></span>
+                  <span>Main Agent</span>
+                </div>
+                <div class="event-legend-item">
+                  <span class="event-legend-swatch" style="background: rgba(158, 106, 3, 0.6);"></span>
+                  <span>Tool Category</span>
+                </div>
+                <div v-for="(cat, type) in EVENT_MARKER_CATEGORIES" :key="type" class="event-legend-item">
+                  <span class="event-legend-swatch" :style="{ background: cat.color, borderRadius: cat.shape === 'circle' ? '50%' : cat.shape === 'diamond' ? '1px' : '2px', transform: cat.shape === 'diamond' ? 'rotate(45deg)' : 'none' }"></span>
+                  <span>{{ cat.label }}</span>
+                </div>
+              </div>
 
-            <!-- Gantt Chart -->
-            <div v-else>
-              <div class="section-title">Sub-Agent Timeline</div>
               <div class="gantt-container">
-                <div v-for="(sa, idx) in subagentAnalysis" :key="idx" class="gantt-row">
-                  <div class="gantt-label" :title="sa.name">
-                    <a 
-                      :href="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(sa.name)"
-                      class="subagent-link"
-                      :title="'View events from here'"
-                    >
-                      <span :style="{ color: sa.status === 'completed' ? '#3fb950' : sa.status === 'failed' ? '#f85149' : '#d29922' }">
-                        {{ sa.status === 'completed' ? '✓' : sa.status === 'failed' ? '✗' : '⏳' }}
-                      </span>
-                      {{ sa.name }}
-                    </a>
+                <template v-for="(item, idx) in unifiedTimelineItems" :key="'utl-' + idx">
+
+                  <!-- Divider row -->
+                  <div v-if="item.rowType === 'divider'" class="gantt-divider">
+                    Tool Summary
                   </div>
-                  <div class="gantt-bar-area">
-                    <div
-                      :class="['gantt-bar', sa.status === 'completed' ? 'subagent' : sa.status === 'failed' ? 'subagent-failed' : 'subagent-incomplete']"
-                      :style="ganttPosition(sa.startTime, sa.endTime)"
-                      :title="sa.name + ' — ' + formatDuration(sa.duration)"
-                    >
-                      {{ formatDuration(sa.duration) }}
+
+                  <!-- User Request row -->
+                  <div v-else-if="item.rowType === 'user-req'" class="gantt-row">
+                    <div class="gantt-label user-req" :title="item.message || 'No message'">
+                      <span class="user-req-badge">UserReq {{ item.userReqNumber }}</span>
+                      <span class="user-req-msg">{{ (item.message || '').substring(0, 40) }}{{ (item.message || '').length > 40 ? '...' : '' }}</span>
+                    </div>
+                    <div class="gantt-bar-area">
+                      <div
+                        class="gantt-bar user-req"
+                        :style="ganttPosition(item.startTime, item.endTime)"
+                        :title="'UserReq ' + item.userReqNumber + ' — ' + formatDuration(item.duration)"
+                      >
+                        {{ formatDuration(item.duration) }}
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  <!-- Sub-Agent row (indented) -->
+                  <div v-else-if="item.rowType === 'subagent'" class="gantt-row indented">
+                    <div class="gantt-label" :title="item.name">
+                      <a
+                        :href="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(item.name) + '&eventTimestamp=' + encodeURIComponent(item.startTime || '')"
+                        class="subagent-link"
+                        :title="'View events from here'"
+                      >
+                        <span :style="{ color: item.status === 'completed' ? '#3fb950' : item.status === 'failed' ? '#f85149' : '#d29922' }">
+                          {{ item.status === 'completed' ? '✓' : item.status === 'failed' ? '✗' : '⏳' }}
+                        </span>
+                        {{ item.name }}
+                      </a>
+                    </div>
+                    <div class="gantt-bar-area">
+                      <div
+                        :class="['gantt-bar', item.status === 'completed' ? 'subagent' : item.status === 'failed' ? 'subagent-failed' : 'subagent-incomplete']"
+                        :style="ganttPosition(item.startTime, item.endTime)"
+                        :title="item.name + ' — ' + formatDuration(item.duration)"
+                      >
+                        {{ formatDuration(item.duration) }}
+
+                        <!-- Event markers -->
+                        <template v-if="item.innerEventMarkers && item.innerEventMarkers.length">
+                          <span
+                            v-for="(marker, midx) in item.innerEventMarkers"
+                            :key="'m-' + midx"
+                            class="event-marker"
+                            :style="{ left: marker.position + '%' }"
+                          >
+                            <template v-if="marker.shape === 'cluster'">
+                              <span class="event-marker--cluster" :style="{ background: marker.color }">{{ marker.count }}</span>
+                            </template>
+                            <template v-else-if="marker.shape === 'circle'">
+                              <span class="event-marker--circle" :style="{ background: marker.color }"></span>
+                            </template>
+                            <template v-else-if="marker.shape === 'diamond'">
+                              <span class="event-marker--diamond" :style="{ background: marker.color }"></span>
+                            </template>
+                            <template v-else-if="marker.shape === 'square'">
+                              <span class="event-marker--square" :style="{ background: marker.color }"></span>
+                            </template>
+                            <template v-else-if="marker.shape === 'triangle'">
+                              <span class="event-marker--triangle" :style="{ color: marker.color }"></span>
+                            </template>
+                            <span class="event-marker-tooltip">
+                              <template v-if="marker.shape === 'cluster'">{{ marker.count }} events: {{ marker.label }}</template>
+                              <template v-else>{{ marker.label }}<span v-if="marker.toolName"> ({{ marker.toolName }})</span></template>
+                            </span>
+                          </span>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Main Agent gap row (indented) -->
+                  <div v-else-if="item.rowType === 'main-agent'" class="gantt-row indented">
+                    <div class="gantt-label agent-op" :title="item.summary">
+                      <span class="agent-op-icon">⚙</span>
+                      <span>Main Agent</span>
+                      <span class="agent-op-summary">{{ item.summary }}</span>
+                    </div>
+                    <div class="gantt-bar-area">
+                      <div
+                        class="gantt-bar agent-op"
+                        :style="ganttPosition(item.startTime, item.endTime)"
+                        :title="'Main Agent — ' + formatDuration(item.duration)"
+                      >
+                        {{ formatDuration(item.duration) }}
+
+                        <!-- Event markers -->
+                        <template v-if="item.innerEventMarkers && item.innerEventMarkers.length">
+                          <span
+                            v-for="(marker, midx) in item.innerEventMarkers"
+                            :key="'m-' + midx"
+                            class="event-marker"
+                            :style="{ left: marker.position + '%' }"
+                          >
+                            <template v-if="marker.shape === 'cluster'">
+                              <span class="event-marker--cluster" :style="{ background: marker.color }">{{ marker.count }}</span>
+                            </template>
+                            <template v-else-if="marker.shape === 'circle'">
+                              <span class="event-marker--circle" :style="{ background: marker.color }"></span>
+                            </template>
+                            <template v-else-if="marker.shape === 'diamond'">
+                              <span class="event-marker--diamond" :style="{ background: marker.color }"></span>
+                            </template>
+                            <template v-else-if="marker.shape === 'square'">
+                              <span class="event-marker--square" :style="{ background: marker.color }"></span>
+                            </template>
+                            <template v-else-if="marker.shape === 'triangle'">
+                              <span class="event-marker--triangle" :style="{ color: marker.color }"></span>
+                            </template>
+                            <span class="event-marker-tooltip">
+                              <template v-if="marker.shape === 'cluster'">{{ marker.count }} events: {{ marker.label }}</template>
+                              <template v-else>{{ marker.label }}<span v-if="marker.toolName"> ({{ marker.toolName }})</span></template>
+                            </span>
+                          </span>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tool Summary row -->
+                  <div v-else-if="item.rowType === 'tool-summary'" class="gantt-row">
+                    <div class="gantt-label tool-summary" :title="item.category + ' (' + item.count + ' calls)'">
+                      <span class="tool-cat-icon">🔧</span>
+                      {{ item.category }}
+                      <span class="tool-cat-count">({{ item.count }})</span>
+                    </div>
+                    <div class="gantt-bar-area">
+                      <div
+                        class="gantt-bar tool-summary"
+                        :style="{ left: '0%', width: item.barWidthPct + '%' }"
+                        :title="item.category + ' — ' + formatDuration(item.totalTime) + ' (' + item.count + ' calls)'"
+                      >
+                        {{ formatDuration(item.totalTime) }}
+                      </div>
+                    </div>
+                  </div>
+
+                </template>
+
                 <div class="gantt-time-axis">
                   <span>{{ formatTime(events[0]?.timestamp) }}</span>
                   <span>{{ formatTime(events[events.length-1]?.timestamp) }}</span>
                 </div>
               </div>
 
-              <!-- Detail table -->
-              <div style="margin-top: 16px;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Agent Name</th>
-                      <th>Status</th>
-                      <th>Start</th>
-                      <th>End</th>
-                      <th>Duration</th>
-                      <th>Tool Calls</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(sa, idx) in subagentAnalysis" :key="idx">
-                      <td>
-                        <a 
-                          :href="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(sa.name)"
-                          class="subagent-link"
-                          :title="'View events from here'"
-                        >
-                          {{ sa.name }}
-                        </a>
-                      </td>
-                      <td>
-                        <span :style="{ color: sa.status === 'completed' ? '#3fb950' : sa.status === 'failed' ? '#f85149' : '#d29922' }">
-                          {{ sa.status === 'completed' ? '✓ Completed' : sa.status === 'failed' ? '✗ Failed' : '⏳ Incomplete' }}
-                        </span>
-                      </td>
-                      <td class="mono">{{ formatTime(sa.startTime) || '—' }}</td>
-                      <td class="mono">{{ formatTime(sa.endTime) }}</td>
-                      <td>
-                        <div class="duration-bar-container">
-                          <div
-                            :class="['duration-bar', sa.status === 'completed' ? 'subagent' : sa.status === 'failed' ? 'subagent-failed' : 'subagent-incomplete']"
-                            :style="{ width: ((sa.duration || 0) / maxSubagentDuration * 100) + '%', maxWidth: '120px' }"
-                          ></div>
-                          <span class="duration-text">{{ formatDuration(sa.duration) }}</span>
-                        </div>
-                      </td>
-                      <td class="mono">{{ sa.toolCalls }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- ═══ Tool Summary Tab ═══ -->
-          <div v-if="activeTab === 'categories'" class="section">
-            <div v-if="!toolTimeByCategory.length" class="empty-state">
-              No tool activity found in this session.
-            </div>
-            <div v-else>
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Count</th>
-                    <th>Errors</th>
-                    <th>Error Rate</th>
-                    <th>Total Time</th>
-                    <th>Avg Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="cat in toolTimeByCategory" :key="cat.category">
-                    <td style="font-weight: 600;">{{ cat.category }}</td>
-                    <td class="mono">{{ cat.count }}</td>
-                    <td>
-                      <span v-if="cat.errors > 0" style="color: #f85149;" class="mono">{{ cat.errors }}</span>
-                      <span v-else class="mono" style="color: #7d8590;">0</span>
-                    </td>
-                    <td>
-                      <span v-if="cat.count > 0" :style="{ 
-                        color: (cat.errors / cat.count * 100) > 50 ? '#f85149' : (cat.errors / cat.count * 100) > 10 ? '#d29922' : '#3fb950' 
-                      }">
-                        {{ ((cat.errors / cat.count) * 100).toFixed(1) }}%
-                      </span>
-                      <span v-else>-</span>
-                    </td>
-                    <td>
-                      <div class="duration-bar-container">
-                        <div
-                          class="duration-bar tool"
-                          :style="{ width: (cat.totalTime / maxCategoryTime * 100) + '%', maxWidth: '150px' }"
-                        ></div>
-                        <span class="duration-text">{{ formatDuration(cat.totalTime) }}</span>
-                      </div>
-                    </td>
-                    <td class="duration-text">{{ formatDuration(cat.count > 0 ? cat.totalTime / cat.count : 0) }}</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
           </div>
 
@@ -1513,57 +2244,31 @@
 
             <!-- Generating State -->
             <div v-else-if="insightStatus === 'generating'" style="padding: 20px;">
-              <div style="
-                background: #0d1117;
-                border: 1px solid #30363d;
-                border-radius: 6px;
-                padding: 20px;
-                margin-bottom: 20px;
-              ">
-                <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                  <span style="font-size: 24px; margin-right: 10px;">⏳</span>
-                  <div>
-                    <div style="font-weight: 600; color: #58a6ff; margin-bottom: 5px;">
-                      Generating Copilot Insight...
-                    </div>
-                    <div style="font-size: 13px; color: #7d8590;">
-                      Started: {{ formatDateTime(insightStartedAt) }} • 
-                      Last update: {{ formatDateTime(insightLastUpdate) }} • 
-                      Age: {{ Math.floor(insightAgeMs / 1000) }}s
-                    </div>
-                  </div>
-                </div>
-                <div v-if="insightReport" v-html="renderedInsight" style="
-                  color: #c9d1d9;
-                  line-height: 1.6;
-                  opacity: 0.7;
-                "></div>
-              </div>
-            </div>
-
-            <!-- Timeout State -->
-            <div v-else-if="insightStatus === 'timeout'" style="padding: 20px;">
-              <div style="
-                background: #0d1117;
-                border: 1px solid #f85149;
-                border-radius: 6px;
-                padding: 20px;
-                margin-bottom: 20px;
-              ">
+              <div :style="{
+                background: '#0d1117',
+                border: '1px solid ' + (insightAgeMs > 300000 ? '#d29922' : '#30363d'),
+                borderRadius: '6px',
+                padding: '20px',
+                marginBottom: '20px',
+              }">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                  <div>
-                    <div style="font-weight: 600; color: #f85149; margin-bottom: 5px;">
-                      ⏱️ Generation Timed Out
-                    </div>
-                    <div style="font-size: 13px; color: #7d8590;">
-                      Started: {{ formatDateTime(insightStartedAt) }} • 
-                      Last update: {{ formatDateTime(insightLastUpdate) }} ({{ Math.floor(insightAgeMs / 1000 / 60) }}m ago)
+                  <div style="display: flex; align-items: center;">
+                    <span style="font-size: 24px; margin-right: 10px;">⏳</span>
+                    <div>
+                      <div style="font-weight: 600; color: #58a6ff; margin-bottom: 5px;">
+                        Generating Agent Review...
+                      </div>
+                      <div style="font-size: 13px; color: #7d8590;">
+                        Started: {{ formatDateTime(insightStartedAt) }} •
+                        Age: {{ Math.floor(insightAgeMs / 1000) }}s
+                      </div>
                     </div>
                   </div>
-                  <button 
+                  <button
+                    v-if="insightAgeMs > 300000"
                     @click="regenerateInsight"
                     style="
-                      background: #f85149;
+                      background: #d29922;
                       color: #fff;
                       border: none;
                       padding: 8px 16px;
@@ -1571,28 +2276,107 @@
                       font-size: 13px;
                       cursor: pointer;
                       font-weight: 500;
+                      white-space: nowrap;
                     "
-                    @mouseover="$event.target.style.background='#ff7b72'"
-                    @mouseleave="$event.target.style.background='#f85149'"
+                    @mouseover="$event.target.style.background='#e3b341'"
+                    @mouseleave="$event.target.style.background='#d29922'"
                   >
-                    🔄 Force Regenerate
+                    🔄 Stop &amp; Retry
                   </button>
                 </div>
-                <div v-if="insightReport" v-html="renderedInsight" style="
-                  color: #c9d1d9;
+                <!-- Slow generation warning -->
+                <div v-if="insightAgeMs > 300000" style="
+                  background: rgba(210, 153, 34, 0.1);
+                  border: 1px solid rgba(210, 153, 34, 0.3);
+                  border-radius: 6px;
+                  padding: 10px 14px;
+                  margin-bottom: 12px;
+                  font-size: 13px;
+                  color: #d29922;
+                ">
+                  ⚠️ Generation is taking longer than 5 minutes. For large sessions this is normal — the agent needs to read and analyze all events. If it appears stuck, you can click <strong>Stop &amp; Retry</strong> to cancel and start fresh.
+                </div>
+                <div v-if="insightLog" id="insight-log" style="
+                  background: #161b22;
+                  border: 1px solid #30363d;
+                  border-radius: 6px;
+                  padding: 14px 16px;
+                  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+                  font-size: 12px;
                   line-height: 1.6;
-                  opacity: 0.5;
-                "></div>
+                  color: #8b949e;
+                  white-space: pre-wrap;
+                  word-break: break-word;
+                  max-height: 400px;
+                  overflow-y: auto;
+                ">{{ insightLog }}</div>
+              </div>
+            </div>
+
+            <!-- Timeout State -->
+            <div v-else-if="insightStatus === 'timeout'" style="padding: 20px;">
+              <div style="
+                background: #0d1117;
+                border: 1px solid #d29922;
+                border-radius: 6px;
+                padding: 20px;
+                margin-bottom: 20px;
+              ">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                  <div style="display: flex; align-items: center;">
+                    <span style="font-size: 24px; margin-right: 10px;">⏳</span>
+                    <div>
+                      <div style="font-weight: 600; color: #d29922; margin-bottom: 5px;">
+                        Still generating... ({{ Math.floor(insightAgeMs / 1000 / 60) }}m elapsed)
+                      </div>
+                      <div style="font-size: 13px; color: #7d8590;">
+                        Large sessions with sub-agents may take 10–15 minutes. Still polling for completion.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    @click="regenerateInsight"
+                    style="
+                      background: #d29922;
+                      color: #fff;
+                      border: none;
+                      padding: 8px 16px;
+                      border-radius: 6px;
+                      font-size: 13px;
+                      cursor: pointer;
+                      font-weight: 500;
+                      white-space: nowrap;
+                    "
+                    @mouseover="$event.target.style.background='#e3b341'"
+                    @mouseleave="$event.target.style.background='#d29922'"
+                  >
+                    🔄 Stop &amp; Retry
+                  </button>
+                </div>
+                <div v-if="insightLog" style="
+                  background: #161b22;
+                  border: 1px solid #30363d;
+                  border-radius: 6px;
+                  padding: 14px 16px;
+                  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+                  font-size: 12px;
+                  line-height: 1.6;
+                  color: #8b949e;
+                  white-space: pre-wrap;
+                  word-break: break-word;
+                  max-height: 400px;
+                  overflow-y: auto;
+                ">{{ insightLog }}</div>
               </div>
             </div>
 
             <!-- Not Started State -->
             <div v-else-if="insightStatus === 'not_started'" style="padding: 40px; text-align: center;">
               <p style="margin-bottom: 20px; color: #7d8590;">
-                Generate an AI-powered deep analysis of this session using Copilot CLI
+                Generate an AI-powered quality & performance review of how the agent used its tools, prompts, and workflow in this session
               </p>
-              <button 
-                @click="generateInsight(false)" 
+              <button
+                @click="generateInsight(false)"
                 :disabled="insightLoading"
                 style="
                   background: #238636;
@@ -1607,8 +2391,11 @@
                 @mouseover="$event.target.style.background='#2ea043'"
                 @mouseleave="$event.target.style.background='#238636'"
               >
-                💡 Generate Copilot Insight
+                💡 Generate Agent Review
               </button>
+              <p style="margin-top: 12px; font-size: 12px; color: #6e7681;">
+                For large sessions this may take several minutes — you'll see a live progress log while the review is being generated.
+              </p>
             </div>
 
             <!-- Completed State -->

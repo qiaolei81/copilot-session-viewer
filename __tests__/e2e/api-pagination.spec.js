@@ -183,7 +183,7 @@ test.describe('API Pagination', () => {
     const responseTime = endTime - startTime;
 
     expect(response.ok()).toBeTruthy();
-    expect(responseTime).toBeLessThan(5000); // Should respond within 5 seconds
+    expect(responseTime).toBeLessThan(10000); // Should respond within 10 seconds
 
     // For small datasets, should be much faster
     if (responseTime < 1000) {

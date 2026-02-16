@@ -85,7 +85,7 @@ class SessionRepository {
     const workspaceFile = path.join(fullPath, 'workspace.yaml');
     const eventsFile = path.join(fullPath, 'events.jsonl');
     const importedMarkerFile = path.join(fullPath, '.imported');
-    const insightReportFile = path.join(fullPath, 'copilot-insight.md');
+    const insightReportFile = path.join(fullPath, 'agent-review.md');
 
     // Check if workspace.yaml exists
     if (!await fileExists(workspaceFile)) {
@@ -100,6 +100,7 @@ class SessionRepository {
     let duration = null;
     let copilotVersion = null;
     let selectedModel = null;
+    let sessionStatus = 'completed';
 
     // Use optimized metadata extraction if events file exists
     if (await fileExists(eventsFile)) {
@@ -108,13 +109,19 @@ class SessionRepository {
       copilotVersion = optimizedMetadata.copilotVersion;
       selectedModel = optimizedMetadata.selectedModel;
 
+      // Compute session status:
+      //   - has session.end → completed
+      //   - no session.end + last event < 5 min ago → wip (actively running)
+      //   - no session.end + last event ≥ 5 min ago → unfinished (crashed/aborted)
+      sessionStatus = this._computeSessionStatus(optimizedMetadata);
+
       // Fallback: if no summary in workspace, use first user message from optimized read
       if (!workspace.summary && optimizedMetadata.firstUserMessage) {
         workspace.summary = optimizedMetadata.firstUserMessage;
       }
     }
 
-    return Session.fromDirectory(fullPath, entry, stats, workspace, eventCount, duration, isImported, hasInsight, copilotVersion, selectedModel);
+    return Session.fromDirectory(fullPath, entry, stats, workspace, eventCount, duration, isImported, hasInsight, copilotVersion, selectedModel, sessionStatus);
   }
 
   /**
@@ -128,6 +135,9 @@ class SessionRepository {
     // Use optimized single-pass metadata extraction
     const optimizedMetadata = await getSessionMetadataOptimized(fullPath);
 
+    // Compute session status
+    const sessionStatus = this._computeSessionStatus(optimizedMetadata);
+
     return Session.fromFile(
       fullPath,
       sessionId,
@@ -136,8 +146,28 @@ class SessionRepository {
       optimizedMetadata.firstUserMessage,
       optimizedMetadata.duration,
       optimizedMetadata.copilotVersion,
-      optimizedMetadata.selectedModel
+      optimizedMetadata.selectedModel,
+      sessionStatus
     );
+  }
+
+  /**
+   * Compute session status from metadata
+   * @private
+   * @param {Object} metadata - Optimized metadata from getSessionMetadataOptimized
+   * @returns {string} 'completed' | 'wip'
+   */
+  _computeSessionStatus(metadata) {
+    if (metadata.hasSessionEnd) {
+      return 'completed';
+    }
+    if (metadata.lastEventTime !== null && metadata.lastEventTime !== undefined) {
+      const WIP_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+      if ((Date.now() - metadata.lastEventTime) < WIP_THRESHOLD_MS) {
+        return 'wip';
+      }
+    }
+    return 'completed';
   }
 
   /**

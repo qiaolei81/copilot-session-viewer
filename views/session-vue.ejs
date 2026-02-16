@@ -1555,7 +1555,8 @@
             const urlParams = new URLSearchParams(window.location.search);
             const eventTypeParam = urlParams.get('eventType');
             const eventNameParam = urlParams.get('eventName');
-            console.log('[Navigation] URL params:', eventTypeParam, eventNameParam);
+            const eventTimestampParam = urlParams.get('eventTimestamp');
+            console.log('[Navigation] URL params:', eventTypeParam, eventNameParam, eventTimestampParam);
             
             if (eventTypeParam && eventNameParam) {
               console.log('[Navigation] Waiting for Vue to render...');
@@ -1576,14 +1577,23 @@
                     }
                   }
                 } else if (eventTypeParam === 'subagent.started') {
-                  console.log('[Navigation] Searching for subagent:', eventNameParam);
-                  // Find subagent by name
-                  targetEvent = flatEvents.value.find(event => 
-                    event.type === 'subagent.started' && 
-                    (event.data?.agentDisplayName === eventNameParam || 
-                     event.data?.agentName === eventNameParam ||
-                     event.data?.label === eventNameParam)
-                  );
+                  console.log('[Navigation] Searching for subagent:', eventNameParam, 'timestamp:', eventTimestampParam);
+                  // Find subagent by name + timestamp (handles duplicate subagent names)
+                  if (eventTimestampParam) {
+                    targetEvent = flatEvents.value.find(event =>
+                      event.type === 'subagent.started' &&
+                      event.timestamp === eventTimestampParam
+                    );
+                  }
+                  // Fallback: match by name only (for links without timestamp)
+                  if (!targetEvent) {
+                    targetEvent = flatEvents.value.find(event =>
+                      event.type === 'subagent.started' &&
+                      (event.data?.agentDisplayName === eventNameParam ||
+                       event.data?.agentName === eventNameParam ||
+                       event.data?.label === eventNameParam)
+                    );
+                  }
                   console.log('[Navigation] Target event found:', targetEvent ? 'YES' : 'NO', 'virtualIndex:', targetEvent?.virtualIndex);
                 } else {
                   // Generic: match by type only
@@ -1764,6 +1774,10 @@
                   <div v-if="metadata.summary" class="session-summary-block">{{ metadata.summary }}</div>
                   <table class="session-info-table">
                     <tbody>
+                      <tr v-if="metadata.sessionStatus === 'wip'">
+                        <td>Status</td>
+                        <td><span class="badge-warning" style="padding: 2px 8px; border-radius: 3px; font-size: 12px;">🔄 WIP</span></td>
+                      </tr>
                       <tr v-if="metadata.copilotVersion">
                         <td>CLI Version</td>
                         <td>{{ metadata.copilotVersion }}</td>

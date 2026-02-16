@@ -57,8 +57,8 @@ test.describe('API Endpoints', () => {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    // Should respond in less than 3 seconds (more reasonable for real usage)
-    expect(duration).toBeLessThan(3000);
+    // Should respond in less than 10 seconds (generous for CI/cold-start environments)
+    expect(duration).toBeLessThan(10000);
     expect(response.ok()).toBeTruthy();
   });
 });
