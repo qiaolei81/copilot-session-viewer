@@ -9,13 +9,13 @@
 A modern web-based viewer for analyzing GitHub Copilot CLI session logs with virtual scrolling, infinite loading, time analysis, and AI-powered insights.
 
 ### Session List
-![Session List](docs/images/homepage.png)
+![Session List](https://raw.githubusercontent.com/qiaolei81/copilot-session-viewer/main/docs/images/homepage.png)
 
 ### Session Detail — Event Stream with Virtual Scrolling
-![Session Detail](docs/images/session-detail.png)
+![Session Detail](https://raw.githubusercontent.com/qiaolei81/copilot-session-viewer/main/docs/images/session-detail.png)
 
 ### Time Analysis — Gantt Timeline & Sub-Agent Breakdown
-![Time Analysis](docs/images/time-analysis.png)
+![Time Analysis](https://raw.githubusercontent.com/qiaolei81/copilot-session-viewer/main/docs/images/time-analysis.png)
 
 ---
 
