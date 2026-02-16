@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2026-02-16
+
+### Added
+- "Copy as Mermaid Gantt" button on analysis timeline for easy sharing
+- Sub-Agents summary card with status breakdown (completed/failed/incomplete), wall-clock time, and tool counts
+- WIP session status indicator — sessions without `session.end` and recent activity show a 🔄 WIP badge
+- WIP session cards highlighted with amber border on homepage
+
+### Fixed
+- Subagent Gantt chart links now navigate to the correct occurrence when the same subagent runs multiple times
+- Total subagent duration no longer exceeds session duration (overlapping intervals are now merged)
+- Subagent tool counts no longer double-count tools from nested subagents
+- Mermaid sanitize function hardened against backtick/newline injection
+- ESLint errors in `insightService.js` (emoji regex `u` flag, regex double-spaces)
+- ESLint error in `sessionRepository.js` (strict equality check)
+- Unit test `session.test.js` updated for `sessionStatus` field
+- E2E API response time thresholds relaxed for CI environments
+
+### Performance
+- Created shared `sortedEvents` computed property — eliminated 7 redundant O(n log n) array sorts
+- Optimized subagent tool counting with merged intervals and binary search (O(n log k) down from O(m×n))
+
 ## [0.1.5] - 2026-02-16
 
 ### Fixed
@@ -101,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CORS restricted to localhost
 - File upload size limits (50MB)
 
+[0.1.6]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.6
 [0.1.3]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.3
 [0.1.2]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.2
 [0.1.1]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.1
