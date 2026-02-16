@@ -8,8 +8,6 @@
 
 A modern web-based viewer for analyzing GitHub Copilot CLI session logs with virtual scrolling, infinite loading, time analysis, and AI-powered insights.
 
-![Session Viewer Demo](https://via.placeholder.com/800x400/0d1117/58a6ff?text=Session+Viewer+Demo)
-
 ---
 
 ## ⚡ Quick Start
@@ -168,7 +166,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
-**Status:** ✅ Active Development | **Version:** 0.1.3 | **Last Updated:** 2026-02-16
+**Status:** ✅ Active Development | **Last Updated:** 2026-02-16
 
 ---
 
