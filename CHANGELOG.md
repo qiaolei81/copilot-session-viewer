@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2026-02-16
+
+### Changed
+- WIP status badge moved from sidebar info table to inline with the page title on session detail page, matching the time analysis page's pattern for better visibility and consistency
+
+### Fixed
+- npm provenance signing now explicitly checks out the release tag so the `SourceRepositoryRef` is available during `npm publish --provenance`
+
+### Docs
+- Added screenshots to README (homepage, session detail, time analysis)
+- Sensitive info (session IDs, workspace paths, repo names) masked in screenshots
+- Switched screenshot references to absolute GitHub raw URLs for npmjs.org compatibility
+- Removed broken placeholder image and hardcoded version from README
+
 ## [0.1.6] - 2026-02-16
 
 ### Added
@@ -123,6 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CORS restricted to localhost
 - File upload size limits (50MB)
 
+[0.1.7]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.7
 [0.1.6]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.6
 [0.1.3]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.3
 [0.1.2]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.2
