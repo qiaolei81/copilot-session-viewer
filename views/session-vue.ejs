@@ -1757,7 +1757,9 @@
         <div class="container">
           <div class="header">
             <a href="/" class="home-btn">← Back to Home</a>
-            <h1>📋 Session: {{ sessionId }}</h1>
+            <h1>📋 Session: {{ sessionId }}
+              <span v-if="metadata.sessionStatus === 'wip'" style="font-size: 12px; padding: 2px 8px; border-radius: 3px; background: rgba(210, 153, 34, 0.2); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.4); vertical-align: middle; margin-left: 8px;">🔄 WIP</span>
+            </h1>
             <div style="display: flex; gap: 10px;">
               <a :href="'/session/' + sessionId + '/time-analyze'" class="time-analyze-btn">⏱ Analysis</a>
               <button @click="exportSession" class="export-btn" :disabled="exporting">
@@ -1774,10 +1776,6 @@
                   <div v-if="metadata.summary" class="session-summary-block">{{ metadata.summary }}</div>
                   <table class="session-info-table">
                     <tbody>
-                      <tr v-if="metadata.sessionStatus === 'wip'">
-                        <td>Status</td>
-                        <td><span class="badge-warning" style="padding: 2px 8px; border-radius: 3px; font-size: 12px;">🔄 WIP</span></td>
-                      </tr>
                       <tr v-if="metadata.copilotVersion">
                         <td>CLI Version</td>
                         <td>{{ metadata.copilotVersion }}</td>
