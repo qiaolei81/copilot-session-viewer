@@ -16,6 +16,7 @@ class Session {
     this.hasInsight = options.hasInsight || false; // Whether session has insight report
     this.copilotVersion = options.copilotVersion || null; // Copilot CLI version
     this.selectedModel = options.selectedModel || null; // LLM model used
+    this.sessionStatus = options.sessionStatus || 'completed'; // 'completed' | 'wip'
   }
 
   /**
@@ -30,9 +31,10 @@ class Session {
    * @param {boolean} hasInsight - Whether session has insight report
    * @param {string|null} copilotVersion - Copilot CLI version
    * @param {string|null} selectedModel - LLM model used
+   * @param {string} sessionStatus - Session status: 'completed' or 'wip'
    * @returns {Session}
    */
-  static fromDirectory(dirPath, id, stats, workspace, eventCount, duration, isImported, hasInsight, copilotVersion, selectedModel) {
+  static fromDirectory(dirPath, id, stats, workspace, eventCount, duration, isImported, hasInsight, copilotVersion, selectedModel, sessionStatus) {
     return new Session(id, 'directory', {
       workspace: workspace,
       createdAt: workspace?.created_at || stats.birthtime,
@@ -44,7 +46,8 @@ class Session {
       isImported: isImported,
       hasInsight: hasInsight,
       copilotVersion: copilotVersion,
-      selectedModel: selectedModel
+      selectedModel: selectedModel,
+      sessionStatus: sessionStatus
     });
   }
 
@@ -58,9 +61,10 @@ class Session {
    * @param {number|null} duration - Duration in milliseconds
    * @param {string|null} copilotVersion - Copilot CLI version
    * @param {string|null} selectedModel - LLM model used
+   * @param {string} sessionStatus - Session status: 'completed' or 'wip'
    * @returns {Session}
    */
-  static fromFile(filePath, id, stats, eventCount, summary, duration, copilotVersion, selectedModel) {
+  static fromFile(filePath, id, stats, eventCount, summary, duration, copilotVersion, selectedModel, sessionStatus) {
     return new Session(id, 'file', {
       createdAt: stats.birthtime,
       updatedAt: stats.mtime,
@@ -71,7 +75,8 @@ class Session {
       isImported: false, // .jsonl files can't be imported
       hasInsight: false,  // .jsonl files don't have insights
       copilotVersion: copilotVersion,
-      selectedModel: selectedModel
+      selectedModel: selectedModel,
+      sessionStatus: sessionStatus
     });
   }
 
@@ -93,7 +98,8 @@ class Session {
       isImported: this.isImported,
       hasInsight: this.hasInsight,
       copilotVersion: this.copilotVersion,
-      selectedModel: this.selectedModel
+      selectedModel: this.selectedModel,
+      sessionStatus: this.sessionStatus
     };
   }
 }

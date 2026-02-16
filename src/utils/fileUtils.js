@@ -82,6 +82,7 @@ async function getSessionMetadataOptimized(filePath, maxMessageLength = 200) {
     let lastTimestamp = null;
     let copilotVersion = null;
     let selectedModel = null;
+    let hasSessionEnd = false;
 
     for await (const line of rl) {
       if (!line.trim()) continue;
@@ -104,6 +105,11 @@ async function getSessionMetadataOptimized(filePath, maxMessageLength = 200) {
           if (msg) {
             firstUserMessage = msg.length > maxMessageLength ? msg.substring(0, maxMessageLength) + '...' : msg;
           }
+        }
+
+        // Check for session.end event
+        if (event.type === 'session.end') {
+          hasSessionEnd = true;
         }
 
         // Get copilot version from session start
@@ -138,7 +144,9 @@ async function getSessionMetadataOptimized(filePath, maxMessageLength = 200) {
       firstUserMessage: firstUserMessage || '',
       duration,
       copilotVersion: copilotVersion || null,
-      selectedModel: selectedModel || null
+      selectedModel: selectedModel || null,
+      hasSessionEnd,
+      lastEventTime: lastTimestamp
     };
   } catch (err) {
     console.error(`Error reading session metadata from ${filePath}:`, err.message);
@@ -146,7 +154,9 @@ async function getSessionMetadataOptimized(filePath, maxMessageLength = 200) {
       firstUserMessage: '',
       duration: null,
       copilotVersion: null,
-      selectedModel: null
+      selectedModel: null,
+      hasSessionEnd: false,
+      lastEventTime: null
     };
   }
 }

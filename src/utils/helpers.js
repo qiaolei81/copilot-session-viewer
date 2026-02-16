@@ -17,7 +17,8 @@ function buildMetadata(session) {
     cwd: session.workspace?.cwd,
     created: session.createdAt,
     updated: session.updatedAt,
-    copilotVersion: session.copilotVersion
+    copilotVersion: session.copilotVersion,
+    sessionStatus: session.sessionStatus
   };
 }
 

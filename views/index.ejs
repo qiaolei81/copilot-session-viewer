@@ -263,6 +263,23 @@
       font-weight: 600;
       font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
     }
+    .status-badge.wip {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(210, 153, 34, 0.2);
+      color: #d29922;
+      border: 1px solid rgba(210, 153, 34, 0.4);
+    }
+    .recent-item-wip {
+      border-color: #d29922;
+      border-left: 3px solid #d29922;
+    }
+    .recent-item-wip:hover {
+      border-color: #e8b634;
+      border-left-color: #e8b634;
+    }
 
     /* Sessions header with import link */
     .sessions-header {
@@ -652,6 +669,9 @@
     function renderSessionCard(session) {
       // Add status badges
       let badges = '';
+      if (session.sessionStatus === 'wip') {
+        badges += '<span class="status-badge wip" title="Session in progress">🔄 WIP</span>';
+      }
       if (session.isImported) {
         badges += '<span class="status-badge imported" title="Imported session">📥</span>';
       }
@@ -706,8 +726,10 @@
         `;
       }
       
+      const wipClass = session.sessionStatus === 'wip' ? ' recent-item-wip' : '';
+
       return `
-        <a href="/session/${session.id}" class="recent-item">
+        <a href="/session/${session.id}" class="recent-item${wipClass}">
           <div class="session-id">
             <span class="session-id-text" title="${escapeHtml(session.id)}">${escapeHtml(session.id)}</span>
             <div class="session-badges">${badges}</div>
