@@ -939,8 +939,14 @@
         });
 
         // ── Shared sorted events (computed once, reused everywhere) ──
+        // Stable sort: use _fileIndex (set by backend) as tiebreaker for identical timestamps
         const sortedEvents = computed(() => {
-          return [...events.value].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          return [...events.value].sort((a, b) => {
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB;
+            return (a._fileIndex ?? 0) - (b._fileIndex ?? 0);
+          });
         });
 
         // ── Map tool.execution_start events to owning subagent via parentToolCallId ──
@@ -1986,7 +1992,12 @@
             const resp = await fetch('/api/sessions/' + sessionId.value + '/events');
             if (!resp.ok) throw new Error('Failed to load events: ' + resp.statusText);
             const data = await resp.json();
-            events.value = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            events.value = data.sort((a, b) => {
+              const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+              const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+              if (timeA !== timeB) return timeA - timeB;
+              return (a._fileIndex ?? 0) - (b._fileIndex ?? 0);
+            });
           } catch (err) {
             error.value = err.message;
           } finally {

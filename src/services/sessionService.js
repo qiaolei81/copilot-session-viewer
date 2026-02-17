@@ -70,14 +70,29 @@ class SessionService {
     try {
       const content = await fs.promises.readFile(eventsFile, 'utf-8');
       const lines = content.trim().split('\n').filter(line => line.trim());
-      return lines.map((line, index) => {
+      const events = lines.map((line, index) => {
         try {
-          return JSON.parse(line);
+          const event = JSON.parse(line);
+          // Preserve original file order as _fileIndex for stable sorting
+          event._fileIndex = index;
+          return event;
         } catch (err) {
           console.error(`Error parsing line ${index + 1}:`, err.message);
           return null;
         }
       }).filter(event => event !== null);
+
+      // Sort by timestamp with stable tiebreaker on original file order.
+      // This ensures events with identical timestamps (e.g. an assistant.message
+      // followed by its tool.execution_start events) keep their logical order.
+      events.sort((a, b) => {
+        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return a._fileIndex - b._fileIndex;
+      });
+
+      return events;
     } catch (err) {
       console.error('Error reading events:', err);
       return [];

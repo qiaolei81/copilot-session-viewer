@@ -867,7 +867,7 @@
       content: '';
       flex: 1;
       height: 1px;
-      background: #58a6ff;
+      background: var(--sa-color, #58a6ff);
     }
     .subagent-divider-text {
       font-size: 12px;
@@ -886,6 +886,8 @@
     .subagent-divider-line-right {
       display: none;
     }
+    .event.event-in-subagent { border-left-color: var(--subagent-border-color, #58a6ff); }
+    .subagent-owner-tag { font-size: 11px; padding: 1px 6px; border-radius: 8px; border: 1px solid; white-space: nowrap; opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -949,14 +951,19 @@
         const eventsLoading = ref(true);
         const eventsError = ref(null);
         
-        // Flatten and sort events
+        // Flatten and sort events (stable sort using _fileIndex tiebreaker)
         const flatEvents = computed(() => {
           const events = loadedEvents.value
-            .filter(e => 
-              e.type !== 'assistant.turn_end' && 
+            .filter(e =>
+              e.type !== 'assistant.turn_end' &&
               e.type !== 'assistant.turn_complete'
             )
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+            .sort((a, b) => {
+              const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+              const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+              if (timeA !== timeB) return timeA - timeB;
+              return (a._fileIndex ?? 0) - (b._fileIndex ?? 0);
+            })
             .map((e, index) => ({ 
               ...e, 
               virtualIndex: index,
@@ -1004,12 +1011,12 @@
         // Final filtered events (search + type filter)
         const filteredEvents = computed(() => {
           let events = searchFilteredEvents.value;
-          
+
           // Apply type filter
           if (currentFilter.value !== 'all') {
             events = events.filter(e => e.type === currentFilter.value);
           }
-          
+
           // Divider types (no separator before these)
           const dividerTypes = ['assistant.turn_start', 'subagent.started', 'subagent.completed', 'subagent.failed'];
           
@@ -1197,7 +1204,99 @@
           
           return map;
         });
-        
+
+        // Subagent ownership: attribute events to their owning subagent
+        const subagentOwnership = computed(() => {
+          const sorted = flatEvents.value;
+          const ownerMap = new Map();       // stableId → toolCallId
+          const subagentInfo = new Map();   // toolCallId → { name, colorIndex }
+
+          // 1. Collect all subagent.started toolCallIds + assign colorIndex
+          let colorIdx = 0;
+          for (const ev of sorted) {
+            if (ev.type === 'subagent.started') {
+              const tcid = ev.data?.toolCallId;
+              if (tcid) {
+                subagentInfo.set(tcid, {
+                  name: ev.data?.agentDisplayName || ev.data?.agentName || 'SubAgent',
+                  colorIndex: colorIdx++
+                });
+              }
+            }
+          }
+
+          if (subagentInfo.size === 0) return { ownerMap, subagentInfo };
+
+          // 2. Build id → event lookup for parentId chain walking
+          const idMap = new Map();
+          for (const ev of sorted) {
+            if (ev.id) idMap.set(ev.id, ev);
+          }
+
+          // 3. Attribute assistant.message events via data.parentToolCallId
+          for (const ev of sorted) {
+            if (ev.type === 'assistant.message') {
+              const ptcid = ev.data?.parentToolCallId;
+              if (ptcid && subagentInfo.has(ptcid)) {
+                ownerMap.set(ev.stableId, ptcid);
+              }
+            }
+          }
+
+          // 4. Attribute reasoning events by walking parentId → assistant.message
+          for (const ev of sorted) {
+            if (ev.type !== 'reasoning') continue;
+            let current = ev.parentId;
+            let depth = 0;
+            while (current && depth < 10) {
+              const parent = idMap.get(current);
+              if (!parent) break;
+              if (parent.type === 'assistant.message') {
+                const ptcid = parent.data?.parentToolCallId;
+                if (ptcid && subagentInfo.has(ptcid)) {
+                  ownerMap.set(ev.stableId, ptcid);
+                }
+                break;
+              }
+              current = parent.parentId;
+              depth++;
+            }
+          }
+
+          // 5. Attribute tool.execution_start/complete by walking parentId chain
+          const startIdByToolCallId = new Map();
+          for (const ev of sorted) {
+            if (ev.type !== 'tool.execution_start') continue;
+            let current = ev.parentId;
+            let depth = 0;
+            while (current && depth < 10) {
+              const parent = idMap.get(current);
+              if (!parent) break;
+              if (parent.type === 'assistant.message') {
+                const ptcid = parent.data?.parentToolCallId;
+                if (ptcid && subagentInfo.has(ptcid)) {
+                  ownerMap.set(ev.stableId, ptcid);
+                  const tcid = ev.data?.toolCallId;
+                  if (tcid) startIdByToolCallId.set(tcid, ptcid);
+                }
+                break;
+              }
+              current = parent.parentId;
+              depth++;
+            }
+          }
+
+          for (const ev of sorted) {
+            if (ev.type !== 'tool.execution_complete') continue;
+            const tcid = ev.data?.toolCallId;
+            if (tcid && startIdByToolCallId.has(tcid)) {
+              ownerMap.set(ev.stableId, startIdByToolCallId.get(tcid));
+            }
+          }
+
+          return { ownerMap, subagentInfo };
+        });
+
         // Methods
         const formatTime = (timestamp) => {
           if (!timestamp) return '';
@@ -1442,7 +1541,44 @@
         const getToolGroups = (event) => {
           return toolCallMap.value.get(event.id || event.virtualIndex) || [];
         };
-        
+
+        // Subagent color palette for parallel subagent distinction
+        const SUBAGENT_COLORS = [
+          '#58a6ff', // blue
+          '#f0883e', // orange
+          '#a371f7', // purple
+          '#3fb950', // green
+          '#f778ba', // pink
+          '#79c0ff', // light blue
+          '#d29922', // amber
+          '#56d4dd'  // teal
+        ];
+
+        const getSubagentInfo = (event) => {
+          const { ownerMap, subagentInfo } = subagentOwnership.value;
+          // For subagent dividers, use their own toolCallId
+          if (event.type === 'subagent.started' || event.type === 'subagent.completed' || event.type === 'subagent.failed') {
+            const tcid = event.data?.toolCallId;
+            if (tcid && subagentInfo.has(tcid)) {
+              const info = subagentInfo.get(tcid);
+              return { name: info.name, toolCallId: tcid, colorIndex: info.colorIndex };
+            }
+            return null;
+          }
+          // For regular events, look up ownership
+          const tcid = ownerMap.get(event.stableId);
+          if (!tcid) return null;
+          const info = subagentInfo.get(tcid);
+          if (!info) return null;
+          return { name: info.name, toolCallId: tcid, colorIndex: info.colorIndex };
+        };
+
+        const getSubagentColor = (event) => {
+          const info = getSubagentInfo(event);
+          if (!info) return null;
+          return SUBAGENT_COLORS[info.colorIndex % SUBAGENT_COLORS.length];
+        };
+
         const setFilter = (type) => {
           currentFilter.value = type;
         };
@@ -1744,6 +1880,8 @@
           getToolCommand,
           hasTools,
           getToolGroups,
+          getSubagentInfo,
+          getSubagentColor,
           setFilter,
           scrollToTurn,
           jumpToTurn,
@@ -1913,32 +2051,41 @@
                     </div>
                     
                     <!-- Subagent Divider -->
-                    <div 
+                    <div
                       v-else-if="item.type === 'subagent.started' || item.type === 'subagent.completed' || item.type === 'subagent.failed'"
                       :data-type="item.type"
                       :data-index="item.virtualIndex"
                       :class="['subagent-divider', item.type.split('.')[1]]"
+                      :style="{
+                        '--sa-color': getSubagentColor(item) || '#58a6ff'
+                      }"
                     >
-                      <div class="subagent-divider-line-left"></div>
-                      <span class="subagent-divider-text">
+                      <div class="subagent-divider-line-left" :style="{ background: getSubagentColor(item) || '#58a6ff' }"></div>
+                      <span class="subagent-divider-text" :style="{ color: getSubagentColor(item) || '#58a6ff', borderColor: getSubagentColor(item) || '#58a6ff', background: (getSubagentColor(item) || '#58a6ff') + '1a' }">
                         🤖 {{ item.data?.agentDisplayName || item.data?.agentName || 'SubAgent' }}
                         {{ item.type === 'subagent.started' ? 'Start ▶' : item.type === 'subagent.completed' ? 'Complete ✓' : 'Failed ✗' }}
                       </span>
-                      <div class="subagent-divider-line-right"></div>
+                      <div class="subagent-divider-line-right" :style="{ background: getSubagentColor(item) || '#58a6ff' }"></div>
                       <div class="divider-separator"></div>
                     </div>
                     
                     <!-- Regular Event -->
-                    <div 
+                    <div
                       v-else
-                      :class="['event']"
+                      :class="['event', getSubagentInfo(item) ? 'event-in-subagent' : '']"
                       :data-type="item.type"
                       :data-index="item.virtualIndex"
+                      :style="getSubagentColor(item) ? { '--subagent-border-color': getSubagentColor(item) } : {}"
                     >
                       <div class="event-header">
                         <span :class="['event-badge', getBadgeInfo(item.type).class]">
                           {{ getBadgeInfo(item.type).label }}
                         </span>
+                        <span
+                          v-if="getSubagentInfo(item)"
+                          class="subagent-owner-tag"
+                          :style="{ color: getSubagentColor(item), borderColor: getSubagentColor(item) }"
+                        >🤖 {{ getSubagentInfo(item).name }}</span>
                         <span class="event-timestamp">{{ formatTime(item.timestamp) }}</span>
                       </div>
                       
