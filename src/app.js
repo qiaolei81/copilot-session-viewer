@@ -23,19 +23,29 @@ function createApp(options = {}) {
   const insightController = new InsightController(options.insightService);
   const uploadController = new UploadController();
 
-  // Security and parsing middleware
+  // Minimal security headers for local development tool
+  // Custom CSP without upgrade-insecure-requests
+  app.use((req, res, next) => {
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; " +
+      "style-src 'self' 'unsafe-inline' https: http:; " +
+      "font-src 'self' https: http:; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; " +
+      "img-src 'self' data: https: http:; " +
+      "connect-src 'self' https: http:"
+    );
+    next();
+  });
+  
+  // Other helmet protections (without CSP and HSTS)
   app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ['\'self\''],
-        styleSrc: ['\'self\'', '\'unsafe-inline\'', 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com'],
-        fontSrc: ['\'self\'', 'https://fonts.gstatic.com'],
-        scriptSrc: ['\'self\'', '\'unsafe-inline\'', '\'unsafe-eval\'', 'https://cdn.jsdelivr.net', 'https://unpkg.com'],
-        imgSrc: ['\'self\'', 'data:', 'https:'],
-        upgradeInsecureRequests: null // Disable for local HTTP access from mobile
-      }
-    },
-    hsts: false // Disable HSTS for local HTTP development
+    contentSecurityPolicy: false,
+    hsts: false,
+    referrerPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false
   }));
 
   app.use(compression({
