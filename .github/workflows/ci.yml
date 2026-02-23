@@ -51,6 +51,15 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       
+      - name: Verify test session generation
+        run: |
+          echo "📊 Copilot sessions:"
+          ls -la ~/.copilot/session-state/ | head -10
+          echo "📊 Claude sessions:"
+          ls -la ~/.claude/projects/ 2>/dev/null || echo "No Claude sessions"
+          echo "📊 Pi-Mono sessions:"
+          ls -la ~/.pi/agent/sessions/ 2>/dev/null || echo "No Pi-Mono sessions"
+      
       - name: Run E2E tests
         run: |
           export COPILOT_SESSION_DIR="$HOME/.copilot/session-state"
