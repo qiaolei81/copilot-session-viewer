@@ -11,8 +11,12 @@ describe('SessionService - Coverage Enhancement', () => {
   let service;
   let tmpDir;
   let mockRepository;
+  let consoleErrorSpy;
 
   beforeEach(async () => {
+    // Mock console.error to avoid test failures from expected error logs
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    
     tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'session-coverage-'));
 
     // Mock SessionRepository
@@ -32,6 +36,10 @@ describe('SessionService - Coverage Enhancement', () => {
   });
 
   afterEach(async () => {
+    // Restore console.error
+    if (consoleErrorSpy) {
+      consoleErrorSpy.mockRestore();
+    }
     await fs.promises.rm(tmpDir, { recursive: true, force: true });
   });
 

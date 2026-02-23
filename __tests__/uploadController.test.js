@@ -133,8 +133,12 @@ async function setupImportSessionTest(controller, req, fsMocks = {}) {
 describe('UploadController', () => {
   let controller;
   let tmpSessionDir;
+  let consoleErrorSpy;
 
   beforeEach(async () => {
+    // Mock console.error to avoid test failures from expected error logs
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    
     // Create temporary session directory
     tmpSessionDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'upload-test-'));
     process.env.SESSION_DIR = tmpSessionDir;
@@ -148,6 +152,10 @@ describe('UploadController', () => {
   });
 
   afterEach(async () => {
+    // Restore console.error
+    if (consoleErrorSpy) {
+      consoleErrorSpy.mockRestore();
+    }
     // Cleanup
     await fs.promises.rm(tmpSessionDir, { recursive: true, force: true });
     if (fs.existsSync(controller.uploadDir)) {
