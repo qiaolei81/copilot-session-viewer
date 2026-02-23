@@ -1,9 +1,6 @@
 const { test, expect } = require('./fixtures');
 
-// Skip all infinite scroll tests in CI - they require real sessions
 test.describe('Infinite Scroll', () => {
-  test.skip(!!process.env.CI, 'Infinite scroll tests require real sessions - skipped in CI');
-  
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
 

@@ -1,6 +1,5 @@
 const { test, expect } = require('./fixtures');
 
-// Skip on CI since it requires real sessions (not mock data)
 test.describe('Homepage', () => {
   test('should load homepage successfully', async ({ page }) => {
     await page.goto('/');
@@ -13,8 +12,6 @@ test.describe('Homepage', () => {
   });
 
   test('should display session list', async ({ page }) => {
-    test.skip(!!process.env.CI, 'Requires real sessions - skipped in CI');
-    
     await page.goto('/');
     
     // Wait for sessions to load
@@ -26,8 +23,6 @@ test.describe('Homepage', () => {
   });
 
   test('should show session metadata', async ({ page }) => {
-    test.skip(!!process.env.CI, 'Requires real sessions - skipped in CI');
-    
     await page.goto('/');
     await page.waitForSelector('.recent-item');
     
@@ -41,8 +36,6 @@ test.describe('Homepage', () => {
   });
 
   test('should navigate to session detail on click', async ({ page }) => {
-    test.skip(!!process.env.CI, 'Requires real sessions - skipped in CI');
-    
     await page.goto('/');
     await page.waitForSelector('.recent-item');
     
