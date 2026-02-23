@@ -4,9 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 
-**AI-Powered Session Log Analysis Tool for GitHub Copilot CLI**
+**AI-Powered Session Log Analysis Tool for GitHub Copilot CLI, Claude Code CLI & Pi-Mono**
 
-A modern web-based viewer for analyzing GitHub Copilot CLI session logs with virtual scrolling, infinite loading, time analysis, and AI-powered insights.
+A modern web-based viewer for analyzing AI coding assistant session logs with virtual scrolling, infinite loading, time analysis, and AI-powered insights. Supports **Copilot**, **Claude Code**, and **Pi-Mono** sessions.
 
 ### Session List
 ![Session List](https://raw.githubusercontent.com/qiaolei81/copilot-session-viewer/main/docs/images/homepage.png)
@@ -39,7 +39,10 @@ copilot-session-viewer
 ### Requirements
 
 - Node.js ≥ 18.0.0
-- GitHub Copilot CLI (for generating session data)
+- At least one AI coding assistant (optional for generating sessions):
+  - [GitHub Copilot CLI](https://github.com/cli/cli) (recommended)
+  - [Claude Code CLI](https://github.com/anthropics/claude-code)
+  - [Pi-Mono](https://github.com/badlogic/pi-mono)
 
 ---
 
@@ -52,37 +55,53 @@ copilot-session-viewer
 - **🚀 Virtual Scrolling** - Handle 1000+ events smoothly
 - **♾️ Infinite Scroll** - Progressive session loading for better performance
 - **🤖 AI Insights** - LLM-powered session analysis
+- **🎭 Multi-Format Support** - Copilot, Claude Code, and Pi-Mono sessions
 
 ### 🎨 **User Experience**
 - **🌙 Dark Theme** - GitHub-inspired interface
 - **📱 Responsive** - Works on desktop, tablet, and mobile
 - **⚡ Fast** - Optimized virtual rendering and lazy loading
-- **🔐 Secure** - Local-first with no data sharing
+- **🔐 Secure** - Local-first with no data sharing, XSS protection, ZIP bomb defense
 
 ### 🛠️ **Technical Features**
 - **Vue 3** - Reactive virtual scrolling
 - **Express.js** - Robust backend API
-- **ZIP Import/Export** - Session sharing capabilities
-- **Multi-format Support** - Directory and JSONL sessions
+- **ZIP Import/Export** - Session sharing capabilities with security validation
+- **Multi-Source Support** - Copilot (`~/.copilot/session-state/`), Claude (`~/.claude/projects/`), Pi-Mono (`~/.pi/agent/sessions/`)
+- **Unified Event Format** - Consistent schema across all sources
+- **Memory Pagination** - Efficient handling of large sessions
+- **XSS Protection** - DOMPurify-based HTML sanitization
+- **ZIP Bomb Defense** - 4-layer protection (compressed size, uncompressed size, file count, depth)
 
 ---
 
 ## 🚀 How It Works
 
-1. **Generate Sessions** - Use GitHub Copilot CLI to create session logs
-2. **Auto-Discovery** - Sessions are automatically detected in `~/.copilot/session-state/`
+1. **Generate Sessions** - Use GitHub Copilot CLI, Claude Code CLI, or Pi-Mono to create session logs
+2. **Auto-Discovery** - Sessions are automatically detected from:
+   - Copilot: `~/.copilot/session-state/`
+   - Claude: `~/.claude/projects/`
+   - Pi-Mono: `~/.pi/agent/sessions/`
 3. **Browse & Analyze** - View sessions with infinite scroll and detailed event streams
 4. **Time Analysis** - Analyze turn durations, tool usage, and sub-agent performance
 5. **AI Insights** - Generate comprehensive session analysis with Copilot
 
 ```bash
-# Example: Generate a session with Copilot CLI
+# Example: Generate sessions with different tools
+
+# GitHub Copilot CLI
 copilot --model claude-sonnet-4.5 -p "Help me refactor this code"
+
+# Claude Code CLI
+claude -p "Implement user authentication"
+
+# Pi-Mono CLI
+pi -p "Create a REST API endpoint"
 
 # Start the viewer
 npx @qiaolei81/copilot-session-viewer
 
-# Browse sessions at http://localhost:3838
+# Browse all sessions at http://localhost:3838
 ```
 
 ---
@@ -97,9 +116,17 @@ npx @qiaolei81/copilot-session-viewer
 
 ---
 
-## 🧪 Testing & Coverage
+## 🧪 Testing & Quality
 
-This project includes comprehensive unit and E2E test coverage with detailed reporting.
+This project includes comprehensive unit and E2E test coverage with CI/CD integration.
+
+### Test Coverage
+
+- **470+ Tests** (411 unit + 59 E2E)
+- **Unified Format Tests** - Mock data validation for all sources (Copilot, Claude, Pi-Mono)
+- **Security Tests** - XSS prevention, ZIP bomb defense
+- **Integration Tests** - Session import/export, file operations
+- **CI-Friendly** - Mock data generation for reproducible tests
 
 ### Running Tests
 
@@ -113,50 +140,26 @@ npm run test:coverage
 # E2E tests only
 npm run test:e2e
 
-# E2E tests with coverage
-npm run test:e2e:coverage
+# Lint check
+npm run lint:check
 
 # Run all tests (unit + E2E)
 npm run test:all
-
-# Run all tests with combined coverage report
-npm run test:coverage:all
 ```
 
-### Coverage Reports
+### CI/CD Pipeline
 
-The `test:coverage:all` command generates comprehensive coverage reports by:
-1. Running Jest unit tests with coverage
-2. Running Playwright E2E tests with coverage (using built-in Coverage API)
-3. Converting V8 coverage format to Istanbul format
-4. Merging unit and E2E coverage data
-5. Generating combined HTML reports
+GitHub Actions workflow includes:
+1. **Linting** - ESLint code quality checks
+2. **Unit Tests** - 411 Jest tests with coverage
+3. **Mock Data Generation** - Reproducible test session fixtures
+4. **E2E Tests** - 59 Playwright tests with Chromium
+5. **Artifact Upload** - Test results on failure
 
-**Coverage Report Locations:**
-- **Combined Coverage**: `./coverage/combined/index.html` - Merged unit + E2E coverage
-- **Unit Test Coverage**: `./coverage/unit/index.html` - Jest unit tests only
-- **LCOV Report**: `./coverage/lcov.info` - For CI/CD integration
-
-**Coverage Collection:**
-- **Unit tests**: Automatically collected by Jest for all server-side code
-- **E2E tests**: Uses Playwright's built-in Coverage API to collect browser JavaScript coverage
-- **Merge tool**: Uses `nyc` to merge Istanbul-formatted coverage data
-- **Conversion**: V8 coverage from Playwright is converted using `v8-to-istanbul`
-
-### Test Structure
-
-```
-__tests__/
-├── unit/                    # Jest unit tests
-│   ├── server.test.js
-│   └── ...
-└── e2e/                     # Playwright E2E tests
-    ├── fixtures.js          # Test fixtures with coverage hooks
-    ├── global-setup.js      # Global test setup
-    ├── helpers/
-    │   └── coverage.js      # Coverage collection helpers
-    └── *.spec.js            # E2E test specs
-```
+**Test Data Strategy:**
+- ✅ CI uses generated mock data (fast, reliable, no external dependencies)
+- ✅ Local development can use real sessions for integration testing
+- ✅ Fixtures cover all event formats (Copilot, Claude, Pi-Mono)
 
 ---
 
@@ -168,22 +171,83 @@ __tests__/
 │  • Virtual Scroller (vue-virtual-scroller)      │
 │  • Infinite Scroll (JavaScript)                 │
 │  • GitHub-inspired Dark Theme                   │
+│  • XSS Protection (DOMPurify)                   │
 └─────────────────────────────────────────────────┘
                       ↕ HTTP/API
 ┌─────────────────────────────────────────────────┐
 │  Backend (Node.js + Express)                    │
-│  • Session Repository & File Watcher            │
+│  • Multi-Source Session Repository              │
+│  • Unified Event Format Normalizer              │
 │  • JSONL Streaming Parser                       │
 │  • Paginated API Endpoints                      │
+│  • ZIP Import/Export with Security Validation   │
 └─────────────────────────────────────────────────┘
                       ↕ File System
 ┌─────────────────────────────────────────────────┐
-│  Data Layer (~/.copilot/session-state/)         │
-│  • events.jsonl (event streams)                 │
-│  • workspace.yaml (metadata)                    │
-│  • copilot-insight.md (AI analysis)              │
+│  Data Layer (Multi-Source)                      │
+│  • Copilot: ~/.copilot/session-state/           │
+│  • Claude:  ~/.claude/projects/                 │
+│  • Pi-Mono: ~/.pi/agent/sessions/               │
 └─────────────────────────────────────────────────┘
 ```
+
+### Unified Event Format
+
+All session sources are normalized to a consistent schema:
+
+```javascript
+{
+  type: 'assistant.message',
+  timestamp: '2026-02-23T00:00:00.000Z',
+  data: {
+    message: 'Response text',
+    tools: [
+      {
+        id: 'tool-001',
+        name: 'read',
+        startTime: '2026-02-23T00:00:01.000Z',
+        endTime: '2026-02-23T00:00:02.000Z',
+        status: 'completed',
+        input: { path: 'file.js' },
+        result: { content: '...' },
+        error: null,
+        metadata: {
+          source: 'copilot',  // or 'claude', 'pi-mono'
+          duration: 1000
+        }
+      }
+    ]
+  }
+}
+```
+
+**Benefits:**
+- ✅ Consistent UI rendering across all sources
+- ✅ Simplified frontend logic
+- ✅ Easy to add new sources
+
+---
+
+## 🔒 Security
+
+### XSS Protection
+- **DOMPurify Sanitization** - All user-generated content is sanitized before rendering
+- **Whitelist-based** - Only safe HTML tags and attributes are allowed
+- **JavaScript URL Protection** - Blocks `javascript:`, `data:`, and `onclick` handlers
+- **Tested** - Comprehensive E2E tests for XSS attack vectors
+
+### ZIP Bomb Defense
+4-layer protection against malicious archives:
+1. **Compressed Size Limit** - 50 MB max upload
+2. **Uncompressed Size Limit** - 200 MB max expansion
+3. **File Count Limit** - 1000 files max
+4. **Directory Depth Limit** - 5 levels max
+
+### Local-First Design
+- No external API calls for session data
+- All processing happens locally
+- Optional AI insights require user action
+- No telemetry or tracking
 
 ---
 
@@ -235,6 +299,16 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [vue-virtual-scroller](https://github.com/Akryum/vue-virtual-scroller) - High-performance virtual scrolling
 - [Express.js](https://expressjs.com/) - Web application framework
 - [EJS](https://ejs.co/) - Templating engine
+- [DOMPurify](https://github.com/cure53/DOMPurify) - XSS protection
+- [Playwright](https://playwright.dev/) - E2E testing
+
+**Recent Updates (v0.1.9+):**
+- ✨ Multi-source support (Copilot, Claude, Pi-Mono)
+- 🔒 XSS protection with DOMPurify
+- 🛡️ ZIP bomb defense (4-layer validation)
+- 📄 Memory pagination API
+- 🧪 470+ tests with CI/CD integration
+- 📚 Comprehensive documentation
 
 ---
 
