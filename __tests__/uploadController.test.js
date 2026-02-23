@@ -136,6 +136,10 @@ describe('UploadController', () => {
   let consoleErrorSpy;
 
   beforeEach(async () => {
+    // Reset mocks first (before creating new spies)
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    
     // Mock console.error to avoid test failures from expected error logs
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     
@@ -151,9 +155,7 @@ describe('UploadController', () => {
     }
     await fs.promises.mkdir(controller.uploadDir, { recursive: true });
 
-    // Reset mocks
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    // Mock processManager
     processManager.register.mockImplementation(() => {});
   });
 
