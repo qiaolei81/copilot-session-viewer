@@ -891,8 +891,13 @@ describe('UploadController', () => {
 
     it('should handle unexpected errors and cleanup file', async () => {
       const zipPath = path.join(controller.uploadDir, 'test.zip');
-      await fs.promises.mkdir(controller.uploadDir, { recursive: true });
-      await fs.promises.writeFile(zipPath, 'dummy');
+      
+      // Use real fs to avoid issues with previous mocks
+      const realFs = jest.requireActual('fs');
+      if (!realFs.existsSync(controller.uploadDir)) {
+        await realFs.promises.mkdir(controller.uploadDir, { recursive: true });
+      }
+      await realFs.promises.writeFile(zipPath, 'dummy');
 
       const req = { file: { path: zipPath } };
       const res = {
@@ -911,7 +916,7 @@ describe('UploadController', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Error processing upload' });
 
       // Verify file was cleaned up
-      expect(fs.existsSync(zipPath)).toBe(false);
+      expect(realFs.existsSync(zipPath)).toBe(false);
     });
 
     it('should handle errors during unlink in close handler', async () => {
