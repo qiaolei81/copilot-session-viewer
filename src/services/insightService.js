@@ -295,16 +295,22 @@ class InsightService {
     const sessionDir = path.dirname(outputPath);
     const eventsFilename = path.basename(eventsFile);
     const workDir = `${sessionDir}/.output`;
+    
+    // For Pi-Mono: emphasize analyzing ONLY the specified file
+    const fileInstruction = eventsFilename.includes('_') 
+      ? `\n**IMPORTANT**: This directory may contain multiple .jsonl files. You MUST analyze ONLY the file named \`${eventsFilename}\`. Do NOT read or analyze any other .jsonl files in this directory.\n`
+      : '';
+    
     return `You are an expert AI agent evaluator. The current working directory is an AI coding agent session folder. It contains the raw session data from an agent run.
-
+${fileInstruction}
 **Step 1 — Discover session files.** Run \`ls -la\` to see what's available, then note which files exist:
-- \`${eventsFilename}\` — the main session event log (JSONL, one JSON event per line). Primary data source. May be large.
+- \`${eventsFilename}\` — the main session event log (JSONL, one JSON event per line). Primary data source. May be large. **This is the ONLY events file you should analyze.**
 - \`plan.md\` — the agent's plan (if it exists).
 - \`workspace.yaml\` — workspace configuration (if it exists).
 - Any other relevant files.
 
 **Step 2 — Spawn 3 sub-agents for parallel analysis.** First create the working directory: \`mkdir -p ${workDir}\`. Then use the Task tool to launch ALL of the following sub-agents simultaneously (in a single message with multiple Task tool calls). Each sub-agent should:
-- Read \`${eventsFilename}\` from \`${sessionDir}\` (use Bash: \`cat\`, \`jq\`, or \`python3\` to parse)
+- Read \`${eventsFilename}\` from \`${sessionDir}\` (use Bash: \`cat\`, \`jq\`, or \`python3\` to parse) **— ONLY this file, ignore others**
 - Read other session files as needed
 - Write its findings to an intermediate file in \`${workDir}/\`
 - Return a summary of its findings
