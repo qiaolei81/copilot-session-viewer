@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-25
+
+### Added
+- **Multi-Tool Support** - Full support for **Pi-Mono** sessions (now supports 3 tools: Copilot CLI, Claude Code, Pi-Mono)
+- **Agent Review for All Tools** - AI-powered session analysis now works for all 3 supported tools
+- **Pi-Mono Parser** - New `PiMonoSessionParser` with full strategy pattern implementation
+- **Unified Event Format** - All 3 tools now use consistent event schema across backend and frontend
+- **Backend-Generated Display Metadata** - Badge labels, source names, and display data generated in backend for consistency
+
+### Changed
+- **Default Filter to Copilot** - Homepage now defaults to Copilot filter instead of "All" (matches user behavior)
+- **Removed "All" Filter** - Simplified UI by removing the "All" filter option
+- **Type Transformation Strategy** - Backend now transforms event types for unified schema (Pi-Mono `message` → `assistant.message`)
+- **Tool Result Merging** - Pi-Mono tool results now properly merged into parent assistant messages
+- **Badge Logic Moved to Backend** - Frontend no longer generates badge labels (single source of truth)
+
+### Fixed
+- **Pi-Mono Agent Review Accuracy** - Fixed incorrect session data by explicitly specifying target file in prompt
+- **Timeline Rendering for Old Copilot Sessions** - Old CLI format now properly expands to `assistant.message` events for timeline
+- **Architecture Consistency** - Unified type transformation across all sources (no more "按了葫芦起了瓢")
+- **CI Upload Directory Race Condition** - Tests now create directories defensively before file operations
+- **Event Expansion Test Coverage** - Tests now verify `assistant.message` generation (frontend dependency)
+
+### Docs
+- **README Multi-Tool Emphasis** - Updated subtitle and descriptions to highlight multi-tool support
+- **lib/parsers Documentation** - Translated Chinese README to English for international contributors
+- **Project Cleanup** - Removed backup files (`time-analyze-v2.ejs`, `*.bak`) and 30 failed E2E test screenshot directories
+
+### Performance
+- **Agent Review Session Isolation** - Simplified from temporary directory approach to prompt-based file specification (6 lines vs 58 lines)
+
+### Architecture
+- **Strategy Pattern Complete** - All 3 parsers follow unified `BaseSessionParser` interface
+- **Backend Normalization** - `eventNormalizer.js` handles all format differences, frontend renders uniformly
+- **No Frontend Source Checks** - Frontend doesn't check `source` field, only renders normalized data
+
 ## [0.1.7] - 2026-02-16
 
 ### Changed
