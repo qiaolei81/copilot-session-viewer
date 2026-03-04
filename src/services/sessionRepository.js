@@ -457,7 +457,14 @@ class SessionRepository {
             const fullPath = path.join(chatSessionsDir, matchingFile);
             const stats = await fs.stat(fullPath);
             const raw = await fs.readFile(fullPath, 'utf-8');
-            const sessionJson = JSON.parse(raw);
+            let sessionJson;
+            if (matchingFile.endsWith('.jsonl')) {
+              const firstLine = raw.split('\n').find(l => l.trim());
+              const wrapper = JSON.parse(firstLine);
+              sessionJson = wrapper.v || wrapper;
+            } else {
+              sessionJson = JSON.parse(raw);
+            }
             const requests = sessionJson.requests || [];
             if (requests.length === 0) return null;
 
