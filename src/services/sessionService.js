@@ -26,9 +26,13 @@ class SessionService {
     return sessions.map(s => s.toJSON());
   }
 
-  async getPaginatedSessions(page = 1, limit = 20) {
+  async getPaginatedSessions(page = 1, limit = 20, sourceFilter = null) {
     const allSessions = await this.sessionRepository.findAll();
-    const sessions = allSessions.map(s => s.toJSON());
+    let sessions = allSessions.map(s => s.toJSON());
+
+    if (sourceFilter) {
+      sessions = sessions.filter(s => s.source === sourceFilter);
+    }
 
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;

@@ -517,46 +517,58 @@
     const totalSessionsFromServer = metaData.totalSessions;
     const hasMoreFromServer = metaData.hasMore;
 
-    // Infinite scroll state
+    // Infinite scroll state — per-source
     let allSessions = [...initialSessions];
-    let currentOffset = initialSessions.length;
-    let hasMore = hasMoreFromServer;
+    // Track offset and hasMore per source
+    const sourceState = {
+      copilot: { offset: 0, hasMore: false },
+      claude:  { offset: 0, hasMore: false },
+      'pi-mono': { offset: 0, hasMore: false },
+      vscode:  { offset: 0, hasMore: false },
+    };
+    // Initialise per-source offsets from the initial server-side batch
+    for (const s of initialSessions) {
+      const src = s.source || 'copilot';
+      if (!sourceState[src]) sourceState[src] = { offset: 0, hasMore: false };
+      sourceState[src].offset++;
+    }
+    // copilot hasMore comes from server (initial batch was copilot-first)
+    sourceState.copilot.hasMore = hasMoreFromServer;
+
     let isLoading = false;
 
     // Filter state
     let currentSourceFilter = 'copilot';
-    // Load more sessions
+    // Load more sessions for current source filter
     async function loadMoreSessions() {
-      if (isLoading || !hasMore) return;
+      const state = sourceState[currentSourceFilter] || { offset: 0, hasMore: false };
+      if (isLoading || !state.hasMore) return;
 
       isLoading = true;
-      const loadMoreBtn = document.getElementById('load-more-btn');
-      const loadingIndicator = document.getElementById('loading-indicator');
       const loadMoreSection = document.getElementById('load-more-section');
+      const loadingIndicator = document.getElementById('loading-indicator');
 
-      // Show loading, hide button
       loadMoreSection.style.display = 'none';
       loadingIndicator.style.display = 'block';
 
       try {
-        const response = await fetch(`/api/sessions/load-more?offset=${currentOffset}&limit=20`);
-        if (!response.ok) {
-          throw new Error('Failed to load more sessions');
-        }
+        const url = `/api/sessions/load-more?offset=${state.offset}&limit=20&source=${encodeURIComponent(currentSourceFilter)}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to load more sessions');
 
         const data = await response.json();
-        allSessions.push(...data.sessions);
-        currentOffset += data.sessions.length;
-        hasMore = data.hasMore;
+        const existingIds = new Set(allSessions.map(s => s.id));
+        for (const s of data.sessions) {
+          if (!existingIds.has(s.id)) allSessions.push(s);
+        }
+        state.offset += data.sessions.length;
+        state.hasMore = data.hasMore;
 
-        // Re-render all sessions
         renderAllSessions();
         updateLoadMoreButton();
-
       } catch (err) {
         console.error('Error loading more sessions:', err);
-        // Show button again on error
-        loadMoreSection.style.display = hasMore ? 'block' : 'none';
+        loadMoreSection.style.display = state.hasMore ? 'block' : 'none';
       } finally {
         isLoading = false;
         loadingIndicator.style.display = 'none';
@@ -566,7 +578,8 @@
     // Update load more button visibility
     function updateLoadMoreButton() {
       const loadMoreSection = document.getElementById('load-more-section');
-      loadMoreSection.style.display = hasMore && !isLoading ? 'block' : 'none';
+      const state = sourceState[currentSourceFilter] || { hasMore: false };
+      loadMoreSection.style.display = state.hasMore && !isLoading ? 'block' : 'none';
     }
 
     // Get filtered sessions based on current filter
@@ -858,35 +871,41 @@
       const filterPills = document.querySelectorAll('.filter-pill');
       filterPills.forEach(pill => {
         pill.addEventListener('click', async () => {
-          // Remove active class from all pills
           filterPills.forEach(p => p.classList.remove('active'));
-          // Add active class to clicked pill
           pill.classList.add('active');
-
-          // Update filter state
           currentSourceFilter = pill.getAttribute('data-source');
 
-          // If we don't have any sessions for this source yet, fetch from API
+          // Initialise state for this source if first visit
+          if (!sourceState[currentSourceFilter]) {
+            sourceState[currentSourceFilter] = { offset: 0, hasMore: false };
+          }
+          const state = sourceState[currentSourceFilter];
+
+          // Only fetch if we haven't loaded anything for this source yet
           const hasSourceSessions = allSessions.some(s => s.source === currentSourceFilter);
-          if (!hasSourceSessions) {
+          if (!hasSourceSessions && !isLoading) {
+            isLoading = true;
             try {
-              const resp = await fetch(`/api/sessions?source=${encodeURIComponent(currentSourceFilter)}`);
+              const url = `/api/sessions/load-more?offset=0&limit=20&source=${encodeURIComponent(currentSourceFilter)}`;
+              const resp = await fetch(url);
               if (resp.ok) {
                 const data = await resp.json();
-                const fetched = Array.isArray(data) ? data : (data.sessions || []);
-                // Merge without duplicates
                 const existingIds = new Set(allSessions.map(s => s.id));
-                for (const s of fetched) {
+                for (const s of data.sessions) {
                   if (!existingIds.has(s.id)) allSessions.push(s);
                 }
+                state.offset = data.sessions.length;
+                state.hasMore = data.hasMore;
               }
             } catch (e) {
               console.error('Failed to load sessions for source:', currentSourceFilter, e);
+            } finally {
+              isLoading = false;
             }
           }
 
-          // Re-render sessions with filter
           renderAllSessions();
+          updateLoadMoreButton();
         });
       });
     }
