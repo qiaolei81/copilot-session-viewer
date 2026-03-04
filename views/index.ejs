@@ -850,10 +850,32 @@
     function setupFilterPills() {
       const filterPills = document.querySelectorAll('.filter-pill');
       filterPills.forEach(pill => {
-        pill.addEventListener('click', () => {
+        pill.addEventListener('click', async () => {
           filterPills.forEach(p => p.classList.remove('active'));
           pill.classList.add('active');
           currentSourceFilter = pill.getAttribute('data-source');
+
+          // If no sessions loaded for this source yet, fetch first batch filtered by source
+          const hasSourceSessions = allSessions.some(s => s.source === currentSourceFilter);
+          if (!hasSourceSessions && !isLoading) {
+            isLoading = true;
+            try {
+              const resp = await fetch(`/api/sessions?source=${encodeURIComponent(currentSourceFilter)}&limit=20`);
+              if (resp.ok) {
+                const data = await resp.json();
+                const fetched = data.sessions || (Array.isArray(data) ? data : []);
+                const existingIds = new Set(allSessions.map(s => s.id));
+                for (const s of fetched) {
+                  if (!existingIds.has(s.id)) allSessions.push(s);
+                }
+              }
+            } catch (e) {
+              console.error('Failed to load sessions for source:', currentSourceFilter, e);
+            } finally {
+              isLoading = false;
+            }
+          }
+
           renderAllSessions();
           updateLoadMoreButton();
         });

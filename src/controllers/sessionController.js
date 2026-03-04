@@ -91,29 +91,22 @@ class SessionController {
           return res.status(400).json({ error: 'Invalid pagination parameters' });
         }
         const paginationData = await this.sessionService.getPaginatedSessions(page, limit);
-
-        // Set cache headers for paginated data (shorter cache)
-        res.set({
-          'Cache-Control': 'public, max-age=60', // 1 minute cache
-          'ETag': `"sessions-page-${page}-${limit}-${Date.now()}"`,
-          'Vary': 'Accept-Encoding'
-        });
-
+        res.set({ 'Cache-Control': 'public, max-age=60' });
         res.json(paginationData);
+      } else if (sourceFilter && limit) {
+        // Source-filtered first page (for pill switching)
+        let sessions = await this.sessionService.getAllSessions();
+        sessions = sessions.filter(s => s.source === sourceFilter);
+        const sliced = sessions.slice(0, limit);
+        res.set({ 'Cache-Control': 'public, max-age=60' });
+        res.json({ sessions: sliced, hasMore: sessions.length > limit, totalSessions: sessions.length });
       } else {
-        // Return all sessions (optionally filtered by source)
+        // Return all sessions for backward compatibility
         let sessions = await this.sessionService.getAllSessions();
         if (sourceFilter) {
           sessions = sessions.filter(s => s.source === sourceFilter);
         }
-
-        // Set cache headers for full session list
-        res.set({
-          'Cache-Control': 'public, max-age=300', // 5 minute cache
-          'ETag': `"sessions-all-${Date.now()}"`,
-          'Vary': 'Accept-Encoding'
-        });
-
+        res.set({ 'Cache-Control': 'public, max-age=300' });
         res.json(sessions);
       }
     } catch (err) {
