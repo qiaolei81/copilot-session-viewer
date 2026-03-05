@@ -161,7 +161,6 @@
       align-items: center;
       gap: 4px;
       flex-shrink: 0;
-      margin-left: 12px;
     }
     .session-summary {
       color: #e6edf3;
@@ -216,7 +215,46 @@
     .session-info-item.workspace .session-info-value {
       font-weight: 500;
     }
-    
+
+    /* Session tags */
+    .session-badges-tags {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .session-badges-tags .session-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .session-badges-tags .session-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+    .session-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #21262d;
+    }
+    .session-tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #fff;
+    }
+
     .status-badge {
       display: inline-block;
       font-size: 14px;
@@ -548,11 +586,18 @@
 
         const data = await response.json();
         const existingIds = new Set(allSessions.map(s => s.id));
+        const newSessions = [];
         for (const s of data.sessions) {
-          if (!existingIds.has(s.id)) allSessions.push(s);
+          if (!existingIds.has(s.id)) {
+            allSessions.push(s);
+            newSessions.push(s);
+          }
         }
         currentState().offset += data.sessions.length;
         currentState().hasMore = data.hasMore;
+
+        // Load tags for new sessions
+        await attachTagsToSessions(newSessions);
 
         renderAllSessions();
       } catch (err) {
@@ -819,11 +864,24 @@
       
       const wipClass = session.sessionStatus === 'wip' ? ' recent-item-wip' : '';
 
+      // Render tags
+      let tagsHtml = '';
+      if (session.tags && session.tags.length > 0) {
+        const tagsItems = session.tags.map(tag => {
+          const color = getTagColor(tag);
+          return `<span class="session-tag" style="background-color: ${color}" title="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`;
+        }).join('');
+        tagsHtml = `<div class="session-tags">${tagsItems}</div>`;
+      }
+
       return `
         <a href="/session/${session.id}" class="recent-item${wipClass}">
           <div class="session-id">
             <span class="session-id-text" title="${escapeHtml(session.id)}">${escapeHtml(session.id)}</span>
+          </div>
+          <div class="session-badges-tags">
             <div class="session-badges">${badges}</div>
+            ${tagsHtml}
           </div>
           ${summaryHtml}
           <div class="session-divider"></div>
@@ -847,6 +905,56 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Tag colors (same as session-vue.ejs)
+    const tagColors = [
+      '#3b82f6', // blue
+      '#10b981', // green
+      '#f59e0b', // amber
+      '#ef4444', // red
+      '#8b5cf6', // purple
+      '#ec4899', // pink
+      '#06b6d4', // cyan
+      '#f97316'  // orange
+    ];
+
+    function getTagColor(tag) {
+      let hash = 0;
+      for (let i = 0; i < tag.length; i++) {
+        hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return tagColors[Math.abs(hash) % tagColors.length];
+    }
+
+    // Load tags for sessions
+    async function loadSessionTags(sessionIds) {
+      try {
+        const tagPromises = sessionIds.map(id =>
+          fetch(`/api/sessions/${id}/tags`)
+            .then(r => r.ok ? r.json() : { tags: [] })
+            .then(data => ({ id, tags: data.tags || [] }))
+            .catch(() => ({ id, tags: [] }))
+        );
+        const results = await Promise.all(tagPromises);
+        const tagsMap = {};
+        results.forEach(({ id, tags }) => {
+          tagsMap[id] = tags;
+        });
+        return tagsMap;
+      } catch (err) {
+        console.error('Error loading session tags:', err);
+        return {};
+      }
+    }
+
+    // Attach tags to sessions
+    async function attachTagsToSessions(sessions) {
+      const sessionIds = sessions.map(s => s.id);
+      const tagsMap = await loadSessionTags(sessionIds);
+      sessions.forEach(session => {
+        session.tags = tagsMap[session.id] || [];
+      });
     }
 
     // Filter pill click handler
@@ -875,11 +983,18 @@
               if (resp.ok) {
                 const data = await resp.json();
                 const existingIds = new Set(allSessions.map(s => s.id));
+                const newSessions = [];
                 for (const s of (data.sessions || [])) {
-                  if (!existingIds.has(s.id)) allSessions.push(s);
+                  if (!existingIds.has(s.id)) {
+                    allSessions.push(s);
+                    newSessions.push(s);
+                  }
                 }
                 sourceState[currentSourceFilter].offset = (data.sessions || []).length;
                 sourceState[currentSourceFilter].hasMore = data.hasMore;
+
+                // Load tags for new sessions
+                await attachTagsToSessions(newSessions);
               }
             } catch (e) {
               console.error('Failed to load sessions for source:', currentSourceFilter, e);
@@ -894,7 +1009,10 @@
     }
 
     // Render grouped sessions
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Load tags for initial sessions
+      await attachTagsToSessions(allSessions);
+
       renderAllSessions();
 
       // Infinite scroll

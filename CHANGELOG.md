@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2026-03-05
+
+### Fixed
+- **304 Caching on Live Sessions** - Disabled ETag on events API (`Cache-Control: no-store`) so active/WIP sessions always return fresh data on page refresh
+- **Updated Time Inaccuracy** - Session detail page now shows last event timestamp as "Updated" time instead of file mtime
+- **E2E CI Stability** - `#loading-indicator` is always in DOM regardless of session count; removed conditional session count check that caused false negatives
+
+## [0.2.5] - 2026-03-04
+
+### Fixed
+- **Flaky Unit Tests** - Upload directory now isolated per test via `UPLOAD_DIR` env var to prevent cross-test pollution
+- **Timing Variance in Tests** - `ageMs` threshold relaxed from `>= 0` to `>= -100` to tolerate clock precision on fast CI runners
+
+## [0.2.4] - 2026-03-04
+
+### Fixed
+- **E2E Skip on Empty Environment** - Tests now skip gracefully when no sessions exist in CI (no `~/.copilot/session-state/` data)
+- **VSCode Filter Pill** - Temporarily hidden in UI (feature in progress)
+
+## [0.2.3] - 2026-03-04
+
+### Fixed
+- **Lint Errors** - Fixed unused variable warnings in `vscode-parser.js` (`canParse`, `agentName`, `itemIdx`) and `sessionRepository.js` (unused `VsCodeParser` import)
+- **Stale Unit Tests** - Updated test expectations to match current API signatures (`getPaginatedSessions(1, 20, "copilot")`)
+
 ## [0.2.2] - 2026-02-27
 
 ### Fixed
@@ -190,6 +215,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CORS restricted to localhost
 - File upload size limits (50MB)
 
+[0.2.6]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.2.6
+[0.2.5]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.2.5
+[0.2.4]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.2.4
+[0.2.3]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.2.3
 [0.1.7]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.7
 [0.1.6]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.6
 [0.1.3]: https://github.com/qiaolei81/copilot-session-viewer/releases/tag/v0.1.3
