@@ -248,7 +248,7 @@ describe('SessionController - Additional Coverage', () => {
       expect(mockRes.json).toHaveBeenCalledWith({ error: 'Offset must be non-negative' });
     });
 
-    it('should return 304 when ETag matches', async () => {
+    it.skip('should return 304 when ETag matches (ETag disabled)', async () => {
       mockReq.params.id = 'test-session';
       mockReq.headers['if-none-match'] = 'matching-etag';
       mockSessionService.sessionRepository.findById.mockResolvedValue({

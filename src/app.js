@@ -19,6 +19,9 @@ const UploadController = require('./controllers/uploadController');
 function createApp(options = {}) {
   const app = express();
 
+  // Disable Express's automatic ETag generation (prevents 304 on live/active session files)
+  app.set('etag', false);
+
   // Create controller instances (with optional dependency injection)
   const sessionController = new SessionController(options.sessionService);
   const insightController = new InsightController(options.insightService, options.sessionService);
