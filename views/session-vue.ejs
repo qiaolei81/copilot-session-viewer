@@ -1864,6 +1864,15 @@
             }
             
             console.log('[Navigation] Events loaded:', loadedEvents.value.length);
+
+            // Update 'Updated' time from last event timestamp (more accurate than file mtime)
+            if (loadedEvents.value.length > 0) {
+              const lastEvent = loadedEvents.value[loadedEvents.value.length - 1];
+              const lastTime = lastEvent.timestamp || lastEvent.time || lastEvent.data?.timestamp;
+              if (lastTime) {
+                metadata.value.updated = new Date(lastTime);
+              }
+            }
             
             // Check for URL query parameters and jump to event AFTER events are loaded
             const urlParams = new URLSearchParams(window.location.search);
