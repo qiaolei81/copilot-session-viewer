@@ -15,6 +15,7 @@ const { requestTimeout, developmentCors, errorHandler, notFoundHandler } = requi
 const SessionController = require('./controllers/sessionController');
 const InsightController = require('./controllers/insightController');
 const UploadController = require('./controllers/uploadController');
+const TagController = require('./controllers/tagController');
 
 function createApp(options = {}) {
   const app = express();
@@ -26,6 +27,7 @@ function createApp(options = {}) {
   const sessionController = new SessionController(options.sessionService);
   const insightController = new InsightController(options.insightService, options.sessionService);
   const uploadController = new UploadController();
+  const tagController = new TagController(options.tagService);
 
   // Minimal security headers for local development tool
   // Custom CSP without upgrade-insecure-requests
@@ -95,6 +97,11 @@ function createApp(options = {}) {
   app.get('/api/sessions', sessionController.getSessions.bind(sessionController));
   app.get('/api/sessions/:id/events', sessionController.getSessionEvents.bind(sessionController));
   app.get('/api/sessions/:id/timeline', sessionController.getTimeline.bind(sessionController));
+
+  // Tag routes
+  app.get('/api/tags', tagController.getAllTags.bind(tagController));
+  app.get('/api/sessions/:id/tags', tagController.getSessionTags.bind(tagController));
+  app.put('/api/sessions/:id/tags', tagController.setSessionTags.bind(tagController));
 
   // Upload routes
   app.get('/session/:id/share', uploadController.shareSession.bind(uploadController));

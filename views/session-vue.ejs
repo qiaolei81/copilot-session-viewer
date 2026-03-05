@@ -330,7 +330,149 @@
       background: #161b22;
       color: #6e7681;
     }
-    
+
+    /* Session Tags */
+    .session-tags-container {
+      margin-top: 16px;
+    }
+    .tags-display {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 28px;
+      align-items: flex-start;
+    }
+    .tag-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #fff;
+      cursor: default;
+      transition: opacity 0.2s;
+    }
+    .tag-label:hover {
+      opacity: 0.8;
+    }
+    .tag-remove {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      margin-left: 2px;
+      transition: color 0.2s;
+    }
+    .tag-remove:hover {
+      color: #fff;
+    }
+    .tags-edit-btn {
+      background: none;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #8b949e;
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 12px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tags-edit-btn:hover {
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+    .tags-dropdown {
+      position: relative;
+      margin-top: 8px;
+    }
+    .tags-input-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      min-height: 38px;
+    }
+    .tags-input-container:focus-within {
+      border-color: #58a6ff;
+    }
+    .tag-input-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #fff;
+    }
+    .tag-input-chip button {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+      margin-left: 2px;
+    }
+    .tag-input-chip button:hover {
+      color: #fff;
+    }
+    .tags-text-input {
+      flex: 1;
+      min-width: 120px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #c9d1d9;
+      font-size: 13px;
+      padding: 4px;
+    }
+    .tags-text-input::placeholder {
+      color: #6e7681;
+    }
+    .tags-autocomplete {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      margin-top: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .tags-autocomplete-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #c9d1d9;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .tags-autocomplete-item:hover {
+      background: rgba(88, 166, 255, 0.15);
+    }
+    .tags-autocomplete-item.selected {
+      background: rgba(88, 166, 255, 0.25);
+    }
+    .tags-error {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #f85149;
+    }
+
     /* Content */
     .content {
       flex: 1;
@@ -2041,7 +2183,190 @@
             markdownCache.clear();
           });
         });
-        
+
+        // Session Tags
+        const sessionTags = ref([]);
+        const allTags = ref([]);
+        const tagsEditing = ref(false);
+        const editingTags = ref([]);
+        const tagInputValue = ref('');
+        const tagInputRef = ref(null);
+        const tagsError = ref('');
+        const showAutocomplete = ref(false);
+        const autocompleteOptions = ref([]);
+        const autocompleteSelectedIndex = ref(0);
+
+        // Tag colors (6 colors cycling based on hash)
+        const tagColors = [
+          '#3b82f6', // blue
+          '#10b981', // green
+          '#f59e0b', // amber
+          '#ef4444', // red
+          '#8b5cf6', // purple
+          '#ec4899', // pink
+          '#06b6d4', // cyan
+          '#f97316'  // orange
+        ];
+
+        const getTagColor = (tag) => {
+          let hash = 0;
+          for (let i = 0; i < tag.length; i++) {
+            hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          return tagColors[Math.abs(hash) % tagColors.length];
+        };
+
+        const loadTags = async () => {
+          try {
+            const response = await fetch(`/api/sessions/${sessionId.value}/tags`);
+            if (response.ok) {
+              const data = await response.json();
+              sessionTags.value = data.tags || [];
+            }
+          } catch (err) {
+            console.error('Error loading tags:', err);
+          }
+        };
+
+        const loadAllTags = async () => {
+          try {
+            const response = await fetch('/api/tags');
+            if (response.ok) {
+              const data = await response.json();
+              allTags.value = data.tags || [];
+            }
+          } catch (err) {
+            console.error('Error loading all tags:', err);
+          }
+        };
+
+        const saveTags = async (tags) => {
+          try {
+            const response = await fetch(`/api/sessions/${sessionId.value}/tags`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tags })
+            });
+            if (response.ok) {
+              const data = await response.json();
+              sessionTags.value = data.tags || [];
+              tagsError.value = '';
+              return true;
+            } else {
+              const error = await response.json();
+              tagsError.value = error.error || 'Failed to save tags';
+              return false;
+            }
+          } catch (err) {
+            console.error('Error saving tags:', err);
+            tagsError.value = 'Network error';
+            return false;
+          }
+        };
+
+        const startEditTags = () => {
+          editingTags.value = [...sessionTags.value];
+          tagsEditing.value = true;
+          tagsError.value = '';
+          setTimeout(() => {
+            if (tagInputRef.value) {
+              tagInputRef.value.focus();
+            }
+          }, 10);
+        };
+
+        const cancelEditTags = () => {
+          tagsEditing.value = false;
+          editingTags.value = [];
+          tagInputValue.value = '';
+          showAutocomplete.value = false;
+          tagsError.value = '';
+        };
+
+        const addTag = () => {
+          const tag = tagInputValue.value.trim().toLowerCase();
+          if (!tag) return;
+
+          if (tag.length > 30) {
+            tagsError.value = 'Tag must be 30 characters or less';
+            return;
+          }
+
+          if (editingTags.value.length >= 10) {
+            tagsError.value = 'Maximum 10 tags per session';
+            return;
+          }
+
+          if (editingTags.value.includes(tag)) {
+            tagsError.value = 'Tag already added';
+            tagInputValue.value = '';
+            return;
+          }
+
+          editingTags.value.push(tag);
+          tagInputValue.value = '';
+          showAutocomplete.value = false;
+          tagsError.value = '';
+        };
+
+        const removeTagFromEdit = (tag) => {
+          editingTags.value = editingTags.value.filter(t => t !== tag);
+          tagsError.value = '';
+        };
+
+        const updateAutocomplete = () => {
+          const input = tagInputValue.value.trim().toLowerCase();
+          if (!input) {
+            showAutocomplete.value = false;
+            autocompleteOptions.value = [];
+            return;
+          }
+
+          const filtered = allTags.value
+            .filter(tag =>
+              tag.toLowerCase().includes(input) &&
+              !editingTags.value.includes(tag)
+            )
+            .slice(0, 5);
+
+          if (filtered.length > 0) {
+            showAutocomplete.value = true;
+            autocompleteOptions.value = filtered;
+            autocompleteSelectedIndex.value = 0;
+          } else {
+            showAutocomplete.value = false;
+            autocompleteOptions.value = [];
+          }
+        };
+
+        const selectAutocompleteOption = (option) => {
+          tagInputValue.value = option;
+          addTag();
+        };
+
+        const saveTagsOnBlur = async () => {
+          // Small delay to allow click events on autocomplete
+          setTimeout(async () => {
+            if (!tagsEditing.value) return;
+
+            const success = await saveTags(editingTags.value);
+            if (success) {
+              tagsEditing.value = false;
+              editingTags.value = [];
+              tagInputValue.value = '';
+              showAutocomplete.value = false;
+              // Reload all tags for autocomplete
+              await loadAllTags();
+            }
+          }, 200);
+        };
+
+        // Load tags on mount
+        onMounted(async () => {
+          await loadTags();
+          await loadAllTags();
+        });
+
         return {
           sessionId,
           metadata,
@@ -2087,7 +2412,27 @@
           jumpToTurn,
           getTurnNumber,
           escapeHtml,
-          exportSession
+          exportSession,
+          searchResultCount,
+          // Tags
+          sessionTags,
+          allTags,
+          tagsEditing,
+          editingTags,
+          tagInputValue,
+          tagInputRef,
+          tagsError,
+          showAutocomplete,
+          autocompleteOptions,
+          autocompleteSelectedIndex,
+          getTagColor,
+          startEditTags,
+          cancelEditTags,
+          addTag,
+          removeTagFromEdit,
+          updateAutocomplete,
+          selectAutocompleteOption,
+          saveTagsOnBlur
         };
       },
       
@@ -2170,8 +2515,62 @@
                   </button>
                 </div>
               </div>
+
+              <!-- Session Tags -->
+              <div class="sidebar-section session-tags-container">
+                <div class="sidebar-section-title">Tags</div>
+                <div v-if="!tagsEditing" class="tags-display">
+                  <span
+                    v-for="tag in sessionTags"
+                    :key="tag"
+                    class="tag-label"
+                    :style="{ backgroundColor: getTagColor(tag) }"
+                  >
+                    {{ tag }}
+                  </span>
+                  <button class="tags-edit-btn" @click="startEditTags" title="Edit tags">
+                    ✏️
+                  </button>
+                </div>
+                <div v-else class="tags-dropdown">
+                  <div class="tags-input-container">
+                    <span
+                      v-for="tag in editingTags"
+                      :key="tag"
+                      class="tag-input-chip"
+                      :style="{ backgroundColor: getTagColor(tag) }"
+                    >
+                      {{ tag }}
+                      <button @click="removeTagFromEdit(tag)" title="Remove tag">×</button>
+                    </span>
+                    <input
+                      ref="tagInputRef"
+                      v-model="tagInputValue"
+                      @keydown.enter.prevent="addTag"
+                      @keydown.escape="cancelEditTags"
+                      @blur="saveTagsOnBlur"
+                      @input="updateAutocomplete"
+                      class="tags-text-input"
+                      placeholder="Type tag name..."
+                      maxlength="30"
+                    />
+                  </div>
+                  <div v-if="showAutocomplete && autocompleteOptions.length > 0" class="tags-autocomplete">
+                    <div
+                      v-for="(option, index) in autocompleteOptions"
+                      :key="option"
+                      :class="['tags-autocomplete-item', { selected: index === autocompleteSelectedIndex }]"
+                      @click="selectAutocompleteOption(option)"
+                      @mouseenter="autocompleteSelectedIndex = index"
+                    >
+                      {{ option }}
+                    </div>
+                  </div>
+                  <div v-if="tagsError" class="tags-error">{{ tagsError }}</div>
+                </div>
+              </div>
             </div>
-            
+
             <div class="content">
               <div class="scroll-indicator">
                 <div class="content-toolbar-left">
