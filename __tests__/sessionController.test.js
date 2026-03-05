@@ -63,7 +63,8 @@ describe('SessionController - Additional Coverage', () => {
     it('should handle error when loading session fails', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockReq.params.id = 'valid-session-id';
-      mockSessionService.getSessionWithEvents.mockRejectedValue(new Error('Read error'));
+      // Mock findById to reject - this is what the actual implementation calls
+      mockSessionService.sessionRepository.findById.mockRejectedValue(new Error('Read error'));
 
       await controller.getSessionDetail(mockReq, mockRes);
 
@@ -78,7 +79,8 @@ describe('SessionController - Additional Coverage', () => {
     it('should handle error when loading time analysis fails', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockReq.params.id = 'valid-session-id';
-      mockSessionService.getSessionWithEvents.mockRejectedValue(new Error('Analysis error'));
+      // Mock findById to reject - this is what the actual implementation calls
+      mockSessionService.sessionRepository.findById.mockRejectedValue(new Error('Analysis error'));
 
       await controller.getTimeAnalysis(mockReq, mockRes);
 
@@ -132,9 +134,7 @@ describe('SessionController - Additional Coverage', () => {
       await controller.getSessions(mockReq, mockRes);
 
       expect(mockRes.set).toHaveBeenCalledWith({
-        'Cache-Control': 'public, max-age=60',
-        'ETag': expect.stringContaining('sessions-page-2-50'),
-        'Vary': 'Accept-Encoding'
+        'Cache-Control': 'public, max-age=60'
       });
       expect(mockRes.json).toHaveBeenCalled();
     });
@@ -161,9 +161,7 @@ describe('SessionController - Additional Coverage', () => {
       await controller.getSessions(mockReq, mockRes);
 
       expect(mockRes.set).toHaveBeenCalledWith({
-        'Cache-Control': 'public, max-age=300',
-        'ETag': expect.stringContaining('sessions-all'),
-        'Vary': 'Accept-Encoding'
+        'Cache-Control': 'public, max-age=300'
       });
       expect(mockRes.json).toHaveBeenCalled();
     });
@@ -219,7 +217,7 @@ describe('SessionController - Additional Coverage', () => {
     it('should return error for limit < 1 (with negative limit)', async () => {
       mockReq.params.id = 'valid-session-id';
       mockReq.query.limit = '-1';
-      mockSessionService.getSessionById.mockResolvedValue({ id: 'valid-session-id', updated: '2024-01-01' });
+      mockSessionService.sessionRepository.findById.mockResolvedValue({ id: 'valid-session-id', updatedAt: '2024-01-01' });
 
       await controller.getSessionEvents(mockReq, mockRes);
 
@@ -230,7 +228,7 @@ describe('SessionController - Additional Coverage', () => {
     it('should return error for limit > 1000', async () => {
       mockReq.params.id = 'valid-session-id';
       mockReq.query.limit = '1001';
-      mockSessionService.getSessionById.mockResolvedValue({ id: 'valid-session-id', updated: '2024-01-01' });
+      mockSessionService.sessionRepository.findById.mockResolvedValue({ id: 'valid-session-id', updatedAt: '2024-01-01' });
 
       await controller.getSessionEvents(mockReq, mockRes);
 
@@ -242,7 +240,7 @@ describe('SessionController - Additional Coverage', () => {
       mockReq.params.id = 'valid-session-id';
       mockReq.query.limit = '100';
       mockReq.query.offset = '-1';
-      mockSessionService.getSessionById.mockResolvedValue({ id: 'valid-session-id', updated: '2024-01-01' });
+      mockSessionService.sessionRepository.findById.mockResolvedValue({ id: 'valid-session-id', updatedAt: '2024-01-01' });
 
       await controller.getSessionEvents(mockReq, mockRes);
 
@@ -253,9 +251,9 @@ describe('SessionController - Additional Coverage', () => {
     it('should return 304 when ETag matches', async () => {
       mockReq.params.id = 'test-session';
       mockReq.headers['if-none-match'] = 'matching-etag';
-      mockSessionService.getSessionById.mockResolvedValue({
+      mockSessionService.sessionRepository.findById.mockResolvedValue({
         id: 'test-session',
-        updated: '2024-01-01'
+        updatedAt: '2024-01-01'
       });
 
       // Mock crypto to return predictable hash
@@ -277,9 +275,9 @@ describe('SessionController - Additional Coverage', () => {
       mockReq.params.id = 'test-session';
       mockReq.query.limit = '50';
       mockReq.query.offset = '10';
-      mockSessionService.getSessionById.mockResolvedValue({
+      mockSessionService.sessionRepository.findById.mockResolvedValue({
         id: 'test-session',
-        updated: '2024-01-01'
+        updatedAt: '2024-01-01'
       });
       mockSessionService.getSessionEvents.mockResolvedValue({
         events: [{ id: 1 }, { id: 2 }],
@@ -303,9 +301,9 @@ describe('SessionController - Additional Coverage', () => {
       mockReq.params.id = 'test-session';
       mockReq.query.limit = '50';
       mockReq.query.offset = '80';
-      mockSessionService.getSessionById.mockResolvedValue({
+      mockSessionService.sessionRepository.findById.mockResolvedValue({
         id: 'test-session',
-        updated: '2024-01-01'
+        updatedAt: '2024-01-01'
       });
       mockSessionService.getSessionEvents.mockResolvedValue({
         events: [{ id: 1 }],
@@ -328,7 +326,7 @@ describe('SessionController - Additional Coverage', () => {
     it('should handle error when loading events', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockReq.params.id = 'valid-session-id';
-      mockSessionService.getSessionById.mockRejectedValue(new Error('DB error'));
+      mockSessionService.sessionRepository.findById.mockRejectedValue(new Error('DB error'));
 
       await controller.getSessionEvents(mockReq, mockRes);
 

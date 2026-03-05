@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const Session = require('../models/Session');
 const { fileExists, countLines, parseYAML, getSessionMetadataOptimized, shouldSkipEntry } = require('../utils/fileUtils');
-const { ParserFactory, VsCodeParser } = require('../../lib/parsers');
+const { ParserFactory } = require('../../lib/parsers');
 
 /**
  * Session Repository - Data access layer for sessions

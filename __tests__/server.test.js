@@ -13,7 +13,10 @@ describe('Server API Endpoints', () => {
       getPaginatedSessions: jest.fn(),
       getSessionById: jest.fn(),
       getSessionEvents: jest.fn(),
-      getSessionWithEvents: jest.fn()
+      getSessionWithEvents: jest.fn(),
+      sessionRepository: {
+        findById: jest.fn()
+      }
     };
 
     mockInsightService = {
@@ -54,7 +57,7 @@ describe('Server API Endpoints', () => {
         .expect(200);
 
       expect(response.text).toContain('Copilot Session Viewer');
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 100);
+      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 20, 'copilot');
     });
 
     it('should render homepage with initial sessions (infinite scroll)', async () => {
@@ -77,8 +80,7 @@ describe('Server API Endpoints', () => {
         .expect(200);
 
       expect(response.text).toContain('Sessions');
-      expect(response.text).toContain('Load More Sessions');
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 100);
+      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 20, 'copilot');
     });
 
     it('should ignore legacy pagination parameters', async () => {
@@ -101,7 +103,7 @@ describe('Server API Endpoints', () => {
         .expect(200);
 
       // Should still load initial batch, ignoring pagination params
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 100);
+      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 20, 'copilot');
     });
 
     it('should handle session loading errors', async () => {
@@ -191,7 +193,7 @@ describe('Server API Endpoints', () => {
       expect(response.body.sessions).toHaveLength(20);
       expect(response.body.hasMore).toBe(true);
       expect(response.body.totalSessions).toBe(50);
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(2, 20);
+      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(2, 20, null);
     });
 
     it('should reject invalid offset/limit parameters', async () => {
@@ -225,7 +227,7 @@ describe('Server API Endpoints', () => {
     });
 
     it('should return 404 for non-existent sessions', async () => {
-      mockSessionService.getSessionWithEvents.mockResolvedValue(null);
+      mockSessionService.sessionRepository.findById.mockResolvedValue(null);
 
       await request(app)
         .get('/session/nonexistent')

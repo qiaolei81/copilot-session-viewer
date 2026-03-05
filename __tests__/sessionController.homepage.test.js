@@ -41,7 +41,7 @@ describe('SessionController - Homepage Coverage', () => {
 
       await controller.getHomepage(mockReq, mockRes);
 
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 100);
+      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 20, 'copilot');
       expect(mockRes.render).toHaveBeenCalledWith('index', {
         sessions: mockSessions,
         hasMore: true,

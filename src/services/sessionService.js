@@ -28,7 +28,7 @@ class SessionService {
 
   async getPaginatedSessions(page = 1, limit = 20, sourceFilter = null) {
     const allSessions = await this.sessionRepository.findAll(sourceFilter);
-    let sessions = allSessions.map(s => s.toJSON());
+    const sessions = allSessions.map(s => s.toJSON());
 
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
