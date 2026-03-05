@@ -3,50 +3,63 @@ const path = require('path');
 const os = require('os');
 
 /**
- * Service for managing session tags stored in ~/.copilot/tags.json
- * Format: { "sessionId": ["tag1", "tag2"] }
+ * Service for managing session tags
+ * - Per-session tags: stored in {session.directory}/tags.json as ["tag1", "tag2"]
+ * - Global known tags: stored in ~/.session-viewer/known-tags.json as ["tag1", "tag2", ...]
  */
 class TagService {
   constructor() {
-    this.tagsFilePath = path.join(os.homedir(), '.copilot', 'tags.json');
+    this.knownTagsDir = path.join(os.homedir(), '.session-viewer');
+    this.knownTagsFilePath = path.join(this.knownTagsDir, 'known-tags.json');
   }
 
   /**
-   * Ensure tags file exists
+   * Ensure known-tags directory and file exist
    */
-  async ensureTagsFile() {
+  async ensureKnownTagsFile() {
     try {
-      await fs.access(this.tagsFilePath);
+      await fs.access(this.knownTagsFilePath);
     } catch (err) {
-      // File doesn't exist, create empty object
-      const dir = path.dirname(this.tagsFilePath);
-      await fs.mkdir(dir, { recursive: true });
-      await fs.writeFile(this.tagsFilePath, JSON.stringify({}), 'utf8');
+      // File doesn't exist, create directory and empty array
+      await fs.mkdir(this.knownTagsDir, { recursive: true });
+      await fs.writeFile(this.knownTagsFilePath, JSON.stringify([]), 'utf8');
     }
   }
 
   /**
-   * Read all tags from file
-   * @returns {Promise<Object>} Map of sessionId -> tags array
+   * Read known tags from global file
+   * @returns {Promise<string[]>} Array of known tags
    */
-  async readTagsFile() {
-    await this.ensureTagsFile();
+  async readKnownTagsFile() {
+    await this.ensureKnownTagsFile();
     try {
-      const content = await fs.readFile(this.tagsFilePath, 'utf8');
+      const content = await fs.readFile(this.knownTagsFilePath, 'utf8');
       return JSON.parse(content);
     } catch (err) {
-      console.error('Error reading tags file:', err);
-      return {};
+      console.error('Error reading known tags file:', err);
+      return [];
     }
   }
 
   /**
-   * Write tags to file
-   * @param {Object} tagsData - Map of sessionId -> tags array
+   * Write known tags to global file
+   * @param {string[]} tags - Array of known tags
    */
-  async writeTagsFile(tagsData) {
-    await this.ensureTagsFile();
-    await fs.writeFile(this.tagsFilePath, JSON.stringify(tagsData, null, 2), 'utf8');
+  async writeKnownTagsFile(tags) {
+    await this.ensureKnownTagsFile();
+    await fs.writeFile(this.knownTagsFilePath, JSON.stringify(tags, null, 2), 'utf8');
+  }
+
+  /**
+   * Get tags file path for a session
+   * @param {Session} session - Session object with directory field
+   * @returns {string} Path to tags.json
+   */
+  getSessionTagsFilePath(session) {
+    if (!session.directory) {
+      throw new Error('Session must have a directory field');
+    }
+    return path.join(session.directory, 'tags.json');
   }
 
   /**
@@ -59,39 +72,39 @@ class TagService {
   }
 
   /**
-   * Get all unique tags across all sessions
+   * Get all known tags for autocomplete
    * @returns {Promise<string[]>} Array of unique tags
    */
-  async getAllTags() {
-    const tagsData = await this.readTagsFile();
-    const allTags = new Set();
-
-    Object.values(tagsData).forEach(tags => {
-      if (Array.isArray(tags)) {
-        tags.forEach(tag => allTags.add(tag));
-      }
-    });
-
-    return Array.from(allTags).sort();
+  async getAllKnownTags() {
+    const tags = await this.readKnownTagsFile();
+    return tags.sort();
   }
 
   /**
    * Get tags for a specific session
-   * @param {string} sessionId - Session ID
+   * @param {Session} session - Session object with directory field
    * @returns {Promise<string[]>} Array of tags
    */
-  async getSessionTags(sessionId) {
-    const tagsData = await this.readTagsFile();
-    return tagsData[sessionId] || [];
+  async getSessionTags(session) {
+    const tagsFilePath = this.getSessionTagsFilePath(session);
+
+    try {
+      await fs.access(tagsFilePath);
+      const content = await fs.readFile(tagsFilePath, 'utf8');
+      return JSON.parse(content);
+    } catch (err) {
+      // File doesn't exist or can't be read, return empty array
+      return [];
+    }
   }
 
   /**
    * Set tags for a specific session
-   * @param {string} sessionId - Session ID
+   * @param {Session} session - Session object with directory field
    * @param {string[]} tags - Array of tag names
    * @returns {Promise<string[]>} Normalized and saved tags
    */
-  async setSessionTags(sessionId, tags) {
+  async setSessionTags(session, tags) {
     if (!Array.isArray(tags)) {
       throw new Error('Tags must be an array');
     }
@@ -107,56 +120,73 @@ class TagService {
       throw new Error('Maximum 10 tags per session');
     }
 
-    const tagsData = await this.readTagsFile();
+    const tagsFilePath = this.getSessionTagsFilePath(session);
 
     if (normalizedTags.length === 0) {
-      // Remove session entry if no tags
-      delete tagsData[sessionId];
+      // Remove tags file if no tags
+      try {
+        await fs.unlink(tagsFilePath);
+      } catch (err) {
+        // File doesn't exist, ignore
+      }
     } else {
-      tagsData[sessionId] = normalizedTags;
+      // Write tags to session directory
+      await fs.writeFile(tagsFilePath, JSON.stringify(normalizedTags, null, 2), 'utf8');
+
+      // Update known tags (append and deduplicate)
+      await this.updateKnownTags(normalizedTags);
     }
 
-    await this.writeTagsFile(tagsData);
     return normalizedTags;
   }
 
   /**
+   * Update known tags by appending new tags and deduplicating
+   * @param {string[]} newTags - New tags to add to known tags
+   */
+  async updateKnownTags(newTags) {
+    const knownTags = await this.readKnownTagsFile();
+    const allTags = [...knownTags, ...newTags];
+    const uniqueTags = [...new Set(allTags)];
+    await this.writeKnownTagsFile(uniqueTags);
+  }
+
+  /**
    * Add tags to a session (merge with existing)
-   * @param {string} sessionId - Session ID
+   * @param {Session} session - Session object with directory field
    * @param {string[]} newTags - Tags to add
    * @returns {Promise<string[]>} Updated tags array
    */
-  async addSessionTags(sessionId, newTags) {
-    const existingTags = await this.getSessionTags(sessionId);
+  async addSessionTags(session, newTags) {
+    const existingTags = await this.getSessionTags(session);
     const mergedTags = [...existingTags, ...newTags];
-    return await this.setSessionTags(sessionId, mergedTags);
+    return await this.setSessionTags(session, mergedTags);
   }
 
   /**
    * Remove tags from a session
-   * @param {string} sessionId - Session ID
+   * @param {Session} session - Session object with directory field
    * @param {string[]} tagsToRemove - Tags to remove
    * @returns {Promise<string[]>} Updated tags array
    */
-  async removeSessionTags(sessionId, tagsToRemove) {
-    const existingTags = await this.getSessionTags(sessionId);
+  async removeSessionTags(session, tagsToRemove) {
+    const existingTags = await this.getSessionTags(session);
     const normalizedToRemove = tagsToRemove.map(tag => this.normalizeTag(tag));
     const updatedTags = existingTags.filter(tag => !normalizedToRemove.includes(tag));
-    return await this.setSessionTags(sessionId, updatedTags);
+    return await this.setSessionTags(session, updatedTags);
   }
 
   /**
    * Get tags for multiple sessions (batch)
-   * @param {string[]} sessionIds - Array of session IDs
+   * @param {Session[]} sessions - Array of session objects
    * @returns {Promise<Object>} Map of sessionId -> tags array
    */
-  async getMultipleSessionTags(sessionIds) {
-    const tagsData = await this.readTagsFile();
+  async getMultipleSessionTags(sessions) {
     const result = {};
 
-    sessionIds.forEach(sessionId => {
-      result[sessionId] = tagsData[sessionId] || [];
-    });
+    for (const session of sessions) {
+      result[session.id] = await this.getSessionTags(session);
+    }
 
     return result;
   }

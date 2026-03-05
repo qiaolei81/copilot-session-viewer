@@ -1,9 +1,11 @@
 const TagService = require('../services/tagService');
+const SessionRepository = require('../services/sessionRepository');
 const { isValidSessionId } = require('../utils/helpers');
 
 class TagController {
-  constructor(tagService = null) {
+  constructor(tagService = null, sessionRepository = null) {
     this.tagService = tagService || new TagService();
+    this.sessionRepository = sessionRepository || new SessionRepository();
   }
 
   /**
@@ -12,7 +14,7 @@ class TagController {
    */
   async getAllTags(req, res) {
     try {
-      const tags = await this.tagService.getAllTags();
+      const tags = await this.tagService.getAllKnownTags();
       res.json({ tags });
     } catch (err) {
       console.error('Error getting all tags:', err);
@@ -32,7 +34,13 @@ class TagController {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      const tags = await this.tagService.getSessionTags(sessionId);
+      // Find session by ID
+      const session = await this.sessionRepository.findById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      const tags = await this.tagService.getSessionTags(session);
       res.json({ tags });
     } catch (err) {
       console.error('Error getting session tags:', err);
@@ -73,12 +81,21 @@ class TagController {
         }
       }
 
-      const savedTags = await this.tagService.setSessionTags(sessionId, tags);
+      // Find session by ID
+      const session = await this.sessionRepository.findById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      const savedTags = await this.tagService.setSessionTags(session, tags);
       res.json({ tags: savedTags });
     } catch (err) {
       console.error('Error setting session tags:', err);
       if (err.message === 'Maximum 10 tags per session') {
         return res.status(400).json({ error: err.message });
+      }
+      if (err.message === 'Session must have a directory field') {
+        return res.status(400).json({ error: 'Session does not support tagging' });
       }
       res.status(500).json({ error: 'Error saving session tags' });
     }
