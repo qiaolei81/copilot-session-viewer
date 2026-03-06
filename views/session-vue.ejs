@@ -1414,6 +1414,8 @@
                   colorIndex: colorIdx++
                 });
               }
+              // Directly map this event to its subagent (vscode has no parentToolCallId)
+              ownerMap.set(ev.stableId, sid);
             }
           }
 
