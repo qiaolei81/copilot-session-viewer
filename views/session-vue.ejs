@@ -2707,18 +2707,14 @@
                       :style="getSubagentColor(item) ? { '--subagent-border-color': getSubagentColor(item) } : {}"
                     >
                       <div class="event-header">
-                        <!-- If this event belongs to a subagent, show subagent name as the badge -->
-                        <template v-if="getSubagentInfo(item)">
-                          <span
-                            class="event-badge subagent-name-badge"
-                            :style="{ background: getSubagentColor(item) + '22', color: getSubagentColor(item), borderColor: getSubagentColor(item) }"
-                          >🤖 {{ getSubagentInfo(item).name }}</span>
-                        </template>
-                        <template v-else>
-                          <span :class="['event-badge', getBadgeInfo(item.type, item).class]">
-                            {{ getBadgeInfo(item.type, item).label }}
-                          </span>
-                        </template>
+                        <span :class="['event-badge', getBadgeInfo(item.type, item).class]">
+                          {{ getBadgeInfo(item.type, item).label }}
+                        </span>
+                        <span
+                          v-if="getSubagentInfo(item)"
+                          class="subagent-owner-tag"
+                          :style="{ color: getSubagentColor(item), borderColor: getSubagentColor(item) }"
+                        >{{ getSubagentInfo(item).name }}</span>
                         <span class="event-timestamp">{{ formatTime(item.timestamp) }}</span>
                       </div>
                       
