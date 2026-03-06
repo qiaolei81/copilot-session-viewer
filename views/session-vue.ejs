@@ -1934,6 +1934,12 @@
           }
         };
         
+        const repoBasename = (cwd) => {
+          if (!cwd) return '';
+          const parts = cwd.replace(/\/$/, '').split('/');
+          return parts[parts.length - 1] || cwd;
+        };
+
         const getTurnNumber = (virtualIndex) => {          // Find the turn with matching virtualIndex
           const turn = turns.value.find(t => t.index === virtualIndex);
           if (!turn) return '?';
@@ -2443,6 +2449,7 @@
           jumpToTurn,
           getTurnNumber,
           getTurnDuration,
+          repoBasename,
           escapeHtml,
           exportSession,
           searchResultCount,
@@ -2522,7 +2529,7 @@
                       </tr>
                       <tr v-if="metadata.cwd">
                         <td>Repo</td>
-                        <td>{{ metadata.cwd.replace(/.*\/([^/]+)\/?$/, '$1') || metadata.cwd }}</td>
+                        <td>{{ repoBasename(metadata.cwd) }}</td>
                       </tr>
                       <tr v-if="metadata.created">
                         <td>Created</td>

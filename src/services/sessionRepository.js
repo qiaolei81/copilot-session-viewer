@@ -475,9 +475,13 @@ class SessionRepository {
               : stats.mtime;
             const userText = this._extractVsCodeUserText(firstReq.message);
 
+            const copilotChatVersion = firstReq.agent?.extensionVersion || null;
+            const realWorkspacePath = await this._resolveVsCodeWorkspacePath(path.join(workspaceStorageDir, hash));
+
             return new Session(sessionId, 'file', {
               source: 'vscode',
               filePath: fullPath,
+              workspaceHash: hash,
               createdAt,
               updatedAt,
               summary: userText ? userText.slice(0, 120) : `VSCode chat (${requests.length} requests)`,
@@ -485,8 +489,9 @@ class SessionRepository {
               eventCount: requests.reduce((s, r) => s + (r.response || []).length, 0) + requests.length * 2 + 1,
               duration: updatedAt - createdAt,
               sessionStatus: 'completed',
-              model: firstReq.modelId || null,
-              workspace: { cwd: path.join(workspaceStorageDir, hash) },
+              selectedModel: firstReq.modelId || null,
+              copilotVersion: copilotChatVersion,
+              workspace: { cwd: realWorkspacePath || path.join(workspaceStorageDir, hash) },
             });
           }
         } catch {
