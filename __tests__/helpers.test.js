@@ -28,7 +28,11 @@ describe('helpers', () => {
         cwd: '/test/path',
         created: '2026-02-15T10:00:00Z',
         updated: '2026-02-15T12:00:00Z',
-        copilotVersion: '1.0.0'
+        copilotVersion: '1.0.0',
+        source: undefined,
+        sourceName: undefined,
+        sourceBadgeClass: 'source-unknown',
+        sessionStatus: undefined
       });
     });
 
@@ -51,7 +55,11 @@ describe('helpers', () => {
         cwd: undefined,
         created: '2026-02-15T10:00:00Z',
         updated: '2026-02-15T12:00:00Z',
-        copilotVersion: undefined
+        copilotVersion: undefined,
+        source: undefined,
+        sourceName: undefined,
+        sourceBadgeClass: 'source-unknown',
+        sessionStatus: undefined
       });
     });
 
