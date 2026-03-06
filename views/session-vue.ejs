@@ -1007,7 +1007,13 @@
       border-radius: 10px;
       border: 1px solid #21262d;
       margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+    .turn-time { color: #58a6ff; font-weight: 500; text-transform: none; letter-spacing: 0; }
+    .turn-duration { color: #3fb950; font-weight: 500; text-transform: none; letter-spacing: 0; }
+    .turn-duration::before { content: '⏱ '; }
     .turn-divider-line-left,
     .turn-divider-line-right {
       display: none;
@@ -1928,8 +1934,7 @@
           }
         };
         
-        const getTurnNumber = (virtualIndex) => {
-          // Find the turn with matching virtualIndex
+        const getTurnNumber = (virtualIndex) => {          // Find the turn with matching virtualIndex
           const turn = turns.value.find(t => t.index === virtualIndex);
           if (!turn) return '?';
 
@@ -1939,6 +1944,11 @@
             return `${turn.userReqNumber} - Turn ${turnLabel}`;
           }
           return `Turn ${turnLabel}`;
+        };
+
+        const getTurnDuration = (virtualIndex) => {
+          const turn = turns.value.find(t => t.index === virtualIndex);
+          return turn?.duration || null;
         };
         const escapeHtml = (text) => {
           const div = document.createElement('div');
@@ -2432,6 +2442,7 @@
           scrollToTurn,
           jumpToTurn,
           getTurnNumber,
+          getTurnDuration,
           escapeHtml,
           exportSession,
           searchResultCount,
@@ -2674,7 +2685,11 @@
                       class="turn-divider"
                     >
                       <div class="turn-divider-line-left"></div>
-                      <span class="turn-divider-text">UserReq {{ getTurnNumber(item.virtualIndex) }} Start</span>
+                      <span class="turn-divider-text">
+                        UserReq {{ getTurnNumber(item.virtualIndex) }}
+                        <span class="turn-time">{{ formatTime(item.timestamp) }}</span>
+                        <span v-if="getTurnDuration(item.virtualIndex)" class="turn-duration">{{ getTurnDuration(item.virtualIndex) }}</span>
+                      </span>
                       <div class="turn-divider-line-right"></div>
                       <div class="divider-separator"></div>
                     </div>
@@ -2715,7 +2730,7 @@
                           class="subagent-owner-tag"
                           :style="{ color: getSubagentColor(item), borderColor: getSubagentColor(item) }"
                         >{{ getSubagentInfo(item).name }}</span>
-                        <span class="event-timestamp">{{ formatTime(item.timestamp) }}</span>
+                        <span v-if="metadata.source !== 'vscode'" class="event-timestamp">{{ formatTime(item.timestamp) }}</span>
                       </div>
                       
                       <!-- Abort event: show reason -->
