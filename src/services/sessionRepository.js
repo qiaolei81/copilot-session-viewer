@@ -891,6 +891,7 @@ class SessionRepository {
 
         const model = firstReq.modelId || null;
         const agentId = firstReq.agent?.id || 'vscode-copilot';
+        const copilotChatVersion = firstReq.agent?.extensionVersion || null;
         const userText = this._extractVsCodeUserText(firstReq.message);
 
         const session = new Session(
@@ -899,7 +900,7 @@ class SessionRepository {
           {
             source: 'vscode',
             filePath: fullPath,
-            workspaceHash, // Include workspace hash in metadata
+            workspaceHash,
             createdAt,
             updatedAt,
             summary: userText ? userText.slice(0, 120) : `VSCode chat (${requests.length} requests)`,
@@ -910,6 +911,7 @@ class SessionRepository {
             selectedModel: model,
             agentId,
             toolCount,
+            copilotVersion: copilotChatVersion,
             workspace: { cwd: realWorkspacePath || workspaceHashDir },
           }
         );
