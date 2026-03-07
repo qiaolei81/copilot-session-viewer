@@ -6,9 +6,9 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 
 **Multi-Tool Session Log Viewer & Analyzer**  
-View and analyze AI coding assistant sessions from **GitHub Copilot CLI**, **Claude Code CLI**, and **Pi-Mono** with time analysis, virtual scrolling, and AI-powered insights.
+View and analyze AI coding assistant sessions from **GitHub Copilot CLI**, **Copilot Chat (VSCode)**, **Claude Code CLI**, and **Pi-Mono** with time analysis, virtual scrolling, and AI-powered insights.
 
-A modern web-based viewer for analyzing AI coding assistant session logs with virtual scrolling, infinite loading, time analysis, and AI-powered insights. Supports **GitHub Copilot CLI**, **Claude Code CLI**, and **Pi-Mono** sessions.
+A modern web-based viewer for analyzing AI coding assistant session logs with virtual scrolling, infinite loading, time analysis, and AI-powered insights. Supports **GitHub Copilot CLI**, **Copilot Chat (VSCode)**, **Claude Code CLI**, and **Pi-Mono** sessions.
 
 ### Session List
 ![Session List](https://raw.githubusercontent.com/qiaolei81/copilot-session-viewer/main/docs/images/homepage.png)
@@ -57,7 +57,7 @@ copilot-session-viewer
 - **🚀 Virtual Scrolling** - Handle 1000+ events smoothly
 - **♾️ Infinite Scroll** - Progressive session loading for better performance
 - **🤖 AI Insights** - LLM-powered session analysis
-- **🎭 Multi-Format Support** - Copilot, Claude Code, and Pi-Mono sessions
+- **🎭 Multi-Format Support** - Copilot CLI, Copilot Chat (VSCode), Claude Code, and Pi-Mono sessions
 
 ### 🎨 **User Experience**
 - **🌙 Dark Theme** - GitHub-inspired interface
@@ -69,7 +69,7 @@ copilot-session-viewer
 - **Vue 3** - Reactive virtual scrolling
 - **Express.js** - Robust backend API
 - **ZIP Import/Export** - Session sharing capabilities with security validation
-- **Multi-Source Support** - Copilot (`~/.copilot/session-state/`), Claude (`~/.claude/projects/`), Pi-Mono (`~/.pi/agent/sessions/`)
+- **Multi-Source Support** - Copilot CLI (`~/.copilot/session-state/`), Copilot Chat (`~/Library/Application Support/Code/User/workspaceStorage/`), Claude (`~/.claude/projects/`), Pi-Mono (`~/.pi/agent/sessions/`)
 - **Unified Event Format** - Consistent schema across all sources
 - **Memory Pagination** - Efficient handling of large sessions
 - **XSS Protection** - DOMPurify-based HTML sanitization
@@ -81,7 +81,8 @@ copilot-session-viewer
 
 1. **Generate Sessions** - Use GitHub Copilot CLI, Claude Code CLI, or Pi-Mono to create session logs
 2. **Auto-Discovery** - Sessions are automatically detected from:
-   - Copilot: `~/.copilot/session-state/`
+   - Copilot CLI: `~/.copilot/session-state/`
+   - Copilot Chat: `~/Library/Application Support/Code/User/workspaceStorage/`
    - Claude: `~/.claude/projects/`
    - Pi-Mono: `~/.pi/agent/sessions/`
 3. **Browse & Analyze** - View sessions with infinite scroll and detailed event streams
@@ -124,8 +125,8 @@ This project includes comprehensive unit and E2E test coverage with CI/CD integr
 
 ### Test Coverage
 
-- **470+ Tests** (411 unit + 59 E2E)
-- **Unified Format Tests** - Mock data validation for all sources (Copilot, Claude, Pi-Mono)
+- **700+ Tests** (622 unit + 80 E2E)
+- **Unified Format Tests** - Mock data validation for all sources (Copilot CLI, Copilot Chat, Claude, Pi-Mono)
 - **Security Tests** - XSS prevention, ZIP bomb defense
 - **Integration Tests** - Session import/export, file operations
 - **CI-Friendly** - Mock data generation for reproducible tests
@@ -153,15 +154,15 @@ npm run test:all
 
 GitHub Actions workflow includes:
 1. **Linting** - ESLint code quality checks
-2. **Unit Tests** - 411 Jest tests with coverage
+2. **Unit Tests** - 622 Jest tests with coverage
 3. **Mock Data Generation** - Reproducible test session fixtures
-4. **E2E Tests** - 59 Playwright tests with Chromium
+4. **E2E Tests** - 80 Playwright tests with Chromium
 5. **Artifact Upload** - Test results on failure
 
 **Test Data Strategy:**
 - ✅ CI uses generated mock data (fast, reliable, no external dependencies)
 - ✅ Local development can use real sessions for integration testing
-- ✅ Fixtures cover all event formats (Copilot, Claude, Pi-Mono)
+- ✅ Fixtures cover all event formats (Copilot CLI, Copilot Chat, Claude, Pi-Mono)
 
 ---
 
@@ -187,9 +188,10 @@ GitHub Actions workflow includes:
                       ↕ File System
 ┌─────────────────────────────────────────────────┐
 │  Data Layer (Multi-Source)                      │
-│  • Copilot: ~/.copilot/session-state/           │
-│  • Claude:  ~/.claude/projects/                 │
-│  • Pi-Mono: ~/.pi/agent/sessions/               │
+│  • Copilot CLI: ~/.copilot/session-state/        │
+│  • Copilot Chat: ~/Library/.../workspaceStorage/ │
+│  • Claude:  ~/.claude/projects/                  │
+│  • Pi-Mono: ~/.pi/agent/sessions/                │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -304,12 +306,13 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [DOMPurify](https://github.com/cure53/DOMPurify) - XSS protection
 - [Playwright](https://playwright.dev/) - E2E testing
 
-**Recent Updates (v0.1.9+):**
-- ✨ Multi-source support (Copilot, Claude, Pi-Mono)
+**Recent Updates (v0.3.0):**
+- ✨ VSCode Copilot Chat support (4th source)
+- 🏷️ Session tagging system
+- 🔄 Multi-tool branding (Copilot CLI, Copilot Chat, Claude Code, Pi-Mono)
 - 🔒 XSS protection with DOMPurify
 - 🛡️ ZIP bomb defense (4-layer validation)
-- 📄 Memory pagination API
-- 🧪 470+ tests with CI/CD integration
+- 🧪 700+ tests with CI/CD integration
 - 📚 Comprehensive documentation
 
 ---
