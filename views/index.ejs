@@ -519,6 +519,7 @@
           <button class="filter-pill" data-source="claude">Claude</button>
           <button class="filter-pill" data-source="pi-mono">Pi</button>
         </div>
+        <p class="hint source-hint" id="sourceHint"></p>
         <input
           type="file"
           id="fileInput"
@@ -953,14 +954,34 @@
       });
     }
 
+    // Source directory hints
+    const sourceHints = {
+      copilot: '~/.copilot/session-state/',
+      vscode: '~/Library/Application Support/Code/User/workspaceStorage/',
+      claude: '~/.claude/projects/',
+      'pi-mono': '~/.pi/agent/sessions/'
+    };
+
+    function updateSourceHint(source) {
+      const hint = document.getElementById('sourceHint');
+      if (hint && sourceHints[source]) {
+        hint.innerHTML = 'Sessions from <span class="hint-code">' + sourceHints[source] + '</span>';
+      } else if (hint) {
+        hint.textContent = '';
+      }
+    }
+
     // Filter pill click handler
     function setupFilterPills() {
       const filterPills = document.querySelectorAll('.filter-pill');
+      // Show hint for initial active pill
+      updateSourceHint(currentSourceFilter);
       filterPills.forEach(pill => {
         pill.addEventListener('click', async () => {
           filterPills.forEach(p => p.classList.remove('active'));
           pill.classList.add('active');
           currentSourceFilter = pill.getAttribute('data-source');
+          updateSourceHint(currentSourceFilter);
 
           // Init per-source state if first visit
           if (!sourceState[currentSourceFilter]) {
