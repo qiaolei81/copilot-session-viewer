@@ -234,6 +234,7 @@ class SessionRepository {
 
       return new Session(sessionId, 'file', {
         source: 'claude',
+        filePath: fullPath,
         directory: path.dirname(fullPath), // Directory containing the session file
         workspace: {
           summary: metadata.model ? `Claude Code session (${metadata.model})` : 'Claude Code session',
@@ -415,6 +416,7 @@ class SessionRepository {
                   'directory',
                   {
                     source: 'pi-mono',
+                    filePath: filePath,
                     directory: projectPath, // Project directory containing the session file
                     workspace: { cwd: sessionEvent.cwd || projectName },
                     createdAt: new Date(sessionEvent.timestamp),
