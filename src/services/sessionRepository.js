@@ -546,12 +546,6 @@ class SessionRepository {
             const copilotChatVersion = firstReq.agent?.extensionVersion || null;
             const realWorkspacePath = await this._resolveVsCodeWorkspacePath(path.join(workspaceStorageDir, hash));
 
-            // Count tools
-            let toolCount2 = 0;
-            for (const req of requests) {
-              toolCount2 += (req.response || []).filter(r => r.kind === 'toolInvocationSerialized').length;
-            }
-
             // Use last terminal command timestamp (truest end time for agentic sessions)
             const lastTerminalTime2 = this._extractLastTerminalTimestamp(requests);
             let effectiveEnd2;
