@@ -737,6 +737,7 @@
     /* Virtual Scroller */
     .vue-recycle-scroller {
       flex: 1;
+      overflow-x: hidden !important;
     }
     .vue-recycle-scroller__item-wrapper {
       overflow: visible !important;
@@ -1183,6 +1184,18 @@
       .scroll-float-btns {
         bottom: 16px;
         right: 12px;
+      }
+
+      /* Prevent content from stretching wider than viewport */
+      .event-card {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+      .event-content pre {
+        max-width: calc(100vw - 32px);
+      }
+      .tool-command {
+        word-break: break-all;
       }
       .scroll-edge-btn {
         width: 28px;
