@@ -3,8 +3,8 @@
 const path = require('path');
 const { spawn } = require('child_process');
 
-// Get the server.js path relative to this bin script
-const serverPath = path.join(__dirname, '..', 'server.js');
+// Get the bundled server path relative to this bin script
+const serverPath = path.join(__dirname, '..', 'dist', 'server.min.js');
 
 // Spawn the server
 const server = spawn('node', [serverPath], {
