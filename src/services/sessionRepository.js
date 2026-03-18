@@ -5,32 +5,34 @@ const Session = require('../models/Session');
 const { fileExists, countLines, parseYAML, getSessionMetadataOptimized, shouldSkipEntry } = require('../utils/fileUtils');
 const { ParserFactory } = require('../../lib/parsers');
 
-function getVSCodeWorkspaceStorageDir() {
+/**
+ * Return candidate VS Code workspace storage paths in preference order.
+ * The caller resolves which one exists at scan time (async).
+ * Returns [stable, insiders] — stable is always tried first.
+ */
+function getVSCodeWorkspaceStorageCandidates() {
   // VS Code's user data dir can be overridden via --user-data-dir CLI flag,
   // but that's not detectable here. Use VSCODE_WORKSPACE_STORAGE_DIR env var
   // for custom setups (Insiders, portable mode, --user-data-dir installs).
-  let base, appName;
+  let base;
   switch (os.platform()) {
     case 'win32':
-      base = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
-      appName = 'Code';
+      base = path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'));
+      break;
+    case 'darwin':
+      base = path.join(os.homedir(), 'Library', 'Application Support');
       break;
     case 'linux':
       base = path.join(os.homedir(), '.config');
-      appName = 'Code';
       break;
-    default: // darwin (macOS)
-      base = path.join(os.homedir(), 'Library', 'Application Support');
-      appName = 'Code';
+    default:
+      // Unknown platform (e.g. FreeBSD): fall back to XDG-style ~/.config
+      base = path.join(os.homedir(), '.config');
   }
-  const stable = path.join(base, appName, 'User', 'workspaceStorage');
-  const insiders = path.join(base, `${appName} - Insiders`, 'User', 'workspaceStorage');
-  // Prefer stable; if it doesn't exist but Insiders does, use Insiders
-  const fs = require('fs');
-  if (!fs.existsSync(stable) && fs.existsSync(insiders)) {
-    return insiders;
-  }
-  return stable;
+  return [
+    path.join(base, 'Code', 'User', 'workspaceStorage'),
+    path.join(base, 'Code - Insiders', 'User', 'workspaceStorage'),
+  ];
 }
 
 /**
@@ -69,8 +71,11 @@ class SessionRepository {
         },
         {
           type: 'vscode',
-          dir: process.env.VSCODE_WORKSPACE_STORAGE_DIR ||
-               getVSCodeWorkspaceStorageDir()
+          // dir is resolved lazily at scan time from dirCandidates (async, no sync I/O on startup)
+          dir: process.env.VSCODE_WORKSPACE_STORAGE_DIR || null,
+          dirCandidates: process.env.VSCODE_WORKSPACE_STORAGE_DIR
+            ? null
+            : getVSCodeWorkspaceStorageCandidates(),
         }
       ];
     }
@@ -170,6 +175,21 @@ class SessionRepository {
    * @private
    */
   async _scanSource(source) {
+    // Resolve dir from candidates if not already set (e.g. vscode Insiders fallback)
+    if (!source.dir && source.dirCandidates) {
+      for (const candidate of source.dirCandidates) {
+        try {
+          await fs.access(candidate);
+          source.dir = candidate;
+          break;
+        } catch { /* try next candidate */ }
+      }
+      if (!source.dir) {
+        console.warn(`No ${source.type} directory found (tried: ${source.dirCandidates.join(', ')})`);
+        return [];
+      }
+    }
+
     try {
       await fs.access(source.dir);
     } catch {
