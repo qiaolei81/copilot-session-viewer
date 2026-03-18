@@ -5,6 +5,34 @@ const Session = require('../models/Session');
 const { fileExists, countLines, parseYAML, getSessionMetadataOptimized, shouldSkipEntry } = require('../utils/fileUtils');
 const { ParserFactory } = require('../../lib/parsers');
 
+function getVSCodeWorkspaceStorageDir() {
+  // VS Code's user data dir can be overridden via --user-data-dir CLI flag,
+  // but that's not detectable here. Use VSCODE_WORKSPACE_STORAGE_DIR env var
+  // for custom setups (Insiders, portable mode, --user-data-dir installs).
+  let base, appName;
+  switch (os.platform()) {
+    case 'win32':
+      base = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+      appName = 'Code';
+      break;
+    case 'linux':
+      base = path.join(os.homedir(), '.config');
+      appName = 'Code';
+      break;
+    default: // darwin (macOS)
+      base = path.join(os.homedir(), 'Library', 'Application Support');
+      appName = 'Code';
+  }
+  const stable = path.join(base, appName, 'User', 'workspaceStorage');
+  const insiders = path.join(base, `${appName} - Insiders`, 'User', 'workspaceStorage');
+  // Prefer stable; if it doesn't exist but Insiders does, use Insiders
+  const fs = require('fs');
+  if (!fs.existsSync(stable) && fs.existsSync(insiders)) {
+    return insiders;
+  }
+  return stable;
+}
+
 /**
  * Session Repository - Data access layer for sessions
  * Supports both Copilot CLI and Claude Code sessions
@@ -42,7 +70,7 @@ class SessionRepository {
         {
           type: 'vscode',
           dir: process.env.VSCODE_WORKSPACE_STORAGE_DIR ||
-               path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'workspaceStorage')
+               getVSCodeWorkspaceStorageDir()
         }
       ];
     }
