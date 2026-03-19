@@ -454,14 +454,15 @@
       return `${hours}:${minutes}:${seconds}`;
     };
 
-    // Format timestamp as mm:ss.mmm for tool timing display
+    // Format timestamp as HH:mm:ss.mmm for tool timing display
     const formatToolTime = (timestamp) => {
       if (!timestamp) return '';
       const date = new Date(timestamp);
+      const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       const seconds = String(date.getSeconds()).padStart(2, '0');
       const ms = String(date.getMilliseconds()).padStart(3, '0');
-      return `${minutes}:${seconds}.${ms}`;
+      return `${hours}:${minutes}:${seconds}.${ms}`;
     };
 
     // Performance fix: Cache markdown rendering results
@@ -791,8 +792,17 @@
           .map(tool => {
             // Check if tool has result (works for all formats)
             const hasResult = tool.result !== undefined || tool.status === 'completed' || tool.status === 'error';
+            // Precompute timing once per group to avoid repeated object creation in template
+            const timingResult = {};
+            if (tool.startTime) timingResult.startTime = tool.startTime;
+            if (tool.endTime) timingResult.endTime = tool.endTime;
+            if (timingResult.startTime && timingResult.endTime) {
+              const durationMs = new Date(timingResult.endTime).getTime() - new Date(timingResult.startTime).getTime();
+              if (durationMs >= 0) timingResult.duration = `${parseFloat((durationMs / 1000).toPrecision(3))}s (${durationMs}ms)`;
+            }
             return {
               tool: tool.name,
+              timing: timingResult,
               start: {
                 timestamp: tool.startTime,
                 data: {
@@ -1485,7 +1495,6 @@
       getToolStatus,
       getToolErrorMessage,
       getToolDuration,
-      getToolTiming,
       getToolCommand,
       hasTools,
       getToolGroups,
@@ -1957,11 +1966,11 @@
                       </div>
 
                       <div v-if="expandedTools[item.stableId + '-' + idx]" class="tool-detail">
-                        <div v-if="getToolTiming(group).startTime || getToolTiming(group).endTime || getToolTiming(group).duration" class="tool-detail-section">
+                        <div v-if="group.timing.startTime || group.timing.endTime || group.timing.duration" class="tool-detail-section">
                           <div class="tool-detail-content tool-timing-line">
-                            <span v-if="getToolTiming(group).startTime"><span class="tool-timing-label">Start</span> {{ formatToolTime(getToolTiming(group).startTime) }}</span>
-                            <span v-if="getToolTiming(group).endTime"><span class="tool-timing-label">Complete</span> {{ formatToolTime(getToolTiming(group).endTime) }}</span>
-                            <span v-if="getToolTiming(group).duration"><span class="tool-timing-label">Duration</span> {{ getToolTiming(group).duration }}</span>
+                            <span v-if="group.timing.startTime"><span class="tool-timing-label">Start</span> {{ formatToolTime(group.timing.startTime) }}</span>
+                            <span v-if="group.timing.endTime"><span class="tool-timing-label">Complete</span> {{ formatToolTime(group.timing.endTime) }}</span>
+                            <span v-if="group.timing.duration"><span class="tool-timing-label">Duration</span> {{ group.timing.duration }}</span>
                           </div>
                         </div>
                         <div v-if="group.start?.data?.arguments" class="tool-detail-section">

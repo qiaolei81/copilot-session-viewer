@@ -807,13 +807,6 @@
       text-align: left;
       font-size: 13px;
     }
-    .reasoning-text-content {
-      color: #7d8590;
-    }
-    .reasoning-text-content * {
-      color: inherit;
-    }
-    
     /* Model change styling */
     .model-change-content {
       margin-top: 6px;
@@ -899,6 +892,22 @@
     .event-content h4 { font-size: 13px; }
     .event-content p {
       margin: 6px 0;
+    }
+
+    /* Reasoning text: muted color — placed after .event-content markdown rules
+       so the higher-specificity selectors (0,2,1) override .event-content strong etc. (0,1,1) */
+    .reasoning-text-content.event-content,
+    .reasoning-text-content.event-content strong,
+    .reasoning-text-content.event-content em,
+    .reasoning-text-content.event-content h1,
+    .reasoning-text-content.event-content h2,
+    .reasoning-text-content.event-content h3,
+    .reasoning-text-content.event-content h4,
+    .reasoning-text-content.event-content h5,
+    .reasoning-text-content.event-content h6,
+    .reasoning-text-content.event-content code,
+    .reasoning-text-content.event-content a {
+      color: #7d8590;
     }
     
     /* Markdown table styling */

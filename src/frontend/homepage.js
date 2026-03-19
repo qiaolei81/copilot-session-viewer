@@ -21,7 +21,9 @@ let isLoading = false;
 
 // Filter state — restore from localStorage if available
 const FILTER_STORAGE_KEY = 'sessionViewer.sourceFilter';
-let currentSourceFilter = localStorage.getItem(FILTER_STORAGE_KEY) || 'copilot';
+let _restoredFilter;
+try { _restoredFilter = localStorage.getItem(FILTER_STORAGE_KEY); } catch (_e) { _restoredFilter = null; }
+let currentSourceFilter = _restoredFilter || 'copilot';
 
 function currentState() {
   if (!sourceState[currentSourceFilter]) {
@@ -467,6 +469,12 @@ async function fetchAndRenderSource(source) {
 
 function setupFilterPills() {
   const filterPills = document.querySelectorAll('.filter-pill');
+  // Validate restored filter exists as a pill; fall back to 'copilot'
+  const validSources = new Set([...filterPills].map(p => p.getAttribute('data-source')));
+  if (!validSources.has(currentSourceFilter)) {
+    currentSourceFilter = 'copilot';
+    try { localStorage.setItem(FILTER_STORAGE_KEY, currentSourceFilter); } catch (_e) { /* ignore */ }
+  }
   // Restore active pill from saved filter
   filterPills.forEach(p => {
     p.classList.toggle('active', p.getAttribute('data-source') === currentSourceFilter);
@@ -477,7 +485,7 @@ function setupFilterPills() {
       filterPills.forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       currentSourceFilter = pill.getAttribute('data-source');
-      localStorage.setItem(FILTER_STORAGE_KEY, currentSourceFilter);
+      try { localStorage.setItem(FILTER_STORAGE_KEY, currentSourceFilter); } catch (_e) { /* ignore */ }
       updateSourceHint(currentSourceFilter);
 
       // Track filter pill click
