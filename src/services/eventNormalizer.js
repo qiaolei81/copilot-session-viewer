@@ -132,8 +132,8 @@ class EventNormalizer {
     // Handle Copilot/Claude format with _matched flag
     if (tool.type === 'tool_use') {
       const status = this._computeStatus(tool);
-      const startTime = messageTimestamp;
-      const endTime = tool._matched ? messageTimestamp : null;
+      const startTime = tool._startTime || messageTimestamp;
+      const endTime = tool._matched ? (tool._endTime || messageTimestamp) : null;
 
       return {
         type: 'tool_use',  // Preserve type for frontend compatibility

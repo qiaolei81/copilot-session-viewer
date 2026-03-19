@@ -790,7 +790,9 @@ class SessionService {
               result: exec.result,
               status: exec.status || 'running',
               error: exec.error,
-              _matched: !!exec.complete
+              _matched: !!exec.complete,
+              _startTime: exec.start?.timestamp,
+              _endTime: exec.complete?.timestamp
             });
           } else {
             // Tool request but no execution found (shouldn't happen normally)
