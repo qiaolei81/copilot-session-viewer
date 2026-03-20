@@ -730,7 +730,7 @@
       return '';
     };
 
-    const getToolTiming = (group) => {
+    const _getToolTiming = (group) => {
       const result = {};
       if (group.start?.timestamp) result.startTime = group.start.timestamp;
       if (group.complete?.timestamp) result.endTime = group.complete.timestamp;
