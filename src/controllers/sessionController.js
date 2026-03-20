@@ -20,16 +20,7 @@ class SessionController {
       const sourceHints = {};
       if (this.sessionService.sessionRepository && this.sessionService.sessionRepository.sources) {
         for (const src of this.sessionService.sessionRepository.sources) {
-          // Replace home dir with ~ for display
-          const home = require('os').homedir();
-          let displayPath = src.dir;
-          if (displayPath.startsWith(home)) {
-            displayPath = '~' + displayPath.slice(home.length);
-          }
-          // Normalize path separators for display
-          displayPath = displayPath.replace(/\\/g, '/');
-          if (!displayPath.endsWith('/')) displayPath += '/';
-          sourceHints[src.type] = displayPath;
+          sourceHints[src.type] = src.dir;
         }
       }
 

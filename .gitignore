@@ -1,3 +1,5 @@
+.idea/
+
 node_modules/
 .DS_Store
 npm-debug.log*
@@ -41,7 +43,6 @@ TODO*.md
 .nyc_output/
 
 # Source maps
-public/js/*.map
-dist/*.map
-public/js/*.min.js
+dist/
+public/js/
 *.tgz
