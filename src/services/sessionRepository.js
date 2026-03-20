@@ -1,6 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
+const { fileURLToPath } = require('url');
 const Session = require('../models/Session');
 const { fileExists, countLines, parseYAML, getSessionMetadataOptimized, shouldSkipEntry } = require('../utils/fileUtils');
 const { ParserFactory } = require('../../lib/parsers');
@@ -943,12 +944,12 @@ class SessionRepository {
 
       if (meta.folder) {
         // Single-folder workspace: file:///path/to/project
-        return decodeURIComponent(meta.folder.replace('file://', ''));
+        return fileURLToPath(meta.folder);
       }
 
       if (meta.workspace) {
         // Multi-folder workspace: points to another .json with folders array
-        const wsFilePath = decodeURIComponent(meta.workspace.replace('file://', ''));
+        const wsFilePath = fileURLToPath(meta.workspace);
         try {
           const wsRaw = await fs.readFile(wsFilePath, 'utf-8');
           const ws = JSON.parse(wsRaw);
