@@ -19,8 +19,11 @@ sourceState['copilot'] = { offset: initialSessions.length, hasMore: hasMoreFromS
 
 let isLoading = false;
 
-// Filter state
-let currentSourceFilter = 'copilot';
+// Filter state — restore from localStorage if available
+const FILTER_STORAGE_KEY = 'sessionViewer.sourceFilter';
+let _restoredFilter;
+try { _restoredFilter = localStorage.getItem(FILTER_STORAGE_KEY); } catch (_e) { _restoredFilter = null; }
+let currentSourceFilter = _restoredFilter || 'copilot';
 
 function currentState() {
   if (!sourceState[currentSourceFilter]) {
@@ -430,15 +433,59 @@ function updateSourceHint(source) {
 }
 
 // Filter pill click handler
+async function fetchAndRenderSource(source) {
+  if (!sourceState[source]) {
+    sourceState[source] = { offset: 0, hasMore: true };
+  }
+  if (sourceState[source].offset === 0 && !isLoading) {
+    isLoading = true;
+    const container = document.getElementById('sessions-container');
+    container.innerHTML = '<div style="text-align: center; color: #6e7681; padding: 40px; font-size: 14px;">⏳ Loading...</div>';
+    document.getElementById('loading-indicator').style.display = 'none';
+    try {
+      const resp = await fetch(`/api/sessions/load-more?offset=0&limit=20&source=${encodeURIComponent(source)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        const existingIds = new Set(allSessions.map(s => s.id));
+        const newSessions = [];
+        for (const s of (data.sessions || [])) {
+          if (!existingIds.has(s.id)) {
+            allSessions.push(s);
+            newSessions.push(s);
+          }
+        }
+        sourceState[source].offset = (data.sessions || []).length;
+        sourceState[source].hasMore = data.hasMore;
+        await attachTagsToSessions(newSessions);
+      }
+    } catch (e) {
+      console.error('Failed to load sessions for source:', source, e);
+    } finally {
+      isLoading = false;
+    }
+  }
+  renderAllSessions();
+}
+
 function setupFilterPills() {
   const filterPills = document.querySelectorAll('.filter-pill');
-  // Show hint for initial active pill
+  // Validate restored filter exists as a pill; fall back to 'copilot'
+  const validSources = new Set([...filterPills].map(p => p.getAttribute('data-source')));
+  if (!validSources.has(currentSourceFilter)) {
+    currentSourceFilter = 'copilot';
+    try { localStorage.setItem(FILTER_STORAGE_KEY, currentSourceFilter); } catch (_e) { /* ignore */ }
+  }
+  // Restore active pill from saved filter
+  filterPills.forEach(p => {
+    p.classList.toggle('active', p.getAttribute('data-source') === currentSourceFilter);
+  });
   updateSourceHint(currentSourceFilter);
   filterPills.forEach(pill => {
     pill.addEventListener('click', async () => {
       filterPills.forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       currentSourceFilter = pill.getAttribute('data-source');
+      try { localStorage.setItem(FILTER_STORAGE_KEY, currentSourceFilter); } catch (_e) { /* ignore */ }
       updateSourceHint(currentSourceFilter);
 
       // Track filter pill click
@@ -447,58 +494,26 @@ function setupFilterPills() {
         dataSource: currentSourceFilter
       });
 
-      // Init per-source state if first visit
-      if (!sourceState[currentSourceFilter]) {
-        sourceState[currentSourceFilter] = { offset: 0, hasMore: true };
-      }
-
-      // Always fetch first batch when switching to a new source (backend-filtered)
-      if (sourceState[currentSourceFilter].offset === 0 && !isLoading) {
-        isLoading = true;
-        // Show loading state immediately (clear old results)
-        const container = document.getElementById('sessions-container');
-        container.innerHTML = '<div style="text-align: center; color: #6e7681; padding: 40px; font-size: 14px;">⏳ Loading...</div>';
-        document.getElementById('loading-indicator').style.display = 'none';
-        try {
-          const resp = await fetch(`/api/sessions/load-more?offset=0&limit=20&source=${encodeURIComponent(currentSourceFilter)}`);
-          if (resp.ok) {
-            const data = await resp.json();
-            const existingIds = new Set(allSessions.map(s => s.id));
-            const newSessions = [];
-            for (const s of (data.sessions || [])) {
-              if (!existingIds.has(s.id)) {
-                allSessions.push(s);
-                newSessions.push(s);
-              }
-            }
-            sourceState[currentSourceFilter].offset = (data.sessions || []).length;
-            sourceState[currentSourceFilter].hasMore = data.hasMore;
-
-            // Load tags for new sessions
-            await attachTagsToSessions(newSessions);
-          }
-        } catch (e) {
-          console.error('Failed to load sessions for source:', currentSourceFilter, e);
-        } finally {
-          isLoading = false;
-        }
-      }
-
-      renderAllSessions();
+      await fetchAndRenderSource(currentSourceFilter);
     });
   });
 }
 
 // Render grouped sessions on page load
 document.addEventListener('DOMContentLoaded', async function() {
-  // Load tags for initial sessions
+  // Load tags for initial sessions (always copilot from server pre-load)
   await attachTagsToSessions(allSessions);
-
-  renderAllSessions();
 
   // Infinite scroll
   window.addEventListener('scroll', throttledScroll);
 
-  // Setup filter pills
+  // Setup filter pills (registers click handlers + highlights restored pill)
   setupFilterPills();
+
+  // Render the restored filter's sessions
+  if (currentSourceFilter === 'copilot') {
+    renderAllSessions();
+  } else {
+    await fetchAndRenderSource(currentSourceFilter);
+  }
 });

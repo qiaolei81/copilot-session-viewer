@@ -141,6 +141,7 @@
         e.data?.text,
         e.data?.content,
         e.data?.reason,
+        e.data?.reasoningText,
         e.data?.errorType,
         e.data?.previousModel,
         e.data?.newModel
@@ -453,6 +454,17 @@
       return `${hours}:${minutes}:${seconds}`;
     };
 
+    // Format timestamp as HH:mm:ss.mmm for tool timing display
+    const formatToolTime = (timestamp) => {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      const ms = String(date.getMilliseconds()).padStart(3, '0');
+      return `${hours}:${minutes}:${seconds}.${ms}`;
+    };
+
     // Performance fix: Cache markdown rendering results
     const markdownCache = new Map();
     const MAX_CACHE_SIZE = 200;
@@ -713,9 +725,20 @@
       const durationMs = endTime - startTime;
 
       if (durationMs >= 100) {
-        return `${(durationMs / 1000).toFixed(1)}s`;
+        return `${parseFloat((durationMs / 1000).toPrecision(3))}s`;
       }
       return '';
+    };
+
+    const _getToolTiming = (group) => {
+      const result = {};
+      if (group.start?.timestamp) result.startTime = group.start.timestamp;
+      if (group.complete?.timestamp) result.endTime = group.complete.timestamp;
+      if (result.startTime && result.endTime) {
+        const durationMs = new Date(result.endTime).getTime() - new Date(result.startTime).getTime();
+        if (durationMs >= 0) result.duration = `${parseFloat((durationMs / 1000).toPrecision(3))}s (${durationMs}ms)`;
+      }
+      return result;
     };
 
     const getToolCommand = (group) => {
@@ -769,15 +792,26 @@
           .map(tool => {
             // Check if tool has result (works for all formats)
             const hasResult = tool.result !== undefined || tool.status === 'completed' || tool.status === 'error';
+            // Precompute timing once per group to avoid repeated object creation in template
+            const timingResult = {};
+            if (tool.startTime) timingResult.startTime = tool.startTime;
+            if (tool.endTime) timingResult.endTime = tool.endTime;
+            if (timingResult.startTime && timingResult.endTime) {
+              const durationMs = new Date(timingResult.endTime).getTime() - new Date(timingResult.startTime).getTime();
+              if (durationMs >= 0) timingResult.duration = `${parseFloat((durationMs / 1000).toPrecision(3))}s (${durationMs}ms)`;
+            }
             return {
               tool: tool.name,
+              timing: timingResult,
               start: {
+                timestamp: tool.startTime,
                 data: {
                   toolName: tool.name,
                   arguments: tool.input || tool.arguments || {}
                 }
               },
               complete: hasResult ? {
+                timestamp: tool.endTime,
                 data: {
                   result: tool.result,
                   error: tool.status === 'error' ? tool.error : null
@@ -1449,6 +1483,7 @@
       userReqs,
       truncateText,
       formatTime,
+      formatToolTime,
       formatDateTime,
       renderMarkdown,
       highlightSearchText,
@@ -1885,8 +1920,30 @@
                   </div>
 
                   <!-- No content at all (no message and no tools) -->
-                  <div v-else-if="!hasTools(item)" class="event-content" style="color: #7d8590; font-style: italic;">
+                  <div v-else-if="!hasTools(item) && !item.data?.reasoningText" class="event-content" style="color: #7d8590; font-style: italic;">
                     No available message
+                  </div>
+
+                  <!-- Reasoning text (shown after main content, before tool calls) -->
+                  <div v-if="item.data?.reasoningText" class="event-content reasoning-text-content">
+                    <div
+                      v-html="highlightSearchText(
+                        renderMarkdown(
+                          (expandedContent[item.stableId + '-reasoning'] || !isContentTooLong(item.data.reasoningText))
+                            ? item.data.reasoningText
+                            : truncateContent(item.data.reasoningText)
+                        ),
+                        searchText
+                      )"
+                    ></div>
+                    <div v-if="isContentTooLong(item.data.reasoningText)" style="margin-top: 8px;">
+                      <button
+                        @click="toggleContent(item.stableId + '-reasoning')"
+                        style="background: none; border: 1px solid #30363d; color: #58a6ff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;"
+                      >
+                        {{ expandedContent[item.stableId + '-reasoning'] ? 'Show less ▲' : 'Show more ▼' }}
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Tool calls section (independent of message content, but don't need "No available message" if tools exist) -->
@@ -1909,6 +1966,13 @@
                       </div>
 
                       <div v-if="expandedTools[item.stableId + '-' + idx]" class="tool-detail">
+                        <div v-if="group.timing.startTime || group.timing.endTime || group.timing.duration" class="tool-detail-section">
+                          <div class="tool-detail-content tool-timing-line">
+                            <span v-if="group.timing.startTime"><span class="tool-timing-label">Start</span> {{ formatToolTime(group.timing.startTime) }}</span>
+                            <span v-if="group.timing.endTime"><span class="tool-timing-label">Complete</span> {{ formatToolTime(group.timing.endTime) }}</span>
+                            <span v-if="group.timing.duration"><span class="tool-timing-label">Duration</span> {{ group.timing.duration }}</span>
+                          </div>
+                        </div>
                         <div v-if="group.start?.data?.arguments" class="tool-detail-section">
                           <div class="tool-detail-title">Arguments:</div>
                           <div class="tool-detail-content">
