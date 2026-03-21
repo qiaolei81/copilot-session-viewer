@@ -1894,27 +1894,6 @@
 
                   <!-- Regular content (unified format from server) -->
                   <div v-else-if="item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent">
-                    <!-- Reasoning text shown first (before main content) -->
-                    <div v-if="item.data?.reasoningText" class="event-content reasoning-text-content">
-                      <div
-                        v-html="highlightSearchText(
-                          renderMarkdown(
-                            (expandedContent[item.stableId + '-reasoning'] || !isContentTooLong(item.data.reasoningText))
-                              ? item.data.reasoningText
-                              : truncateContent(item.data.reasoningText)
-                          ),
-                          searchText
-                        )"
-                      ></div>
-                      <div v-if="isContentTooLong(item.data.reasoningText)" style="margin-top: 8px;">
-                        <button
-                          @click="toggleContent(item.stableId + '-reasoning')"
-                          style="background: none; border: 1px solid #30363d; color: #58a6ff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;"
-                        >
-                          {{ expandedContent[item.stableId + '-reasoning'] ? 'Show less ▲' : 'Show more ▼' }}
-                        </button>
-                      </div>
-                    </div>
                     <div
                       class="event-content"
                       v-html="highlightSearchText(
@@ -1945,8 +1924,8 @@
                     No available message
                   </div>
 
-                  <!-- Reasoning only (no main message content) -->
-                  <div v-else-if="item.data?.reasoningText" class="event-content reasoning-text-content">
+                  <!-- Reasoning text (shown after main content, before tool calls) -->
+                  <div v-if="item.data?.reasoningText" class="event-content reasoning-text-content">
                     <div
                       v-html="highlightSearchText(
                         renderMarkdown(
