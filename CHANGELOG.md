@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] - 2026-03-20
+
+### Added
+- **Tool Timing Display** - Tool start/complete timestamps shown as `HH:mm:ss.mmm` format for precise comparison. Timing precomputed in `getToolGroups` to avoid repeated calls per render cycle.
+- **Search: Reasoning Text** - `data.reasoningText` now included in session search fields.
+- **Homepage: Persistent Source Filter** - Selected source filter pill restored from `localStorage` across page reloads. Validates restored value against actual pills; falls back gracefully in privacy mode.
+
+### Fixed
+- **Tool Timing Accuracy** - Tool execution events now use actual `_startTime`/`_endTime` from execution events instead of parent message timestamp.
+- **VS Code Cross-Platform Detection** - Session storage directory now resolved correctly on Windows, Linux, and macOS using `os.platform()`. Falls back to VS Code Insiders path when stable install is not found. Supports `VSCODE_WORKSPACE_STORAGE_DIR` env var for custom setups.
+- **Windows Display Path** - Session path display fixed for Windows separators.
+- **`.gitignore`** - Updated to correctly exclude `dist/server.min.js` and other generated files.
+
+### Changed
+- **Docs** - README and `docs/INSTALLATION.md` updated with per-OS session source paths and all env var overrides (`COPILOT_SESSION_DIR`, `CLAUDE_SESSION_DIR`, `PI_MONO_SESSION_DIR`, `VSCODE_WORKSPACE_STORAGE_DIR`).
+
 ## [0.3.5] - 2026-03-13
 
 ### Added
