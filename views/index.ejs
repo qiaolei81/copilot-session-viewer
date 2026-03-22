@@ -620,6 +620,9 @@
     const tooltip = document.getElementById('summary-tooltip');
     let tooltipTarget = null;
     let hideTimer = null;
+    let showTimer = null;
+    let pendingEl = null;
+    let pendingEvent = null;
 
     function showTooltip(el, e) {
       clearTimeout(hideTimer);
@@ -636,7 +639,22 @@
       positionTooltip(e);
     }
 
+    function scheduleShow(el, e) {
+      clearTimeout(showTimer);
+      pendingEl = el;
+      pendingEvent = e;
+      showTimer = setTimeout(() => {
+        if (pendingEl) showTooltip(pendingEl, pendingEvent);
+      }, 500);
+    }
+
+    function cancelShow() {
+      clearTimeout(showTimer);
+      pendingEl = null;
+    }
+
     function scheduleHide() {
+      cancelShow();
       hideTimer = setTimeout(() => {
         tooltipTarget = null;
         tooltip.classList.remove('visible');
@@ -645,11 +663,12 @@
 
     document.addEventListener('mouseover', e => {
       const el = e.target.closest('.session-summary');
-      if (el) { showTooltip(el, e); return; }
-      if (e.target.closest('#summary-tooltip')) { clearTimeout(hideTimer); return; }
+      if (el) { clearTimeout(hideTimer); scheduleShow(el, e); return; }
+      if (e.target.closest('#summary-tooltip')) { clearTimeout(hideTimer); cancelShow(); return; }
     });
 
     document.addEventListener('mousemove', e => {
+      if (pendingEl) { pendingEvent = e; }
       if (!tooltipTarget) return;
       if (e.target.closest('#summary-tooltip')) return;
       positionTooltip(e);
