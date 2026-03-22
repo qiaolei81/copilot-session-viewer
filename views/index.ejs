@@ -612,6 +612,10 @@
     .summary-tooltip strong { color: #e6edf3; }
     .summary-tooltip hr { border-color: #30363d; margin: 8px 0; }
 
+  /* Hide hover tooltip on touch devices */
+  @media (hover: none) {
+    .summary-tooltip { display: none !important; }
+  }
   /* Bottom sheet for mobile long-press */
   .bottom-sheet-overlay {
     display: none;
