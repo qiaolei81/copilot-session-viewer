@@ -129,10 +129,24 @@ class Session {
   }
 
   /**
-   * Get display metadata for source
+   * Get display metadata for source.
+   * Tries the adapter registry first, falls back to a hardcoded map for
+   * backward compatibility (e.g. when registry hasn't loaded adapters yet).
    * @private
    */
   _getSourceDisplayMetadata(source) {
+    // Try adapter registry first (dynamic — no code change needed for new sources)
+    try {
+      const { registry } = require('../adapters');
+      const adapter = registry.get(source);
+      if (adapter) {
+        return adapter.displayMetadata;
+      }
+    } catch {
+      // Registry not available (e.g. during early init or tests) — use fallback
+    }
+
+    // Hardcoded fallback (kept for backward compatibility)
     const metadata = {
       'copilot': { name: 'Copilot CLI', badgeClass: 'source-copilot' },
       'claude': { name: 'Claude', badgeClass: 'source-claude' },
