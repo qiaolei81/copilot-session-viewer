@@ -93,6 +93,31 @@ class ClaudeAdapter extends BaseSourceAdapter {
     return null;
   }
 
+  async resolveEventsFile(session, dir) {
+    if (session.type === 'directory') return null; // Subagents only
+    
+    try {
+      const projects = await fs.readdir(dir);
+      for (const project of projects) {
+        const candidateFile = path.join(dir, project, `${session.id}.jsonl`);
+        try {
+          await fs.access(candidateFile);
+          return candidateFile;
+        } catch {
+          // Not here
+        }
+      }
+    } catch (err) {
+      console.error('Error searching Claude projects:', err);
+    }
+    return null;
+  }
+
+  async readEvents(session, dir) {
+    const eventsFile = await this.resolveEventsFile(session, dir);
+    return this.readJsonlEvents(eventsFile);
+  }
+
   async _scanProjectDir(projectDir, projectName) {
     try {
       const entries = await fs.readdir(projectDir);

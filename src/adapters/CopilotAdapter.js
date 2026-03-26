@@ -70,6 +70,26 @@ class CopilotAdapter extends BaseSourceAdapter {
     return null;
   }
 
+  async resolveEventsFile(session, dir) {
+    const sessionId = session.id;
+    const sessionPath = path.join(dir, sessionId);
+    try {
+      const stats = await fs.stat(sessionPath);
+      if (stats.isDirectory()) {
+        return path.join(sessionPath, 'events.jsonl');
+      } else {
+        return path.join(dir, `${sessionId}.jsonl`);
+      }
+    } catch (_err) {
+      return path.join(dir, `${sessionId}.jsonl`);
+    }
+  }
+
+  async readEvents(session, dir) {
+    const eventsFile = await this.resolveEventsFile(session, dir);
+    return this.readJsonlEvents(eventsFile);
+  }
+
   async _createDirectorySession(entry, fullPath, stats) {
     const workspaceFile = path.join(fullPath, 'workspace.yaml');
     const eventsFile = path.join(fullPath, 'events.jsonl');
@@ -135,4 +155,3 @@ class CopilotAdapter extends BaseSourceAdapter {
 }
 
 module.exports = CopilotAdapter;
-

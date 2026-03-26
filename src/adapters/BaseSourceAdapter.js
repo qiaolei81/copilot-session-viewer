@@ -1,3 +1,6 @@
+const fs = require('fs');
+const readline = require('readline');
+
 /**
  * Base Source Adapter Interface
  *
@@ -103,6 +106,47 @@ class BaseSourceAdapter {
    */
   async resolveEventsFile(_session, _dir) {
     throw new Error('BaseSourceAdapter: resolveEventsFile() must be implemented');
+  }
+
+  /**
+   * Helper to read JSONL events stream
+   * @param {string} eventsFile - Path to the events.jsonl file
+   * @returns {Promise<Array>} Parsed events array
+   */
+  async readJsonlEvents(eventsFile) {
+    if (!eventsFile) return [];
+    
+    try {
+      await fs.promises.access(eventsFile);
+      
+      const fileStream = fs.createReadStream(eventsFile, { encoding: 'utf-8' });
+      const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+      });
+      
+      let lineIndex = 0;
+      const parsedEvents = [];
+      
+      for await (const line of rl) {
+        const trimmedLine = line.trim();
+        if (trimmedLine) {
+          try {
+            const event = JSON.parse(trimmedLine);
+            event._fileIndex = lineIndex;
+            parsedEvents.push(event);
+          } catch (err) {
+            console.error(`Error parsing line ${lineIndex + 1} in ${eventsFile}:`, err.message);
+          }
+        }
+        lineIndex++;
+      }
+      
+      return parsedEvents;
+    } catch (err) {
+      console.error('Error reading main events file:', err);
+      return [];
+    }
   }
 
   /**

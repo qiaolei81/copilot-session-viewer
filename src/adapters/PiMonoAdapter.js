@@ -46,54 +46,89 @@ class PiMonoAdapter extends BaseSourceAdapter {
     try {
       const projects = await fs.readdir(dir);
 
-      for (const projectDir of projects) {
-        const projectPath = path.join(dir, projectDir);
-
+      for (const project of projects) {
+        const projectPath = path.join(dir, project);
         try {
           const files = await fs.readdir(projectPath);
           const matchingFile = files.find(f => f.includes(`_${sessionId}.jsonl`));
-
           if (matchingFile) {
-            const filePath = path.join(projectPath, matchingFile);
-            const stats = await fs.stat(filePath);
-
-            const firstLine = await readFirstLine(filePath);
-            if (firstLine) {
-              const sessionEvent = JSON.parse(firstLine);
-              if (sessionEvent.type === 'session') {
-                const projectName = projectDir.replace(/^--/, '').replace(/--$/, '');
-                const eventCount = await countLines(filePath);
-
-                return new Session(sessionId, 'directory', {
-                  source: 'pi-mono',
-                  filePath: filePath,
-                  directory: projectPath,
-                  workspace: { cwd: sessionEvent.cwd || projectName },
-                  createdAt: new Date(sessionEvent.timestamp),
-                  updatedAt: new Date(stats.mtime),
-                  summary: `Pi-Mono: ${path.basename(sessionEvent.cwd || projectName)}`,
-                  hasEvents: eventCount > 0,
-                  eventCount: eventCount,
-                  duration: null,
-                  sessionStatus: 'completed'
-                });
-              }
-            }
+            const fullPath = path.join(projectPath, matchingFile);
+            const stats = await fs.stat(fullPath);
+            return await this._createSession(matchingFile, fullPath, stats, project);
           }
         } catch {
           // Not a directory or can't read
         }
       }
     } catch (err) {
-      console.error(`Error searching Pi-Mono sessions: ${err.message}`);
+      console.error('Error searching Pi-Mono sessions:', err);
     }
 
     return null;
   }
 
-  async _scanProjectDir(projectDir, dirName) {
+  async _createSession(file, fullPath, stats, projectName) {
+    const match = file.match(/_([a-f0-9-]+)\.jsonl$/);
+    if (!match) return null;
+
+    const sessionId = match[1];
+    const firstLine = await readFirstLine(fullPath);
+    if (!firstLine) return null;
+
     try {
-      const entries = await fs.readdir(projectDir);
+      const sessionEvent = JSON.parse(firstLine);
+      if (sessionEvent.type !== 'session') return null;
+
+      const eventCount = await countLines(fullPath);
+      const mappedProjectPath = projectName.replace(/^--/, '').replace(/--$/, '');
+
+      return new Session(sessionId, 'directory', {
+        source: 'pi-mono',
+        directory: path.dirname(fullPath),
+        workspace: { cwd: sessionEvent.cwd || mappedProjectPath },
+        createdAt: new Date(sessionEvent.timestamp),
+        updatedAt: new Date(stats.mtime),
+        summary: `Pi-Mono: ${path.basename(sessionEvent.cwd || mappedProjectPath)}`,
+        hasEvents: eventCount > 0,
+        eventCount: eventCount,
+        duration: null,
+        sessionStatus: 'completed'
+      });
+    } catch (err) {
+      console.error(`[PI-MONO] Error parsing session ${file}:`, err.message);
+      return null;
+    }
+  }
+
+  async resolveEventsFile(session, dir) {
+    try {
+      const projects = await fs.readdir(dir);
+      for (const project of projects) {
+        const projectPath = path.join(dir, project);
+        try {
+          const files = await fs.readdir(projectPath);
+          const matchingFile = files.find(f => f.includes(`_${session.id}.jsonl`));
+          if (matchingFile) {
+            return path.join(projectPath, matchingFile);
+          }
+        } catch {
+          // Not a directory or can't read
+        }
+      }
+    } catch (err) {
+      console.error('Error searching Pi-Mono sessions:', err);
+    }
+    return null;
+  }
+
+  async readEvents(session, dir) {
+    const eventsFile = await this.resolveEventsFile(session, dir);
+    return this.readJsonlEvents(eventsFile);
+  }
+
+  async _scanProjectDir(projectPath, projectName) {
+    try {
+      const entries = await fs.readdir(projectPath);
       const jsonlFiles = entries.filter(e => e.endsWith('.jsonl'));
 
       if (jsonlFiles.length === 0) return [];
@@ -102,7 +137,7 @@ class PiMonoAdapter extends BaseSourceAdapter {
       jsonlFiles.sort().reverse();
 
       for (const file of jsonlFiles) {
-        const fullPath = path.join(projectDir, file);
+        const fullPath = path.join(projectPath, file);
         const stats = await fs.stat(fullPath);
 
         const match = file.match(/_([a-f0-9-]+)\.jsonl$/);
@@ -118,15 +153,15 @@ class PiMonoAdapter extends BaseSourceAdapter {
           if (sessionEvent.type !== 'session') continue;
 
           const eventCount = await countLines(fullPath);
-          const projectPath = dirName.replace(/^--/, '').replace(/--$/, '');
+          const mappedProjectPath = projectName.replace(/^--/, '').replace(/--$/, '');
 
           const session = new Session(sessionId, 'directory', {
             source: 'pi-mono',
-            directory: projectDir,
-            workspace: { cwd: sessionEvent.cwd || projectPath },
+            directory: projectPath,
+            workspace: { cwd: sessionEvent.cwd || mappedProjectPath },
             createdAt: new Date(sessionEvent.timestamp),
             updatedAt: new Date(stats.mtime),
-            summary: `Pi-Mono: ${path.basename(sessionEvent.cwd || projectPath)}`,
+            summary: `Pi-Mono: ${path.basename(sessionEvent.cwd || mappedProjectPath)}`,
             hasEvents: eventCount > 0,
             eventCount: eventCount,
             duration: null,
@@ -141,7 +176,7 @@ class PiMonoAdapter extends BaseSourceAdapter {
 
       return sessions;
     } catch (err) {
-      console.error(`[PI-MONO] Error scanning dir ${projectDir}:`, err.message);
+      console.error(`[PI-MONO] Error scanning dir ${projectPath}:`, err.message);
       return [];
     }
   }

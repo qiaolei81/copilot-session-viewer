@@ -71,159 +71,48 @@ class SessionService {
     if (!resolvedSourceDir && adapter) {
       resolvedSourceDir = await adapter.resolveDir();
     }
-
-    // Initialize events array
-    let events = [];
-
-    if (adapter?.hasCustomPipeline) {
-      events = await adapter.readEvents(session, resolvedSourceDir);
-    }
-
-    // Determine the file path based on source
-    let eventsFile;
-
-    if (!adapter?.hasCustomPipeline && session.source === 'copilot') {
-      // Copilot format: directory/events.jsonl or sessionId.jsonl
-      if (this.SESSION_DIR) {
-        // Single-source mode (backward compatibility)
-        const sessionPath = path.join(this.SESSION_DIR, sessionId);
-        try {
-          const stats = await fs.promises.stat(sessionPath);
-          if (stats.isDirectory()) {
-            eventsFile = path.join(sessionPath, 'events.jsonl');
-          } else {
-            eventsFile = path.join(this.SESSION_DIR, `${sessionId}.jsonl`);
-          }
-        } catch (_err) {
-          eventsFile = path.join(this.SESSION_DIR, `${sessionId}.jsonl`);
-        }
-      } else {
-        // Multi-source mode
-        const copilotSource = this.sessionRepository.sources.find(s => s.type === 'copilot');
-        if (!copilotSource) return [];
-        
-        const sessionPath = path.join(copilotSource.dir, sessionId);
-        try {
-          const stats = await fs.promises.stat(sessionPath);
-          if (stats.isDirectory()) {
-            eventsFile = path.join(sessionPath, 'events.jsonl');
-          } else {
-            eventsFile = path.join(copilotSource.dir, `${sessionId}.jsonl`);
-          }
-        } catch (_err) {
-          eventsFile = path.join(copilotSource.dir, `${sessionId}.jsonl`);
-        }
-      }
-    } else if (!adapter?.hasCustomPipeline && session.source === 'claude') {
-      // Claude format: projects/*/sessionId.jsonl
-      const claudeSource = this.sessionRepository.sources.find(s => s.type === 'claude');
-      if (!claudeSource) return [];
-      
-      // If session type is 'directory', it's a subagents-only session (no main file)
-      // Skip main file search and load only subagents
-      if (session.type !== 'directory') {
-        // Search all project directories for this session
-        try {
-          const projects = await fs.promises.readdir(claudeSource.dir);
-          for (const project of projects) {
-            const candidateFile = path.join(claudeSource.dir, project, `${sessionId}.jsonl`);
-            try {
-              await fs.promises.access(candidateFile);
-              eventsFile = candidateFile;
-              break;
-            } catch {
-              // Not in this project, continue
-            }
-          }
-        } catch (err) {
-          console.error('Error searching Claude projects:', err);
-          return [];
-        }
-      }
-    } else if (!adapter?.hasCustomPipeline && session.source === 'pi-mono') {
-      // Pi-Mono format: sessions/--project-path--/timestamp_uuid.jsonl
-      const piMonoSource = this.sessionRepository.sources.find(s => s.type === 'pi-mono');
-      if (!piMonoSource) return [];
-
-      // Search all project directories for this session ID
-      try {
-        const projects = await fs.promises.readdir(piMonoSource.dir);
-        for (const project of projects) {
-          const projectPath = path.join(piMonoSource.dir, project);
-          try {
-            const files = await fs.promises.readdir(projectPath);
-            const matchingFile = files.find(f => f.includes(`_${sessionId}.jsonl`));
-            if (matchingFile) {
-              eventsFile = path.join(projectPath, matchingFile);
-              break;
-            }
-          } catch {
-            // Not a directory or can't read
-          }
-        }
-      } catch (err) {
-        console.error('Error searching Pi-Mono sessions:', err);
-        return [];
-      }
-    }
     
-    // Load main events file if it exists
-    if (!adapter?.hasCustomPipeline && eventsFile) {
-      try {
-        await fs.promises.access(eventsFile);
-        
-        // Stream-based reading: supports files of any size
-        const fileStream = fs.createReadStream(eventsFile, { encoding: 'utf-8' });
-        const rl = readline.createInterface({
-          input: fileStream,
-          crlfDelay: Infinity // Treat \r\n as single line break
-        });
-        
-        let lineIndex = 0;
-        const parsedEvents = [];
-        
-        for await (const line of rl) {
-          const trimmedLine = line.trim();
-          if (trimmedLine) {
-            try {
-              const event = JSON.parse(trimmedLine);
-              event._fileIndex = lineIndex;
-              parsedEvents.push(event);
-            } catch (err) {
-              console.error(`Error parsing line ${lineIndex + 1}:`, err.message);
-            }
-          }
-          lineIndex++;
-        }
-        
-        events = parsedEvents;
+    // Support legacy single source dir mode
+    if (this.SESSION_DIR && session.source === 'copilot') {
+      resolvedSourceDir = this.SESSION_DIR;
+    }
 
-        // Sort by timestamp with stable tiebreaker on original file order
-        events.sort((a, b) => {
-          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-          if (timeA !== timeB) return timeA - timeB;
-          return a._fileIndex - b._fileIndex;
-        });
+    let events = await adapter.readEvents(session, resolvedSourceDir) || [];
 
-        // Normalize events to unified format (convert Claude format to standard)
-        events = events.map(event => this._normalizeEvent(event, session.source));
-        
-        // Match tool calls across events (source-specific)
-        if (session.source === 'copilot') {
-          this._matchCopilotToolCalls(events);
-        } else if (session.source === 'claude') {
-          this._matchClaudeToolResults(events);
-        }
-      } catch (err) {
-        console.error('Error reading main events file:', err);
-        // Continue to load subagents even if main file fails
+    // Filter sub-agent events from main timeline if applicable
+    if (events.length > 0) {
+      const isSubAgentSession = session.source === 'claude' && session.type === 'directory';
+      if (isSubAgentSession) {
+        // For sub-agent only sessions, keep only sub-agent events
+        events = events.filter(e => e._subagent);
+      } else {
+        // For regular sessions, filter out sub-agent events from the main timeline
+        events = events.filter(e => !e._subagent);
       }
+    }
+
+    // Sort by timestamp with stable tiebreaker on original file order
+    events.sort((a, b) => {
+      const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return a._fileIndex - b._fileIndex;
+    });
+
+    // Normalize events to unified format (convert Claude format to standard)
+    events = events.map(event => this._normalizeEvent(event, session.source));
+    
+    // Match tool calls across events (source-specific)
+    if (session.source === 'copilot') {
+      this._matchCopilotToolCalls(events);
+    } else if (session.source === 'claude') {
+      this._matchClaudeToolResults(events);
     }
     
     // Load and merge sub-agent events (for both Copilot and Claude)
     // For Claude sessions without main events.jsonl, this will load subagents from correct path
     if (!adapter?.hasCustomPipeline) {
+      const eventsFile = await adapter.resolveEventsFile(session, resolvedSourceDir);
       await this._mergeSubAgentEvents(events, eventsFile, sessionId, session.source);
     }
     
@@ -1332,8 +1221,8 @@ class SessionService {
         );
         if (tool) {
           tool.endTime = event.timestamp;
-          tool.status = event.data.error || event.data.isError ? 'error' : 'completed';
-          tool.result = event.data.result || event.data.output;
+          tool.status = event.data?.error ? 'error' : 'completed';
+          tool.result = event.data?.result;
         }
       }
     }
@@ -1874,3 +1763,4 @@ class SessionService {
 }
 
 module.exports = SessionService;
+

@@ -717,7 +717,10 @@ describe('SessionRepository - Additional Coverage', () => {
 
       const session = await adapter.findById('test', piDir);
       expect(session).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error searching Pi-Mono sessions'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error searching Pi-Mono sessions'),
+        expect.anything()
+      );
       consoleErrorSpy.mockRestore();
     });
   });
