@@ -103,7 +103,7 @@ class SessionService {
       const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
       const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
       if (timeA !== timeB) return timeA - timeB;
-      return a._fileIndex - b._fileIndex;
+      return (a._fileIndex ?? 0) - (b._fileIndex ?? 0);
     });
 
     // Normalize events to unified format (convert Claude format to standard)
