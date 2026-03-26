@@ -77,7 +77,14 @@ class SessionService {
       resolvedSourceDir = this.SESSION_DIR;
     }
 
-    let events = await adapter.readEvents(session, resolvedSourceDir) || [];
+    let events = [];
+    if (!adapter) {
+      console.warn(
+        `SessionService.getSessionEvents: No adapter found for source '${session.source}'. Returning no events.`
+      );
+    } else {
+      events = (await adapter.readEvents(session, resolvedSourceDir)) || [];
+    }
 
     // Filter sub-agent events from main timeline if applicable
     if (events.length > 0) {
