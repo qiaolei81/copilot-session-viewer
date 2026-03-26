@@ -26,7 +26,8 @@ describe('SessionService - Coverage Enhancement', () => {
       sources: [
         { type: 'copilot', dir: path.join(tmpDir, 'copilot') },
         { type: 'claude', dir: path.join(tmpDir, 'claude') },
-        { type: 'pi-mono', dir: path.join(tmpDir, 'pi-mono') }
+        { type: 'pi-mono', dir: path.join(tmpDir, 'pi-mono') },
+        { type: 'vscode', dir: path.join(tmpDir, 'vscode') }
       ]
     };
     SessionRepository.mockImplementation(() => mockRepository);
@@ -265,6 +266,46 @@ describe('SessionService - Coverage Enhancement', () => {
       const events = await service.getSessionEvents(sessionId);
 
       expect(events).toEqual([]);
+    });
+  });
+
+  describe('getSessionEvents - VS Code custom pipeline', () => {
+    it('should load vscode events through the adapter pipeline', async () => {
+      const sessionId = 'vscode-session';
+      const sessionFile = path.join(tmpDir, `${sessionId}.json`);
+
+      await fs.promises.writeFile(sessionFile, JSON.stringify({
+        sessionId,
+        creationDate: '2026-02-20T10:00:00.000Z',
+        requests: [{
+          requestId: 'req-1',
+          timestamp: '2026-02-20T10:01:00.000Z',
+          message: { text: 'Open README' },
+          modelId: 'gpt-4',
+          response: [
+            { kind: 'markdownContent', content: { value: 'Done' } },
+            {
+              kind: 'toolInvocationSerialized',
+              toolCallId: 'tool-1',
+              toolId: 'copilot_readFile',
+              isComplete: true,
+              toolSpecificData: {
+                input: { fsPath: '/repo/README.md' },
+                result: 'README.md'
+              }
+            }
+          ]
+        }]
+      }));
+
+      const mockSession = { id: sessionId, type: 'file', source: 'vscode', filePath: sessionFile };
+      mockRepository.findById.mockResolvedValue(mockSession);
+
+      const events = await service.getSessionEvents(sessionId);
+
+      expect(events.some(event => event.type === 'assistant.message' && event.data?.tools?.length > 0)).toBe(true);
+      expect(events.some(event => event.type === 'tool.execution_start')).toBe(true);
+      expect(events.some(event => event.type === 'tool.execution_complete')).toBe(true);
     });
   });
 
@@ -858,6 +899,45 @@ describe('SessionService - Coverage Enhancement', () => {
 
       expect(timeline.turns).toHaveLength(1);
       expect(timeline.turns[0].endTime).toBe('2026-02-20T10:00:00.000Z');
+    });
+
+    it('should build vscode timeline via adapter', async () => {
+      const sessionId = 'vscode-timeline';
+      const sessionFile = path.join(tmpDir, `${sessionId}.json`);
+
+      await fs.promises.writeFile(sessionFile, JSON.stringify({
+        sessionId,
+        creationDate: '2026-02-20T10:00:00.000Z',
+        requests: [{
+          requestId: 'req-1',
+          timestamp: '2026-02-20T10:01:00.000Z',
+          message: { text: 'Use a tool' },
+          modelId: 'gpt-4',
+          response: [
+            { kind: 'markdownContent', content: { value: 'Working on it' } },
+            {
+              kind: 'toolInvocationSerialized',
+              toolCallId: 'tool-1',
+              toolId: 'copilot_readFile',
+              isComplete: true,
+              toolSpecificData: {
+                input: { fsPath: '/repo/index.js' },
+                result: 'index.js'
+              }
+            }
+          ]
+        }]
+      }));
+
+      const mockSession = { id: sessionId, type: 'file', source: 'vscode', filePath: sessionFile };
+      mockRepository.findAll.mockResolvedValue([{ ...mockSession, toJSON: () => mockSession }]);
+      mockRepository.findById.mockResolvedValue(mockSession);
+
+      const timeline = await service.getTimeline(sessionId);
+
+      expect(timeline.turns).toHaveLength(1);
+      expect(timeline.turns[0].assistantTurns.length).toBeGreaterThan(0);
+      expect(timeline.summary.totalTools).toBe(1);
     });
   });
 
