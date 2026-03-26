@@ -1228,7 +1228,7 @@ class SessionService {
         );
         if (tool) {
           tool.endTime = event.timestamp;
-          tool.status = event.data?.error ? 'error' : 'completed';
+          tool.status = (event.data?.error || event.data?.isError) ? 'error' : 'completed';
           tool.result = event.data?.result;
         }
       }
