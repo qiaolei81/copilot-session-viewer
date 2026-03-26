@@ -151,14 +151,16 @@ class BaseSourceAdapter {
 
   /**
    * Read and return raw events for a session.
-   *
-   * Adapters with a completely custom event pipeline (e.g. VSCode) should
-   * override this method and return an array of raw events. Adapters that do
-   * not implement a custom pipeline may leave the base implementation as-is,
-   * in which case callers must not rely on any implicit fallback in
-   * SessionService.
-   *
-   * Returning {@code null} from this method indicates that the adapter does
+   * with a completely custom event pipeline (e.g. VSCode). By default
+   * this uses the shared JSONL pipeline via resolveEventsFile() and
+   * readJsonlEvents().
+   * @param {import('../models/Session')} session - Session object
+   * @param {string} dir - Resolved source directory
+   * @returns {Promise<Array>} Events array
+   */
+  async readEvents(session, dir) {
+    const eventsFile = this.resolveEventsFile(session, dir);
+    return this.readJsonlEvents(eventsFile);
    * not produce events for the given session (i.e., "no events"), and should
    * not be interpreted as a request to invoke any shared JSONL pipeline.
    *
