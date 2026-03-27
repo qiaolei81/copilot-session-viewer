@@ -505,9 +505,9 @@ describe('SessionRepository - Additional Coverage', () => {
       repository = new SessionRepository(tmpDir);
 
       const sessions = [
-        { id: '1', updatedAt: '2026-02-20T10:00:00Z' },
-        { id: '2', updatedAt: '2026-02-20T12:00:00Z' },
-        { id: '3', updatedAt: '2026-02-20T11:00:00Z' }
+        { id: '1', createdAt: '2026-02-20T10:00:00Z' },
+        { id: '2', createdAt: '2026-02-20T12:00:00Z' },
+        { id: '3', createdAt: '2026-02-20T11:00:00Z' }
       ];
 
       const sorted = repository._sortByUpdatedAt(sessions);
