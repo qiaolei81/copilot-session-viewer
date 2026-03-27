@@ -1,7 +1,6 @@
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const readline = require('readline');
-const yaml = require('js-yaml');
 
 /**
  * File utility functions
