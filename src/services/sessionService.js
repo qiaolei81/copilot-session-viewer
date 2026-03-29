@@ -934,6 +934,41 @@ class SessionService {
         // If only toolcalls, leave message empty (don't create placeholder)
       }
       
+      // Hook events (hook.start / hook.end)
+      if (event.type === 'hook.start') {
+        const d = event.data || {};
+        const parts = [];
+        if (d.hookType) parts.push(`**Hook:** ${d.hookType}`);
+        if (d.input?.toolName) parts.push(`**Tool:** ${d.input.toolName}`);
+        if (d.input?.toolArgs && Object.keys(d.input.toolArgs).length > 0) {
+          const argsStr = Object.entries(d.input.toolArgs)
+            .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+            .join(', ');
+          parts.push(`**Args:** ${argsStr}`);
+        }
+        if (d.input?.toolResult?.textResultForLlm) {
+          const preview = d.input.toolResult.textResultForLlm.slice(0, 200);
+          parts.push(`**Result:** ${preview}${d.input.toolResult.textResultForLlm.length > 200 ? '…' : ''}`);
+        }
+        if (parts.length > 0) normalized.data.message = parts.join('\n');
+        normalized.data.badgeLabel = 'HOOK';
+        normalized.data.badgeClass = 'badge-tool';
+        this._generateBadgeInfo(normalized);
+        return normalized;
+      }
+      if (event.type === 'hook.end') {
+        const d = event.data || {};
+        const parts = [];
+        if (d.hookType) parts.push(`**Hook:** ${d.hookType}`);
+        parts.push(d.success ? '**Status:** ✓ success' : '**Status:** ✗ failed');
+        if (d.error) parts.push(`**Error:** ${d.error}`);
+        normalized.data.message = parts.join('\n');
+        normalized.data.badgeLabel = 'HOOK END';
+        normalized.data.badgeClass = d.success ? 'badge-tool' : 'badge-error';
+        this._generateBadgeInfo(normalized);
+        return normalized;
+      }
+
       // Generate badge display info
       this._generateBadgeInfo(normalized);
       return normalized;
