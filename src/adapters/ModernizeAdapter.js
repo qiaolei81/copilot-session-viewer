@@ -15,7 +15,7 @@ const CopilotAdapter = require('./CopilotAdapter');
  */
 class ModernizeAdapter extends CopilotAdapter {
   get type() { return 'modernize'; }
-  get displayName() { return 'Modernize'; }
+  get displayName() { return 'Modernize CLI'; }
   get envVar() { return 'MODERNIZE_SESSION_DIR'; }
 
   getDefaultDir() {

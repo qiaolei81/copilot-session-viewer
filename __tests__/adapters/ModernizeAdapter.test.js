@@ -22,8 +22,8 @@ describe('ModernizeAdapter', () => {
       expect(adapter.type).toBe('modernize');
     });
 
-    it('should have displayName "Modernize"', () => {
-      expect(adapter.displayName).toBe('Modernize');
+    it('should have displayName "Modernize CLI"', () => {
+      expect(adapter.displayName).toBe('Modernize CLI');
     });
 
     it('should have envVar "MODERNIZE_SESSION_DIR"', () => {
@@ -36,7 +36,7 @@ describe('ModernizeAdapter', () => {
 
     it('should return correct displayMetadata', () => {
       expect(adapter.displayMetadata).toEqual({
-        name: 'Modernize',
+        name: 'Modernize CLI',
         badgeClass: 'source-modernize'
       });
     });
