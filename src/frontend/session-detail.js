@@ -1590,7 +1590,7 @@
                     </td>
                   </tr>
                   <tr v-if="metadata.modernizeVersion">
-                    <td>Modernize Version</td>
+                    <td>Version</td>
                     <td>{{ metadata.modernizeVersion }}</td>
                   </tr>
                   <tr v-if="metadata.source === 'modernize' && metadata.copilotVersion">
