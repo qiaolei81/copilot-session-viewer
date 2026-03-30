@@ -175,6 +175,7 @@
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      cursor: help;
     }
     .session-divider {
       height: 1px;
@@ -562,6 +563,248 @@
     .date-group-header:first-child {
       margin-top: 0;
     }
+
+    /* Custom summary tooltip */
+    .summary-tooltip {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      max-width: 600px;
+      width: max-content;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #c9d1d9;
+      white-space: normal;
+      word-break: break-word;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    .summary-tooltip.visible {
+      display: block;
+      pointer-events: auto;
+    }
+    /* Markdown prose styles inside tooltip */
+    .summary-tooltip h1, .summary-tooltip h2, .summary-tooltip h3,
+    .summary-tooltip h4, .summary-tooltip h5, .summary-tooltip h6 {
+      color: #e6edf3; margin: 8px 0 4px; font-weight: 600;
+    }
+    .summary-tooltip h1 { font-size: 15px; }
+    .summary-tooltip h2 { font-size: 14px; }
+    .summary-tooltip h3, .summary-tooltip h4 { font-size: 13px; }
+    .summary-tooltip p { margin: 4px 0; }
+    .summary-tooltip ul, .summary-tooltip ol { margin: 4px 0; padding-left: 18px; }
+    .summary-tooltip li { margin: 2px 0; }
+    .summary-tooltip code {
+      background: #2d333b; border-radius: 3px;
+      padding: 1px 4px; font-size: 12px; font-family: monospace;
+    }
+    .summary-tooltip pre {
+      background: #2d333b; border-radius: 6px;
+      padding: 8px 10px; overflow-x: auto; margin: 6px 0;
+    }
+    .summary-tooltip pre code { background: none; padding: 0; }
+    .summary-tooltip strong { color: #e6edf3; }
+    .summary-tooltip hr { border-color: #30363d; margin: 8px 0; }
+
+  /* Hide hover tooltip on touch devices */
+  @media (hover: none) {
+    .summary-tooltip { display: none !important; }
+  }
+  /* Bottom sheet for mobile long-press */
+  .bottom-sheet-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    touch-action: none;
+  }
+  .bottom-sheet-overlay.visible { display: block; }
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #161b22;
+    border-top: 1px solid #30363d;
+    border-radius: 16px 16px 0 0;
+    padding: 0 16px max(env(safe-area-inset-bottom, 0px), 24px);
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 1001;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bottom-sheet.visible { transform: translateY(0); }
+  .bottom-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: #444c56;
+    border-radius: 2px;
+    margin: 12px auto 16px;
+  }
+  .bottom-sheet-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #c9d1d9;
+  }
+  .bottom-sheet-content h1, .bottom-sheet-content h2, .bottom-sheet-content h3 { color: #e6edf3; margin: 12px 0 6px; }
+  .bottom-sheet-content h1 { font-size: 16px; }
+  .bottom-sheet-content h2 { font-size: 15px; }
+  .bottom-sheet-content h3 { font-size: 14px; }
+  .bottom-sheet-content p { margin: 6px 0; }
+  .bottom-sheet-content ul, .bottom-sheet-content ol { margin: 6px 0; padding-left: 20px; }
+  .bottom-sheet-content li { margin: 3px 0; }
+  .bottom-sheet-content code { background: #0d1117; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .bottom-sheet-content pre { background: #0d1117; padding: 10px; border-radius: 6px; overflow-x: auto; }
+  .bottom-sheet-content pre code { background: none; padding: 0; }
+  .bottom-sheet-content strong { color: #e6edf3; }
+  .bottom-sheet-content hr { border-color: #30363d; margin: 10px 0; }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <div id="summary-tooltip" class="summary-tooltip"></div>
+
+  <script>
+    const tooltip = document.getElementById('summary-tooltip');
+    let tooltipTarget = null;
+    let hideTimer = null;
+    let showTimer = null;
+    let pendingEl = null;
+    let pendingEvent = null;
+
+    function showTooltip(el, e) {
+      clearTimeout(hideTimer);
+      tooltipTarget = el;
+      if (!el.dataset.tooltipText) {
+        el.dataset.tooltipText = el.getAttribute('title');
+        el.removeAttribute('title');
+      }
+      const md = el.dataset.tooltipText || '';
+      tooltip.innerHTML = (typeof marked !== 'undefined')
+        ? marked.parse(md, { breaks: true })
+        : md.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+      tooltip.classList.add('visible');
+      positionTooltip(e);
+    }
+
+    function scheduleShow(el, e) {
+      clearTimeout(showTimer);
+      pendingEl = el;
+      pendingEvent = e;
+      showTimer = setTimeout(() => {
+        if (pendingEl) showTooltip(pendingEl, pendingEvent);
+      }, 500);
+    }
+
+    function cancelShow() {
+      clearTimeout(showTimer);
+      pendingEl = null;
+    }
+
+    function scheduleHide() {
+      cancelShow();
+      hideTimer = setTimeout(() => {
+        tooltipTarget = null;
+        tooltip.classList.remove('visible');
+      }, 120);
+    }
+
+    document.addEventListener('mouseover', e => {
+      const el = e.target.closest('.session-summary');
+      if (el) { clearTimeout(hideTimer); scheduleShow(el, e); return; }
+      if (e.target.closest('#summary-tooltip')) { clearTimeout(hideTimer); cancelShow(); return; }
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (pendingEl) { pendingEvent = e; }
+      if (!tooltipTarget) return;
+      if (e.target.closest('#summary-tooltip')) return;
+      positionTooltip(e);
+    });
+
+    document.addEventListener('mouseout', e => {
+      const toEl = e.relatedTarget;
+      if (toEl && (toEl.closest('.session-summary') || toEl.closest('#summary-tooltip'))) return;
+      scheduleHide();
+    });
+
+    tooltip.addEventListener('mouseleave', () => scheduleHide());
+
+    function positionTooltip(e) {
+      const pad = 14;
+      const tw = tooltip.offsetWidth;
+      const th = tooltip.offsetHeight;
+      let x = e.clientX + pad;
+      let y = e.clientY + pad;
+      if (x + tw > window.innerWidth - 8) x = e.clientX - tw - pad;
+      if (y + th > window.innerHeight - 8) y = e.clientY - th - pad;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top  = y + 'px';
+    }
+  </script>
+
+  <!-- Bottom sheet for mobile long-press summary -->
+  <div id="sheet-overlay" class="bottom-sheet-overlay">
+    <div id="bottom-sheet" class="bottom-sheet">
+      <div class="bottom-sheet-handle"></div>
+      <div id="sheet-content" class="bottom-sheet-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const sheetOverlay = document.getElementById('sheet-overlay');
+    const bottomSheet  = document.getElementById('bottom-sheet');
+    const sheetContent = document.getElementById('sheet-content');
+
+    function openSheet(md) {
+      sheetContent.innerHTML = (typeof marked !== 'undefined')
+        ? marked.parse(md, { breaks: true })
+        : md.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+      sheetOverlay.classList.add('visible');
+      requestAnimationFrame(() => bottomSheet.classList.add('visible'));
+    }
+
+    function closeSheet() {
+      bottomSheet.classList.remove('visible');
+      setTimeout(() => sheetOverlay.classList.remove('visible'), 280);
+    }
+
+    sheetOverlay.addEventListener('click', e => {
+      if (!bottomSheet.contains(e.target)) closeSheet();
+    });
+
+    // Long-press detection (500ms)
+    let lpTimer = null;
+    let lpMoved = false;
+
+    document.addEventListener('touchstart', e => {
+      const el = e.target.closest('.session-summary');
+      if (!el) return;
+      lpMoved = false;
+      const md = el.dataset.tooltipText || el.getAttribute('title') || '';
+      if (!md) return;
+      lpTimer = setTimeout(() => {
+        if (!lpMoved) {
+          e.preventDefault();
+          openSheet(md);
+        }
+      }, 500);
+    }, { passive: false });
+
+    document.addEventListener('touchmove', () => {
+      lpMoved = true;
+      clearTimeout(lpTimer);
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => clearTimeout(lpTimer), { passive: true });
+    document.addEventListener('touchcancel', () => clearTimeout(lpTimer), { passive: true });
+  </script>
 </body>
 </html>

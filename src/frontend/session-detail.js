@@ -500,13 +500,31 @@
           const frontmatter = frontmatterMatch[1];
           const content = frontmatterMatch[2];
 
-          // Parse frontmatter into key-value pairs
-          const pairs = frontmatter.split('\n').filter(line => line.trim() && line.includes(':')).map(line => {
+          // Parse frontmatter into key-value pairs (supports multiline block scalars: | and >)
+          const lines = frontmatter.split('\n');
+          const pairs = [];
+          let i = 0;
+          while (i < lines.length) {
+            const line = lines[i];
+            if (!line.trim() || !line.includes(':')) { i++; continue; }
             const colonIndex = line.indexOf(':');
             const key = line.substring(0, colonIndex).trim();
-            const value = line.substring(colonIndex + 1).trim();
-            return { key, value };
-          });
+            const rawVal = line.substring(colonIndex + 1).trim();
+            if (rawVal === '|' || rawVal === '>') {
+              // Collect subsequent indented lines
+              const blockLines = [];
+              i++;
+              while (i < lines.length && (lines[i].startsWith('  ') || lines[i].startsWith('\t') || lines[i].trim() === '')) {
+                blockLines.push(lines[i].trim());
+                i++;
+              }
+              const joiner = rawVal === '>' ? ' ' : '\n';
+              pairs.push({ key, value: blockLines.filter(l => l).join(joiner) });
+            } else {
+              pairs.push({ key, value: rawVal });
+              i++;
+            }
+          }
 
           // Render frontmatter as table (sanitize key/value)
           let tableHTML = '<table style="margin-bottom: 16px; border-collapse: collapse; width: 100%;"><tbody>';
@@ -1738,6 +1756,7 @@
             ref="scrollerRef"
             :items="filteredEvents"
             :min-item-size="80"
+            :prerender="10"
             key-field="stableId"
             class="scroller"
           >

@@ -48,16 +48,16 @@ async function countLines(filePath) {
 async function parseYAML(filePath) {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    const lines = content.split('\n');
     const result = {};
-
-    for (const line of lines) {
-      const match = line.match(/^(\w+):\s*(.+)$/);
-      if (match) {
-        result[match[1]] = match[2].trim();
-      }
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const colonIdx = trimmed.indexOf(':');
+      if (colonIdx <= 0) continue;
+      const key = trimmed.slice(0, colonIdx).trim();
+      const value = trimmed.slice(colonIdx + 1).trim();
+      if (key) result[key] = value;
     }
-
     return result;
   } catch (err) {
     console.error(`Error parsing YAML ${filePath}:`, err.message);
@@ -72,7 +72,7 @@ async function parseYAML(filePath) {
  * @param {number} maxMessageLength - Max characters for first message (default 200)
  * @returns {Promise<Object>} Combined metadata object
  */
-async function getSessionMetadataOptimized(filePath, maxMessageLength = 200) {
+async function getSessionMetadataOptimized(filePath, maxMessageLength = 500) {
   try {
     const stream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });

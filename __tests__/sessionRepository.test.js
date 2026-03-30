@@ -93,12 +93,12 @@ describe('SessionRepository', () => {
       fileUtils.parseYAML
         .mockResolvedValueOnce({
           summary: 'Session 1',
-          created_at: '2026-02-15T10:00:00Z',
+          created_at: '2026-02-15T09:00:00Z',
           updated_at: '2026-02-15T11:00:00Z'
         })
         .mockResolvedValueOnce({
           summary: 'Session 2',
-          created_at: '2026-02-15T09:00:00Z',
+          created_at: '2026-02-15T10:00:00Z',
           updated_at: '2026-02-15T12:00:00Z'
         });
 

@@ -114,12 +114,61 @@ class SessionService {
 
     // Normalize events to unified format (convert Claude format to standard)
     events = events.map(event => this._normalizeEvent(event, session.source));
-    
-    // Match tool calls across events (source-specific)
-    if (session.source === 'copilot') {
-      this._matchCopilotToolCalls(events);
-    } else if (session.source === 'claude') {
-      this._matchClaudeToolResults(events);
+
+    // Load main events file if it exists
+    if (eventsFile) {
+      try {
+        await fs.promises.access(eventsFile);
+        
+        // Stream-based reading: supports files of any size
+        const fileStream = fs.createReadStream(eventsFile, { encoding: 'utf-8' });
+        const rl = readline.createInterface({
+          input: fileStream,
+          crlfDelay: Infinity // Treat \r\n as single line break
+        });
+        
+        let lineIndex = 0;
+        const parsedEvents = [];
+        
+        for await (const line of rl) {
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            try {
+              const event = JSON.parse(trimmedLine);
+              event._fileIndex = lineIndex;
+              parsedEvents.push(event);
+            } catch (err) {
+              console.error(`Error parsing line ${lineIndex + 1}:`, err.message);
+            }
+          }
+          lineIndex++;
+        }
+        
+        events = parsedEvents;
+
+        // Sort by timestamp with stable tiebreaker on original file order
+        events.sort((a, b) => {
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          if (timeA !== timeB) return timeA - timeB;
+          return a._fileIndex - b._fileIndex;
+        });
+
+        // Normalize events to unified format (convert Claude format to standard)
+        const normalizedEvents = events.map(event => this._normalizeEvent(event, session.source));
+        events = normalizedEvents;
+        
+        // Match tool calls across events (source-specific)
+        if (session.source === 'copilot') {
+          this._matchCopilotToolCalls(events);
+          this._mergeHookEvents(events);
+        } else if (session.source === 'claude') {
+          this._matchClaudeToolResults(events);
+        }
+      } catch (err) {
+        console.error('Error reading main events file:', err);
+        // Continue to load subagents even if main file fails
+      }
     }
     
     // Load and merge sub-agent events (for both Copilot and Claude)
@@ -132,6 +181,7 @@ class SessionService {
     // Re-run tool matching after merging subagents (subagent events need matching too)
     if (adapter && !adapter.hasCustomPipeline && session.source === 'copilot') {
       this._matchCopilotToolCalls(events);
+      this._mergeHookEvents(events);
       events = this._expandCopilotToTimelineFormat(events);
     } else if (adapter && !adapter.hasCustomPipeline && session.source === 'claude') {
       this._matchClaudeToolResults(events);
@@ -576,6 +626,54 @@ class SessionService {
   }
 
   /**
+   * Merge hook.start/hook.end pairs: attach end result to start, mark end for removal.
+   * @private
+   */
+  _mergeHookEvents(events) {
+    const pending = new Map(); // hookInvocationId → index in events array
+
+    for (let i = 0; i < events.length; i++) {
+      const ev = events[i];
+      const invId = ev.data?.hookInvocationId;
+      if (!invId) continue;
+
+      if (ev.type === 'hook.start') {
+        pending.set(invId, i);
+      } else if (ev.type === 'hook.end') {
+        const startIdx = pending.get(invId);
+        if (startIdx !== undefined) {
+          // Merge end result into start event
+          const start = events[startIdx];
+          const success = ev.data?.success !== false;
+          start.data.hookSuccess = success;
+          start.data.hookError = ev.data?.error || null;
+          // Calculate duration
+          if (start.timestamp && ev.timestamp) {
+            const ms = new Date(ev.timestamp) - new Date(start.timestamp);
+            start.data.hookDurationMs = ms;
+            // Append duration to message
+            const durationStr = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
+            if (start.data.message) {
+              start.data.message += `\n**Duration:** ${durationStr}`;
+            }
+          }
+          // Update badge to show result
+          start.data.badgeLabel = success ? '✓ HOOK' : '✗ HOOK';
+          start.data.badgeClass = success ? 'badge-tool' : 'badge-error';
+          pending.delete(invId);
+        }
+        // Mark hook.end for removal
+        ev._remove = true;
+      }
+    }
+
+    // Remove hook.end events in-place
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i]._remove) events.splice(i, 1);
+    }
+  }
+
+  /**
    * Match Copilot tool.execution_start/complete events and attach to assistant.message
    * @private
    */
@@ -780,6 +878,53 @@ class SessionService {
         // If only toolcalls, leave message empty (don't create placeholder)
       }
       
+      // subagent.selected: rename data.tools to data.allowedTools to avoid collision with tool rendering
+      if (event.type === 'subagent.selected' && Array.isArray(event.data?.tools)) {
+        normalized.data.allowedTools = event.data.tools;
+        delete normalized.data.tools;
+        if (event.data.agentDisplayName || event.data.agentName) {
+          normalized.data.message = `Agent: ${event.data.agentDisplayName || event.data.agentName}`;
+          if (normalized.data.allowedTools.length > 0 && normalized.data.allowedTools[0] !== '*') {
+            normalized.data.message += `\nTools: ${normalized.data.allowedTools.join(', ')}`;
+          }
+        }
+      }
+
+      // Hook events (hook.start / hook.end)
+      if (event.type === 'hook.start') {
+        const d = event.data || {};
+        const parts = [];
+        if (d.hookType) parts.push(`**Hook:** ${d.hookType}`);
+        if (d.input?.toolName) parts.push(`**Tool:** ${d.input.toolName}`);
+        if (d.input?.toolArgs && Object.keys(d.input.toolArgs).length > 0) {
+          const argsStr = Object.entries(d.input.toolArgs)
+            .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+            .join(', ');
+          parts.push(`**Args:** ${argsStr}`);
+        }
+        if (d.input?.toolResult?.textResultForLlm) {
+          const preview = d.input.toolResult.textResultForLlm.slice(0, 200);
+          parts.push(`**Result:** ${preview}${d.input.toolResult.textResultForLlm.length > 200 ? '…' : ''}`);
+        }
+        if (parts.length > 0) normalized.data.message = parts.join('\n');
+        normalized.data.badgeLabel = 'HOOK';
+        normalized.data.badgeClass = 'badge-tool';
+        this._generateBadgeInfo(normalized);
+        return normalized;
+      }
+      if (event.type === 'hook.end') {
+        const d = event.data || {};
+        const parts = [];
+        if (d.hookType) parts.push(`**Hook:** ${d.hookType}`);
+        parts.push(d.success ? '**Status:** ✓ success' : '**Status:** ✗ failed');
+        if (d.error) parts.push(`**Error:** ${d.error}`);
+        normalized.data.message = parts.join('\n');
+        normalized.data.badgeLabel = 'HOOK END';
+        normalized.data.badgeClass = d.success ? 'badge-tool' : 'badge-error';
+        this._generateBadgeInfo(normalized);
+        return normalized;
+      }
+
       // Generate badge display info
       this._generateBadgeInfo(normalized);
       return normalized;
@@ -980,6 +1125,40 @@ class SessionService {
           }
         }
         break;
+
+      case 'hook.start': {
+        // Extract hook invocation info
+        const d = event.data || {};
+        const parts = [];
+        if (d.hookType) parts.push(`**Hook:** ${d.hookType}`);
+        if (d.input?.toolName) parts.push(`**Tool:** ${d.input.toolName}`);
+        if (d.input?.toolArgs && Object.keys(d.input.toolArgs).length > 0) {
+          const argsStr = Object.entries(d.input.toolArgs)
+            .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+            .join(', ');
+          parts.push(`**Args:** ${argsStr}`);
+        }
+        if (d.input?.toolResult?.textResultForLlm) {
+          const preview = d.input.toolResult.textResultForLlm.slice(0, 200);
+          parts.push(`**Result:** ${preview}${d.input.toolResult.textResultForLlm.length > 200 ? '…' : ''}`);
+        }
+        if (parts.length > 0) normalized.data.message = parts.join('\n');
+        normalized.data.badgeLabel = 'HOOK';
+        normalized.data.badgeClass = 'badge-tool';
+        break;
+      }
+
+      case 'hook.end': {
+        const d = event.data || {};
+        const parts = [];
+        if (d.hookType) parts.push(`**Hook:** ${d.hookType}`);
+        parts.push(d.success ? '**Status:** ✓ success' : '**Status:** ✗ failed');
+        if (d.error) parts.push(`**Error:** ${d.error}`);
+        normalized.data.message = parts.join('\n');
+        normalized.data.badgeLabel = 'HOOK END';
+        normalized.data.badgeClass = d.success ? 'badge-tool' : 'badge-error';
+        break;
+      }
 
       // Add more event types as needed
       default:
