@@ -1,7 +1,7 @@
 const { test, expect } = require('./fixtures');
 
 test.describe('Per-Source Session Tests', () => {
-  let copilotSessionId, claudeSessionId, piSessionId;
+  let copilotSessionId, claudeSessionId, piSessionId, modernizeSessionId;
 
   test.beforeAll(async ({ request }) => {
     // Get sessions from API to find different source types
@@ -16,6 +16,8 @@ test.describe('Per-Source Session Tests', () => {
         claudeSessionId = session.id;
       } else if (session.source === 'pi-mono' && !piSessionId) {
         piSessionId = session.id;
+      } else if (session.source === 'modernize' && !modernizeSessionId) {
+        modernizeSessionId = session.id;
       }
     }
   });
@@ -102,6 +104,9 @@ test.describe('Per-Source Session Tests', () => {
 
       const piPill = page.locator('.filter-pill[data-source="pi-mono"]');
       await expect(piPill).toBeVisible();
+
+      const modernizePill = page.locator('.filter-pill[data-source="modernize"]');
+      await expect(modernizePill).toBeVisible();
     });
 
     test.fixme('should filter sessions by Copilot source', async ({ page }) => {
@@ -190,6 +195,35 @@ test.describe('Per-Source Session Tests', () => {
         }
       }
     });
+
+    test.fixme('should filter sessions by Modernize source', async ({ page }) => {
+      if (!modernizeSessionId) {
+        test.skip('No Modernize sessions available');
+        return;
+      }
+
+      await page.goto('/');
+      await page.locator('button:has-text("Copilot CLI")').waitFor({ timeout: 30000 });
+
+      // Click Modernize filter pill
+      const modernizePill = page.locator('.filter-pill[data-source="modernize"]');
+      await modernizePill.click();
+
+      // Wait for filtered sessions to load
+      await page.locator('.recent-item').first().waitFor({ timeout: 30000 });
+
+      // All visible session cards should have Modernize badge
+      const sessionCards = page.locator('.recent-item');
+      const count = await sessionCards.count();
+
+      if (count > 0) {
+        for (let i = 0; i < Math.min(count, 5); i++) {
+          const card = sessionCards.nth(i);
+          const sourceBadge = card.locator('.status-badge');
+          await expect(sourceBadge).toContainText('Modernize');
+        }
+      }
+    });
   });
 
   test.describe('Session Detail Page - Per Source', () => {
@@ -244,6 +278,22 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/session/${piSessionId}`);
+      await page.waitForSelector('.main-layout', { timeout: 10000 });
+
+      // Check page loaded successfully
+      await expect(page.locator('.main-layout')).toBeVisible();
+
+      // Check sidebar metadata
+      await expect(page.locator('.sidebar')).toBeVisible();
+    });
+
+    test('should load Modernize session detail page', async ({ page }) => {
+      if (!modernizeSessionId) {
+        test.skip('No Modernize sessions available');
+        return;
+      }
+
+      await page.goto(`/session/${modernizeSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Check page loaded successfully
@@ -308,6 +358,26 @@ test.describe('Per-Source Session Tests', () => {
 
       // Check for source badge in sidebar
       const sourceBadge = page.locator('.status-badge:has-text("Pi")');
+      if (await sourceBadge.count() > 0) {
+        await expect(sourceBadge).toBeVisible();
+      }
+    });
+
+    test('should display correct metadata for Modernize session', async ({ page }) => {
+      if (!modernizeSessionId) {
+        test.skip('No Modernize sessions available');
+        return;
+      }
+
+      await page.goto(`/session/${modernizeSessionId}`);
+      await page.waitForSelector('.main-layout', { timeout: 10000 });
+
+      // Check for metadata fields
+      const sessionInfo = page.locator('.session-info');
+      await expect(sessionInfo).toBeVisible();
+
+      // Check for source badge in sidebar
+      const sourceBadge = page.locator('.status-badge:has-text("Modernize")');
       if (await sourceBadge.count() > 0) {
         await expect(sourceBadge).toBeVisible();
       }

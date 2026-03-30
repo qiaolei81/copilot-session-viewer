@@ -177,6 +177,7 @@ SESSION_DIR=/path/to/custom/session-state            # Legacy alias for COPILOT_
 CLAUDE_SESSION_DIR=/path/to/claude/projects          # Claude Code CLI
 PI_MONO_SESSION_DIR=/path/to/pi/agent/sessions       # Pi-Mono
 VSCODE_WORKSPACE_STORAGE_DIR=/path/to/workspaceStorage  # Copilot Chat (VS Code)
+MODERNIZE_SESSION_DIR=/path/to/modernize/session-state  # Modernize CLI
 
 # Feature Flags
 ENABLE_INSIGHTS=true

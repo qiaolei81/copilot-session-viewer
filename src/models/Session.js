@@ -20,6 +20,7 @@ class Session {
     this.isImported = options.isImported || false; // Whether session was imported
     this.hasInsight = options.hasInsight || false; // Whether session has insight report
     this.copilotVersion = options.copilotVersion || null; // Copilot CLI version
+    this.modernizeVersion = options.modernizeVersion || null; // Modernize CLI version (from dir path)
     this.selectedModel = options.selectedModel || null; // LLM model used
     this.sessionStatus = options.sessionStatus || 'completed'; // 'completed' | 'wip'
   }
@@ -123,6 +124,7 @@ class Session {
       isImported: this.isImported,
       hasInsight: this.hasInsight,
       copilotVersion: this.copilotVersion,
+      modernizeVersion: this.modernizeVersion,
       selectedModel: this.selectedModel,
       sessionStatus: this.sessionStatus
     };

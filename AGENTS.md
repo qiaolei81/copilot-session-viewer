@@ -76,7 +76,7 @@ __tests__/e2e/              # Playwright e2e tests
 ### Dependencies
 - **copilot CLI** must be in PATH (used by insightService)
 - Node.js 22+ (uses native fetch, improved performance)
-- Session files: auto-detected per source and OS (see docs/INSTALLATION.md); override via `COPILOT_SESSION_DIR`, `CLAUDE_SESSION_DIR`, `PI_MONO_SESSION_DIR`, `VSCODE_WORKSPACE_STORAGE_DIR` env vars (`SESSION_DIR` is a legacy alias for Copilot CLI)
+- Session files: auto-detected per source and OS (see docs/INSTALLATION.md); override via `COPILOT_SESSION_DIR`, `CLAUDE_SESSION_DIR`, `PI_MONO_SESSION_DIR`, `VSCODE_WORKSPACE_STORAGE_DIR`, `MODERNIZE_SESSION_DIR` env vars (`SESSION_DIR` is a legacy alias for Copilot CLI)
 
 ### Performance
 - Session list caches for 30 seconds

@@ -15,6 +15,7 @@ const CopilotAdapter = require('./CopilotAdapter');
 const ClaudeAdapter = require('./ClaudeAdapter');
 const PiMonoAdapter = require('./PiMonoAdapter');
 const VsCodeAdapter = require('./VsCodeAdapter');
+const ModernizeAdapter = require('./ModernizeAdapter');
 
 // Create singleton registry
 const registry = new AdapterRegistry();
@@ -24,6 +25,7 @@ registry.register(new CopilotAdapter());
 registry.register(new ClaudeAdapter());
 registry.register(new PiMonoAdapter());
 registry.register(new VsCodeAdapter());
+registry.register(new ModernizeAdapter());
 
 module.exports = {
   registry,

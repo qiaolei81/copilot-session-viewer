@@ -104,6 +104,7 @@ describe('Session', () => {
         isImported: false,
         hasInsight: false,
         copilotVersion: null,
+        modernizeVersion: null,
         selectedModel: null,
         sessionStatus: 'completed'
       });
