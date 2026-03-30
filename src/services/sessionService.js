@@ -118,19 +118,19 @@ class SessionService {
     
     // Load and merge sub-agent events (for both Copilot and Claude)
     // For Claude sessions without main events.jsonl, this will load subagents from correct path
-    if (!adapter?.hasCustomPipeline) {
+    if (adapter && !adapter.hasCustomPipeline) {
       const eventsFile = await adapter.resolveEventsFile(session, resolvedSourceDir);
       await this._mergeSubAgentEvents(events, eventsFile, sessionId, session.source);
     }
     
     // Re-run tool matching after merging subagents (subagent events need matching too)
-    if (!adapter?.hasCustomPipeline && session.source === 'copilot') {
+    if (adapter && !adapter.hasCustomPipeline && session.source === 'copilot') {
       this._matchCopilotToolCalls(events);
       events = this._expandCopilotToTimelineFormat(events);
-    } else if (!adapter?.hasCustomPipeline && session.source === 'claude') {
+    } else if (adapter && !adapter.hasCustomPipeline && session.source === 'claude') {
       this._matchClaudeToolResults(events);
       events = this._expandClaudeToTimelineFormat(events);
-    } else if (!adapter?.hasCustomPipeline && session.source === 'pi-mono') {
+    } else if (adapter && !adapter.hasCustomPipeline && session.source === 'pi-mono') {
       // Pi-Mono: Keep original event structure, no transformation
       // Events are already normalized with type="message" + role in data
       // But we need to merge toolResult events into their parent assistant messages

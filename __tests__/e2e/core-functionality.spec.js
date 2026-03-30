@@ -14,11 +14,9 @@ test.describe('Core Functionality Tests', () => {
 
   test('should load homepage with basic elements', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
 
-    // Core elements should be present
-    await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('input[placeholder*="Session ID"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /session viewer/i })).toBeVisible();
+    await expect(page.getByPlaceholder('Enter Session ID...')).toBeVisible();
     await expect(page.locator('#importLink')).toBeVisible();
   });
 
