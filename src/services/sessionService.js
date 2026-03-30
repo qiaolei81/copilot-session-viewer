@@ -86,17 +86,23 @@ class SessionService {
       events = (await adapter.readEvents(session, resolvedSourceDir)) || [];
     }
 
-    // Filter sub-agent events from main timeline if applicable
+    // Sanitize the adapter-provided base stream before sub-agent merging.
+    // Note: regular sessions intentionally still include merged sub-agent events
+    // added later by _mergeSubAgentEvents() for timeline/detail analysis.
     if (events.length > 0) {
-      const isSubAgentSession = session.source === 'claude' && session.type === 'directory';
-      if (isSubAgentSession) {
-        // For sub-agent only sessions, keep only sub-agent events
+      const isSubAgentOnlySession = session.source === 'claude' && session.type === 'directory';
+
+      if (isSubAgentOnlySession) {
+        // Claude directory sessions represent sub-agent-only views.
+        // If the adapter returns any mixed events, keep only sub-agent entries.
         events = events.filter(e => e._subagent);
       } else {
-        // For regular sessions, filter out sub-agent events from the main timeline
+        // For regular sessions, remove sub-agent-tagged events from the adapter's
+        // base stream so sub-agents are added in one place via _mergeSubAgentEvents().
         events = events.filter(e => !e._subagent);
       }
     }
+
 
     // Sort by timestamp with stable tiebreaker on original file order
     events.sort((a, b) => {
