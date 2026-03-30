@@ -293,7 +293,9 @@ function renderSessionCard(session) {
     }
     badges += `<span class="status-badge model ${modelClass}" title="Model: ${escapeHtml(session.selectedModel)}">${escapeHtml(modelShort)}</span>`;
   }
-  if (session.copilotVersion) {
+  if (session.source === 'modernize' && session.modernizeVersion) {
+    badges += `<span class="status-badge version" title="Modernize version">${escapeHtml(session.modernizeVersion)}</span>`;
+  } else if (session.copilotVersion) {
     badges += `<span class="status-badge version" title="CLI version">${escapeHtml(session.copilotVersion)}</span>`;
   }
 
