@@ -77,6 +77,10 @@ class SessionService {
       resolvedSourceDir = this.SESSION_DIR;
     }
 
+    const eventsFile = adapter && !adapter.hasCustomPipeline
+      ? await adapter.resolveEventsFile(session, resolvedSourceDir)
+      : null;
+
     let events = [];
     if (!adapter) {
       console.warn(
@@ -114,67 +118,10 @@ class SessionService {
 
     // Normalize events to unified format (convert Claude format to standard)
     events = events.map(event => this._normalizeEvent(event, session.source));
-
-    // Load main events file if it exists
-    if (eventsFile) {
-      try {
-        await fs.promises.access(eventsFile);
-        
-        // Stream-based reading: supports files of any size
-        const fileStream = fs.createReadStream(eventsFile, { encoding: 'utf-8' });
-        const rl = readline.createInterface({
-          input: fileStream,
-          crlfDelay: Infinity // Treat \r\n as single line break
-        });
-        
-        let lineIndex = 0;
-        const parsedEvents = [];
-        
-        for await (const line of rl) {
-          const trimmedLine = line.trim();
-          if (trimmedLine) {
-            try {
-              const event = JSON.parse(trimmedLine);
-              event._fileIndex = lineIndex;
-              parsedEvents.push(event);
-            } catch (err) {
-              console.error(`Error parsing line ${lineIndex + 1}:`, err.message);
-            }
-          }
-          lineIndex++;
-        }
-        
-        events = parsedEvents;
-
-        // Sort by timestamp with stable tiebreaker on original file order
-        events.sort((a, b) => {
-          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-          if (timeA !== timeB) return timeA - timeB;
-          return a._fileIndex - b._fileIndex;
-        });
-
-        // Normalize events to unified format (convert Claude format to standard)
-        const normalizedEvents = events.map(event => this._normalizeEvent(event, session.source));
-        events = normalizedEvents;
-        
-        // Match tool calls across events (source-specific)
-        if (session.source === 'copilot') {
-          this._matchCopilotToolCalls(events);
-          this._mergeHookEvents(events);
-        } else if (session.source === 'claude') {
-          this._matchClaudeToolResults(events);
-        }
-      } catch (err) {
-        console.error('Error reading main events file:', err);
-        // Continue to load subagents even if main file fails
-      }
-    }
     
     // Load and merge sub-agent events (for both Copilot and Claude)
     // For Claude sessions without main events.jsonl, this will load subagents from correct path
     if (adapter && !adapter.hasCustomPipeline) {
-      const eventsFile = await adapter.resolveEventsFile(session, resolvedSourceDir);
       await this._mergeSubAgentEvents(events, eventsFile, sessionId, session.source);
     }
     
