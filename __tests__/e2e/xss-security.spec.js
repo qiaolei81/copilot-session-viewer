@@ -20,6 +20,20 @@ function createMockEvent(message, type = 'user.message', index = 0) {
   };
 }
 
+// Helper to fetch session ID with retry (guards against transient ECONNRESET)
+async function fetchSessionId(request, retries = 3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await request.get('/api/sessions');
+      const sessions = await response.json();
+      return sessions[0]?.id;
+    } catch (_e) {
+      if (attempt === retries - 1) throw _e;
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+}
+
 test.describe('XSS Prevention in Session Viewer', () => {
   test('should sanitize javascript: protocol in rendered links', async ({ page, request }) => {
     // Create a mock session with malicious markdown
@@ -34,9 +48,8 @@ test.describe('XSS Prevention in Session Viewer', () => {
     });
 
     // Get a valid session ID
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
-    
+    const sessionId = await fetchSessionId(request);
+
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
 
@@ -59,8 +72,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
@@ -88,8 +100,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
@@ -110,8 +121,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
@@ -138,8 +148,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     
@@ -150,8 +159,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
   });
 
   test('DOMPurify should be loaded on session pages', async ({ page, request }) => {
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
@@ -175,8 +183,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });

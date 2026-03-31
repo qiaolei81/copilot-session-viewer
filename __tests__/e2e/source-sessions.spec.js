@@ -4,9 +4,18 @@ test.describe('Per-Source Session Tests', () => {
   let copilotSessionId, claudeSessionId, piSessionId, modernizeSessionId;
 
   test.beforeAll(async ({ request }) => {
-    // Get sessions from API to find different source types
-    const response = await request.get('/api/sessions');
-    const sessions = await response.json();
+    // Get sessions from API to find different source types (retry for transient ECONNRESET)
+    let sessions;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await request.get('/api/sessions');
+        sessions = await response.json();
+        break;
+      } catch (_e) {
+        if (attempt === 2) throw _e;
+        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
 
     // Find sessions by source type
     for (const session of sessions) {
