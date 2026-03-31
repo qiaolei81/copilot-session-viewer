@@ -1160,6 +1160,31 @@ class SessionService {
     return '';
   }
 
+  /**
+   * Extract usage data from session.shutdown event
+   * @private
+   * @param {Array} events - Session events
+   * @returns {Object|null} Usage data or null if not found
+   */
+  _extractUsageData(events) {
+    const shutdownEvent = events.find(e => e.type === 'session.shutdown');
+    if (!shutdownEvent || !shutdownEvent.data) {
+      return null;
+    }
+
+    const data = shutdownEvent.data;
+    return {
+      modelMetrics: data.modelMetrics || {},
+      totalPremiumRequests: data.totalPremiumRequests || 0,
+      totalApiDurationMs: data.totalApiDurationMs || 0,
+      codeChanges: data.codeChanges || { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+      currentTokens: data.currentTokens || 0,
+      systemTokens: data.systemTokens || 0,
+      conversationTokens: data.conversationTokens || 0,
+      toolDefinitionsTokens: data.toolDefinitionsTokens || 0
+    };
+  }
+
   async getSessionWithEvents(sessionId) {
     const session = await this.getSessionById(sessionId);
     if (!session) {
@@ -1195,6 +1220,9 @@ class SessionService {
         metadata.created = firstEvent.timestamp;
       }
     }
+
+    // Extract usage data from session.shutdown event
+    metadata.usage = this._extractUsageData(events);
 
     return { session, events, metadata };
   }

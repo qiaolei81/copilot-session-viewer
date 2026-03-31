@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7] - 2026-03-31
+
+### Added
+- **Token Usage Display** - Session detail sidebar now shows token usage data from `session.shutdown` events. Compact summary line (requests, total tokens, API duration) with click-to-expand details: per-model breakdown (request count, premium cost, input/output/cache tokens, cache hit ratio), context window distribution (system/conversation/tools tokens), and code changes (+/- lines, files modified).
+
+### Fixed
+- **Premium Cost Display** - Token usage cost shown as premium request count (e.g. "3 premium") instead of dollar amounts, matching GitHub Copilot's actual billing model.
+
 ## [0.3.6] - 2026-03-20
 
 ### Added

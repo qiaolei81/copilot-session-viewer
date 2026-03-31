@@ -1296,6 +1296,69 @@
     const autocompleteOptions = ref([]);
     const autocompleteSelectedIndex = ref(0);
 
+    // Usage section
+    const usageExpanded = ref(false);
+
+    // Format large numbers as "105K", "29K" etc
+    const formatTokens = (num) => {
+      if (!num || num === 0) return '0';
+      if (num < 1000) return num.toString();
+      return Math.floor(num / 1000) + 'K';
+    };
+
+    // Format duration as "12.5s", "3m 45s" etc
+    const formatDuration = (ms) => {
+      if (!ms || ms === 0) return '0s';
+      const seconds = Math.floor(ms / 1000);
+      if (seconds < 60) return (ms / 1000).toFixed(1) + 's';
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${minutes}m ${remainingSeconds}s`;
+    };
+
+    // Calculate total tokens across all models
+    const totalTokens = computed(() => {
+      if (!metadata.value.usage || !metadata.value.usage.modelMetrics) return 0;
+      let total = 0;
+      for (const model in metadata.value.usage.modelMetrics) {
+        const usage = metadata.value.usage.modelMetrics[model].usage;
+        if (usage) {
+          total += (usage.inputTokens || 0) + (usage.outputTokens || 0);
+        }
+      }
+      return total;
+    });
+
+    // Calculate total requests
+    const totalRequests = computed(() => {
+      if (!metadata.value.usage || !metadata.value.usage.modelMetrics) return 0;
+      let total = 0;
+      for (const model in metadata.value.usage.modelMetrics) {
+        total += (metadata.value.usage.modelMetrics[model].requests?.count || 0);
+      }
+      return total;
+    });
+
+    // Calculate cache hit ratio per model
+    const getCacheHitRatio = (model) => {
+      const metrics = metadata.value.usage?.modelMetrics[model];
+      if (!metrics || !metrics.usage) return null;
+      const cacheRead = metrics.usage.cacheReadTokens || 0;
+      const totalInput = metrics.usage.inputTokens || 0;
+      if (totalInput === 0) return null;
+      return Math.round((cacheRead / totalInput) * 100);
+    };
+
+    // Format cost as premium request count
+    const formatCost = (cost) => {
+      if (cost === undefined || cost === null) return '';
+      return cost + ' premium';
+    };
+
+    const toggleUsage = () => {
+      usageExpanded.value = !usageExpanded.value;
+    };
+
     // Tag colors (6 colors cycling based on hash)
     const tagColors = [
       '#3b82f6', // blue
@@ -1547,7 +1610,16 @@
       removeTagFromEdit,
       updateAutocomplete,
       selectAutocompleteOption,
-      saveTagsOnBlur
+      saveTagsOnBlur,
+      // Usage
+      usageExpanded,
+      toggleUsage,
+      formatTokens,
+      formatDuration,
+      formatCost,
+      totalTokens,
+      totalRequests,
+      getCacheHitRatio
     };
   },
 
@@ -1627,6 +1699,73 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Usage Section -->
+          <div v-if="metadata.usage" class="sidebar-section">
+            <div class="sidebar-section-title">Usage</div>
+            <div class="usage-container">
+              <!-- Compact view (always visible) -->
+              <div class="usage-compact" @click="toggleUsage">
+                {{ totalRequests }} reqs · {{ formatTokens(totalTokens) }} tokens · {{ formatDuration(metadata.usage.totalApiDurationMs) }}
+                <span class="usage-expand-icon">{{ usageExpanded ? '▲' : '▼' }}</span>
+              </div>
+
+              <!-- Expanded view -->
+              <div v-if="usageExpanded" class="usage-expanded">
+                <!-- Model breakdown -->
+                <div v-if="Object.keys(metadata.usage.modelMetrics).length > 0" class="usage-section">
+                  <div class="usage-section-title">Models</div>
+                  <div v-for="(metrics, model) in metadata.usage.modelMetrics" :key="model" class="usage-model">
+                    <div class="usage-model-name">{{ model }}</div>
+                    <div class="usage-model-details">
+                      <div>{{ metrics.requests?.count || 0 }} reqs</div>
+                      <div v-if="metrics.requests?.cost">Cost: {{ formatCost(metrics.requests.cost) }}</div>
+                      <div v-if="metrics.usage">
+                        <span class="usage-token-label">In:</span> {{ formatTokens(metrics.usage.inputTokens || 0) }}
+                        <span class="usage-token-label">Out:</span> {{ formatTokens(metrics.usage.outputTokens || 0) }}
+                      </div>
+                      <div v-if="metrics.usage?.cacheReadTokens">
+                        <span class="usage-token-label">Cache Read:</span> {{ formatTokens(metrics.usage.cacheReadTokens) }}
+                        <span v-if="getCacheHitRatio(model)" class="usage-cache-ratio">({{ getCacheHitRatio(model) }}%)</span>
+                      </div>
+                      <div v-if="metrics.usage?.cacheWriteTokens">
+                        <span class="usage-token-label">Cache Write:</span> {{ formatTokens(metrics.usage.cacheWriteTokens) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Context window breakdown -->
+                <div v-if="metadata.usage.currentTokens || metadata.usage.systemTokens || metadata.usage.conversationTokens || metadata.usage.toolDefinitionsTokens" class="usage-section">
+                  <div class="usage-section-title">Context Window</div>
+                  <div class="usage-context">
+                    <div v-if="metadata.usage.currentTokens">
+                      <span class="usage-token-label">Current:</span> {{ formatTokens(metadata.usage.currentTokens) }}
+                    </div>
+                    <div v-if="metadata.usage.systemTokens">
+                      <span class="usage-token-label">System:</span> {{ formatTokens(metadata.usage.systemTokens) }}
+                    </div>
+                    <div v-if="metadata.usage.conversationTokens">
+                      <span class="usage-token-label">Conversation:</span> {{ formatTokens(metadata.usage.conversationTokens) }}
+                    </div>
+                    <div v-if="metadata.usage.toolDefinitionsTokens">
+                      <span class="usage-token-label">Tools:</span> {{ formatTokens(metadata.usage.toolDefinitionsTokens) }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Code changes -->
+                <div v-if="metadata.usage.codeChanges && (metadata.usage.codeChanges.linesAdded > 0 || metadata.usage.codeChanges.linesRemoved > 0)" class="usage-section">
+                  <div class="usage-section-title">Code Changes</div>
+                  <div class="usage-code-changes">
+                    <span class="usage-code-added">+{{ metadata.usage.codeChanges.linesAdded }}</span>
+                    <span class="usage-code-removed">-{{ metadata.usage.codeChanges.linesRemoved }}</span>
+                    <span class="usage-code-files">({{ metadata.usage.codeChanges.filesModified?.length || 0 }} files)</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
