@@ -47,7 +47,7 @@ async function fetchSessionId(request, retries = 3) {
     } catch (_e) {
       lastError = _e;
       if (attempt === retries - 1) {
-        throw new Error(`Failed to fetch session ID from /api/sessions after ${retries} attempts: ${_e.message}`);
+        throw new Error(`Failed to fetch session ID from /api/sessions after ${retries} attempts: ${_e.message}`, { cause: _e });
       }
       await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
     }
