@@ -977,6 +977,14 @@ class SessionService {
       case 'assistant':
         // Convert Claude user/assistant messages to standard format
         if (event.message) {
+          if (event.message.model) {
+            normalized.model = event.message.model;
+          }
+
+          if (event.message.usage) {
+            normalized.usage = event.message.usage;
+          }
+
           // Extract text content from message.content
           if (event.message.content) {
             const textContent = this._extractClaudeTextContent(event.message.content);
@@ -1161,28 +1169,123 @@ class SessionService {
   }
 
   /**
-   * Extract usage data from session.shutdown event
+   * Normalize optional Claude token counters into finite numbers.
+   * @private
+   * @param {*} value - Raw token count
+   * @returns {number} Normalized token count
+   */
+  _getClaudeUsageNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
+  /**
+   * Extract cache creation tokens from Claude usage data.
+   * @private
+   * @param {Object} usage - Claude usage payload
+   * @returns {number} Cache write token count
+   */
+  _getClaudeCacheWriteTokens(usage) {
+    const topLevel = this._getClaudeUsageNumber(usage?.cache_creation_input_tokens);
+    if (topLevel > 0) {
+      return topLevel;
+    }
+
+    if (!usage?.cache_creation || typeof usage.cache_creation !== 'object') {
+      return 0;
+    }
+
+    return Object.values(usage.cache_creation)
+      .reduce((total, value) => total + this._getClaudeUsageNumber(value), 0);
+  }
+
+  /**
+   * Aggregate Claude per-message usage into the shared usage metadata shape.
+   * @private
+   * @param {Array} events - Session events
+   * @returns {Object|null} Usage data or null if not found
+   */
+  _extractClaudeUsageData(events) {
+    const modelMetrics = {};
+
+    for (const event of events) {
+      if (event.type !== 'assistant.message' && event.type !== 'assistant') {
+        continue;
+      }
+
+      const usage = event.usage;
+      if (!usage) {
+        continue;
+      }
+
+      const cacheReadTokens = this._getClaudeUsageNumber(usage.cache_read_input_tokens);
+      const cacheWriteTokens = this._getClaudeCacheWriteTokens(usage);
+      const uncachedInputTokens = this._getClaudeUsageNumber(usage.input_tokens);
+      const outputTokens = this._getClaudeUsageNumber(usage.output_tokens);
+      const inputTokens = uncachedInputTokens + cacheReadTokens + cacheWriteTokens;
+
+      if (inputTokens === 0 && outputTokens === 0) {
+        continue;
+      }
+
+      const model = event.model || 'unknown';
+      if (!modelMetrics[model]) {
+        modelMetrics[model] = {
+          requests: { count: 0 },
+          usage: {
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0
+          }
+        };
+      }
+
+      modelMetrics[model].requests.count += 1;
+      modelMetrics[model].usage.inputTokens += inputTokens;
+      modelMetrics[model].usage.outputTokens += outputTokens;
+      modelMetrics[model].usage.cacheReadTokens += cacheReadTokens;
+      modelMetrics[model].usage.cacheWriteTokens += cacheWriteTokens;
+    }
+
+    if (Object.keys(modelMetrics).length === 0) {
+      return null;
+    }
+
+    return {
+      modelMetrics,
+      totalPremiumRequests: 0,
+      totalApiDurationMs: 0,
+      codeChanges: { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+      currentTokens: 0,
+      systemTokens: 0,
+      conversationTokens: 0,
+      toolDefinitionsTokens: 0
+    };
+  }
+
+  /**
+   * Extract usage data from session events.
    * @private
    * @param {Array} events - Session events
    * @returns {Object|null} Usage data or null if not found
    */
   _extractUsageData(events) {
     const shutdownEvent = events.find(e => e.type === 'session.shutdown');
-    if (!shutdownEvent || !shutdownEvent.data) {
-      return null;
+    if (shutdownEvent && shutdownEvent.data) {
+      const data = shutdownEvent.data;
+      return {
+        modelMetrics: data.modelMetrics || {},
+        totalPremiumRequests: data.totalPremiumRequests || 0,
+        totalApiDurationMs: data.totalApiDurationMs || 0,
+        codeChanges: data.codeChanges || { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+        currentTokens: data.currentTokens || 0,
+        systemTokens: data.systemTokens || 0,
+        conversationTokens: data.conversationTokens || 0,
+        toolDefinitionsTokens: data.toolDefinitionsTokens || 0
+      };
     }
 
-    const data = shutdownEvent.data;
-    return {
-      modelMetrics: data.modelMetrics || {},
-      totalPremiumRequests: data.totalPremiumRequests || 0,
-      totalApiDurationMs: data.totalApiDurationMs || 0,
-      codeChanges: data.codeChanges || { linesAdded: 0, linesRemoved: 0, filesModified: [] },
-      currentTokens: data.currentTokens || 0,
-      systemTokens: data.systemTokens || 0,
-      conversationTokens: data.conversationTokens || 0,
-      toolDefinitionsTokens: data.toolDefinitionsTokens || 0
-    };
+    return this._extractClaudeUsageData(events);
   }
 
   async getSessionWithEvents(sessionId) {
@@ -1786,6 +1889,8 @@ class SessionService {
           id: assistantId,
           timestamp,
           parentId: event.parentId,
+          model: event.model,
+          usage: event.usage,
           data: {
             message: messageText,
             tools: event.data?.tools || []

@@ -765,6 +765,82 @@ describe('SessionService - Coverage Enhancement', () => {
         outputTokens: 50
       });
     });
+
+    it('should preserve usage metadata in claude assistant messages', () => {
+      const event = {
+        type: 'assistant',
+        message: {
+          model: 'claude-opus-4.6',
+          content: [{ type: 'text', text: 'Test' }],
+          usage: {
+            input_tokens: 120,
+            cache_read_input_tokens: 30,
+            output_tokens: 45
+          }
+        }
+      };
+
+      const normalized = service._normalizeEvent(event, 'claude');
+
+      expect(normalized.model).toBe('claude-opus-4.6');
+      expect(normalized.usage).toEqual({
+        input_tokens: 120,
+        cache_read_input_tokens: 30,
+        output_tokens: 45
+      });
+    });
+
+    it('should aggregate claude usage into the shared usage metadata shape', () => {
+      const usage = service._extractUsageData([
+        {
+          type: 'assistant.message',
+          model: 'claude-opus-4.6',
+          usage: {
+            input_tokens: 100,
+            cache_read_input_tokens: 200,
+            cache_creation_input_tokens: 50,
+            output_tokens: 25
+          }
+        },
+        {
+          type: 'assistant.message',
+          model: 'claude-opus-4.6',
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5
+          }
+        },
+        {
+          type: 'assistant.message',
+          model: 'claude-haiku-4.5',
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0
+          }
+        }
+      ]);
+
+      expect(usage).toEqual({
+        modelMetrics: {
+          'claude-opus-4.6': {
+            requests: { count: 2 },
+            usage: {
+              inputTokens: 360,
+              outputTokens: 30,
+              cacheReadTokens: 200,
+              cacheWriteTokens: 50
+            }
+          }
+        },
+        totalPremiumRequests: 0,
+        totalApiDurationMs: 0,
+        codeChanges: { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+        currentTokens: 0,
+        systemTokens: 0,
+        conversationTokens: 0,
+        toolDefinitionsTokens: 0
+      });
+    });
   });
 
   describe('Timeline builders (lines 968-1254)', () => {
