@@ -64,7 +64,7 @@ class SessionController {
       // Extract usage data from events
       try {
         const events = await this.sessionService.getSessionEvents(sessionId);
-        const usage = this.sessionService._extractUsageData(events);
+        const usage = this.sessionService.extractUsageData(events);
         if (usage) {
           metadata.usage = usage;
         }

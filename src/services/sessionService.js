@@ -1265,11 +1265,15 @@ class SessionService {
 
   /**
    * Extract usage data from session events.
-   * @private
+   * Public API so controllers and other callers do not depend on service internals.
    * @param {Array} events - Session events
    * @returns {Object|null} Usage data or null if not found
    */
-  _extractUsageData(events) {
+  extractUsageData(events) {
+    if (!Array.isArray(events) || events.length === 0) {
+      return null;
+    }
+
     const shutdownEvent = events.find(e => e.type === 'session.shutdown');
     if (shutdownEvent && shutdownEvent.data) {
       const data = shutdownEvent.data;
@@ -1325,7 +1329,7 @@ class SessionService {
     }
 
     // Extract usage data from session.shutdown event
-    metadata.usage = this._extractUsageData(events);
+    metadata.usage = this.extractUsageData(events);
 
     return { session, events, metadata };
   }

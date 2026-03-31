@@ -9,7 +9,7 @@ describe('SessionController - Rendering Coverage', () => {
   beforeEach(() => {
     mockSessionService = {
       getSessionEvents: jest.fn().mockResolvedValue([]),
-      _extractUsageData: jest.fn().mockReturnValue(null),
+      extractUsageData: jest.fn().mockReturnValue(null),
       sessionRepository: {
         findById: jest.fn()
       }
@@ -80,7 +80,7 @@ describe('SessionController - Rendering Coverage', () => {
           }
         }
       ]);
-      mockSessionService._extractUsageData = jest.fn().mockReturnValue({
+      mockSessionService.extractUsageData = jest.fn().mockReturnValue({
         modelMetrics: {
           'claude-opus-4.6': {
             requests: { count: 1 },
@@ -104,7 +104,7 @@ describe('SessionController - Rendering Coverage', () => {
       await controller.getSessionDetail(mockReq, mockRes);
 
       expect(mockSessionService.getSessionEvents).toHaveBeenCalledWith('claude-usage-session');
-      expect(mockSessionService._extractUsageData).toHaveBeenCalledWith([
+      expect(mockSessionService.extractUsageData).toHaveBeenCalledWith([
         {
           type: 'assistant.message',
           model: 'claude-opus-4.6',

@@ -791,7 +791,7 @@ describe('SessionService - Coverage Enhancement', () => {
     });
 
     it('should aggregate claude usage into the shared usage metadata shape', () => {
-      const usage = service._extractUsageData([
+      const usage = service.extractUsageData([
         {
           type: 'assistant.message',
           model: 'claude-opus-4.6',
