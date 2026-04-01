@@ -521,15 +521,15 @@
 
         if (isSubagentDivider || isOwned || isSubagentMeta || isVsCode) {
           eventCount++;
-          if (ev.timestamp) {
+          if (ev.timestamp !== null && ev.timestamp !== undefined) {
             const t = new Date(ev.timestamp).getTime();
-            if (!startTime || t < startTime) startTime = t;
-            if (!endTime || t > endTime) endTime = t;
+            if (startTime === null || t < startTime) startTime = t;
+            if (endTime === null || t > endTime) endTime = t;
           }
         }
       }
 
-      const durationMs = startTime && endTime ? endTime - startTime : 0;
+      const durationMs = startTime === null || endTime === null ? 0 : endTime - startTime;
       return { eventCount, durationMs };
     });
     const formatTime = (timestamp) => {
