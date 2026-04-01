@@ -1,18 +1,8 @@
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 test.describe('API Endpoints', () => {
   test('GET /api/sessions should return JSON array', async ({ request }) => {
-    const response = await request.get('/api/sessions');
-    
-    // Check status
-    expect(response.ok()).toBeTruthy();
-    expect(response.status()).toBe(200);
-    
-    // Check content type
-    expect(response.headers()['content-type']).toContain('application/json');
-    
-    // Check body is array
-    const sessions = await response.json();
+    const sessions = await getSessionsWithRetry(request);
     expect(Array.isArray(sessions)).toBeTruthy();
     
     // Check sessions have required fields
@@ -27,9 +17,8 @@ test.describe('API Endpoints', () => {
 
   test('GET /api/sessions/:id/events should return events', async ({ request }) => {
     // First get a session ID
-    const sessionsResponse = await request.get('/api/sessions');
-    const sessions = await sessionsResponse.json();
-    
+    const sessions = await getSessionsWithRetry(request);
+
     if (sessions.length > 0) {
       const sessionId = sessions[0].id;
       
@@ -51,14 +40,13 @@ test.describe('API Endpoints', () => {
 
   test('GET /api/sessions should be fast', async ({ request }) => {
     const startTime = Date.now();
-    
-    const response = await request.get('/api/sessions');
-    
+    const sessions = await getSessionsWithRetry(request);
+
     const endTime = Date.now();
     const duration = endTime - startTime;
-    
+
     // Should respond in less than 20 seconds (generous for CI/cold-start/large datasets)
     expect(duration).toBeLessThan(20000);
-    expect(response.ok()).toBeTruthy();
+    expect(Array.isArray(sessions)).toBeTruthy();
   });
 });

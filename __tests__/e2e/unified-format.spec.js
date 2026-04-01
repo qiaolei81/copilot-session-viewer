@@ -1,4 +1,4 @@
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 // Helper to create mock tool in unified format
 function createMockTool(source, overrides = {}) {
@@ -150,8 +150,8 @@ test.describe('Unified Event Format', () => {
   });
 
   test('All formats should have consistent schema structure', async ({ request }) => {
-    const sessions = await (await request.get('/api/sessions')).json();
-    
+    const sessions = await getSessionsWithRetry(request);
+
     const testSessions = [
       { id: 'b353bbf8-06c2-41c9-b60a-43ea6c3bb853', name: 'Pi-Mono' },
       { id: 'dafe98e6-fcd0-491d-91a8-d746e8479277', name: 'Copilot CLI' },
@@ -190,8 +190,8 @@ test.describe('Unified Event Format', () => {
   });
 
   test('Tool status should be one of the allowed values', async ({ request }) => {
-    const sessions = await (await request.get('/api/sessions')).json();
-    
+    const sessions = await getSessionsWithRetry(request);
+
     // Sample a few sessions
     for (const session of sessions.slice(0, 5)) {
       const events = await (await request.get(`/api/sessions/${session.id}/events`)).json();
@@ -218,8 +218,8 @@ test.describe('Unified Event Format', () => {
   });
 
   test('Tool timestamps should be valid ISO 8601', async ({ request }) => {
-    const sessions = await (await request.get('/api/sessions')).json();
-    
+    const sessions = await getSessionsWithRetry(request);
+
     const testSession = sessions.find(s => s.id === 'b353bbf8-06c2-41c9-b60a-43ea6c3bb853');
     if (testSession) {
       const events = await (await request.get(`/api/sessions/${testSession.id}/events`)).json();
@@ -246,8 +246,8 @@ test.describe('Unified Event Format', () => {
   });
 
   test('Tool metadata.duration should match time difference', async ({ request }) => {
-    const sessions = await (await request.get('/api/sessions')).json();
-    
+    const sessions = await getSessionsWithRetry(request);
+
     const testSession = sessions.find(s => s.id === 'b353bbf8-06c2-41c9-b60a-43ea6c3bb853');
     if (testSession) {
       const events = await (await request.get(`/api/sessions/${testSession.id}/events`)).json();

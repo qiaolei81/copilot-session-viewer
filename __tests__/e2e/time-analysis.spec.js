@@ -1,12 +1,11 @@
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 test.describe('Time Analysis and Timeline Tests', () => {
   let SESSION_ID;
 
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API
-    const response = await request.get('/api/sessions');
-    const sessions = await response.json();
+    const sessions = await getSessionsWithRetry(request);
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
     } else {

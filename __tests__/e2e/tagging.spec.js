@@ -1,18 +1,19 @@
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 test.describe('Tagging Feature', () => {
   let SESSION_ID;
+  let SESSION_SOURCE = 'copilot';
 
   // Run all tests in serial mode to avoid conflicts since they share the same session
   test.describe.configure({ mode: 'serial' });
 
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API
-    const response = await request.get('/api/sessions');
-    const sessions = await response.json();
+    const sessions = await getSessionsWithRetry(request);
 
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
+      SESSION_SOURCE = sessions[0].source || 'copilot';
     } else {
       test.skip('No sessions available for testing');
       return;
@@ -32,8 +33,7 @@ test.describe('Tagging Feature', () => {
     }
     // Clean up autocomplete-test tag from sessions[1] (set by autocomplete test)
     try {
-      const response = await request.get('/api/sessions');
-      const sessions = await response.json();
+      const sessions = await getSessionsWithRetry(request);
       if (sessions.length > 1) {
         const otherSessionId = sessions[1].id;
         if (otherSessionId !== SESSION_ID) {
@@ -187,40 +187,34 @@ test.describe('Tagging Feature', () => {
 
       // Navigate to homepage
       await page.goto('/');
-      await page.waitForSelector('.recent-item', { timeout: 5000 });
 
-      // Find the session card with our session ID
-      const sessionCards = page.locator('.recent-item');
-      const count = await sessionCards.count();
+      const sessionsContainer = page.locator('#sessions-container');
+      await expect(sessionsContainer).toBeVisible();
 
-      let foundTags = false;
-      for (let i = 0; i < count; i++) {
-        const card = sessionCards.nth(i);
-        const cardHtml = await card.innerHTML();
-
-        // Check if this card contains our tags
-        if (cardHtml.includes('homepage-tag-1') || cardHtml.includes('homepage-tag-2')) {
-          foundTags = true;
-
-          // Verify tags are displayed with correct styling
-          const tagsContainer = card.locator('.session-tags');
-          await expect(tagsContainer).toBeVisible();
-
-          const tags = card.locator('.session-tag');
-          const tagTexts = await tags.allTextContents();
-
-          // Check that our test tags are present
-          expect(tagTexts.some(text => text.includes('homepage-tag-1'))).toBeTruthy();
-          expect(tagTexts.some(text => text.includes('homepage-tag-2'))).toBeTruthy();
-          break;
-        }
+      if (SESSION_SOURCE !== 'copilot') {
+        await page.locator(`.filter-pill[data-source="${SESSION_SOURCE}"]`).click();
       }
 
-      // If tags weren't found, it might be because the session is not on the first page
-      // This is acceptable - just log it
-      if (!foundTags) {
-        console.log('Tags added but session not visible on homepage first page');
+      await expect.poll(async () => {
+        return (await sessionsContainer.textContent()) || '';
+      }).not.toContain('⏳ Loading...');
+
+      const targetCard = page.locator(`.recent-item[href="/session/${SESSION_ID}"]`).first();
+
+      if (await targetCard.count() === 0) {
+        console.log('Tagged session not visible on homepage current page/filter');
+        return;
       }
+
+      await expect(targetCard).toBeVisible();
+
+      const tagsContainer = targetCard.locator('.session-tags');
+      await expect(tagsContainer).toBeVisible();
+
+      const tags = targetCard.locator('.session-tag');
+      await expect(tags).toHaveCount(2);
+      await expect(tags.nth(0)).toContainText('homepage-tag-1');
+      await expect(tags.nth(1)).toContainText('homepage-tag-2');
     });
 
     test('should not show tags section when session has no tags', async ({ page }) => {
@@ -366,8 +360,7 @@ test.describe('Tagging Feature', () => {
 
     test('should show autocomplete suggestions', async ({ page, request }) => {
       // Add some tags to other sessions to populate autocomplete
-      const response = await request.get('/api/sessions');
-      const sessions = await response.json();
+      const sessions = await getSessionsWithRetry(request);
 
       if (sessions.length > 1) {
         // Add a known tag to another session

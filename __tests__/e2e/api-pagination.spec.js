@@ -1,10 +1,10 @@
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 test.describe('API Pagination', () => {
   test.beforeEach(async ({ request }) => {
     // Verify API is accessible
-    const response = await request.get('/api/sessions');
-    expect(response.ok()).toBeTruthy();
+    const sessions = await getSessionsWithRetry(request);
+    expect(Array.isArray(sessions)).toBeTruthy();
   });
 
   test('should return sessions with load-more endpoint', async ({ request }) => {

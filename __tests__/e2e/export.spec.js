@@ -1,4 +1,4 @@
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry } = require('./fixtures');
 const AdmZip = require('adm-zip');
 
 test.describe('Export Tests', () => {
@@ -6,8 +6,7 @@ test.describe('Export Tests', () => {
 
   test.beforeAll(async ({ request }) => {
     // Get sessions from API to find different source types
-    const response = await request.get('/api/sessions');
-    const sessions = await response.json();
+    const sessions = await getSessionsWithRetry(request);
 
     // Find sessions by source type
     for (const session of sessions) {

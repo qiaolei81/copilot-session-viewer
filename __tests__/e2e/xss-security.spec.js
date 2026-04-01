@@ -4,7 +4,7 @@
  * These tests verify that malicious content in session data is properly sanitized when rendered
  */
 
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 // Helper to create mock events with proper structure
 function createMockEvent(message, type = 'user.message', index = 0) {
@@ -20,40 +20,15 @@ function createMockEvent(message, type = 'user.message', index = 0) {
   };
 }
 
-// Helper to fetch session ID with retry (guards against transient ECONNRESET)
-async function fetchSessionId(request, retries = 3) {
-  let lastError;
+async function fetchSessionId(request) {
+  const sessions = await getSessionsWithRetry(request);
+  const sessionId = sessions.find(session => typeof session?.id === 'string' && session.id.trim())?.id;
 
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      const response = await request.get('/api/sessions');
-
-      if (!response.ok()) {
-        throw new Error(`/api/sessions returned ${response.status()}`);
-      }
-
-      const sessions = await response.json();
-
-      if (!Array.isArray(sessions)) {
-        throw new Error('/api/sessions did not return an array of sessions');
-      }
-
-      const sessionId = sessions.find(session => typeof session?.id === 'string' && session.id.trim())?.id;
-      if (!sessionId) {
-        throw new Error('No valid session ID available from /api/sessions');
-      }
-
-      return sessionId;
-    } catch (_e) {
-      lastError = _e;
-      if (attempt === retries - 1) {
-        throw new Error(`Failed to fetch session ID from /api/sessions after ${retries} attempts: ${_e.message}`, { cause: _e });
-      }
-      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-    }
+  if (!sessionId) {
+    throw new Error('No valid session ID available from /api/sessions');
   }
 
-  throw lastError;
+  return sessionId;
 }
 
 test.describe('XSS Prevention in Session Viewer', () => {

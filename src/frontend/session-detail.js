@@ -2089,7 +2089,7 @@
                     <span
                       v-if="getSubagentInfo(item)"
                       class="subagent-owner-tag"
-                      :style="{ color: getSubagentColor(item), borderColor: getSubagentColor(item), cursor: 'pointer' }"
+                      :style="{ '--subagent-color': getSubagentColor(item) || '#58a6ff', '--subagent-hover-bg': ((getSubagentColor(item) || '#58a6ff') + '26') }"
                       :title="'Filter to ' + getSubagentInfo(item).name"
                       @click.stop="selectSubagent(getSubagentInfo(item).toolCallId)"
                     >🤖 {{ getSubagentInfo(item).name }}</span>
