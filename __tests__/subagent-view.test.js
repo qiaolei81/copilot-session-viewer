@@ -34,10 +34,29 @@ describe('Subagent view filtering logic', () => {
       }
     }
 
-    // Attribute _subagent metadata events
+    // Attribute _subagent metadata events (also discover subagents from metadata)
     for (const ev of events) {
-      if (ev._subagent?.id && subagentInfo.has(ev._subagent.id)) {
-        ownerMap.set(ev.stableId, ev._subagent.id);
+      if (ev._subagent?.id) {
+        const sid = ev._subagent.id;
+        if (!subagentInfo.has(sid)) {
+          subagentInfo.set(sid, {
+            name: ev._subagent.name || 'SubAgent',
+            colorIndex: colorIdx++
+          });
+        }
+        ownerMap.set(ev.stableId, sid);
+      }
+    }
+
+    // Temporal attribution: attribute unowned events between subagent boundaries
+    let activeSubagent = null;
+    for (const ev of events) {
+      if (ev.type === 'subagent.started' && ev.data?.toolCallId && subagentInfo.has(ev.data.toolCallId)) {
+        activeSubagent = ev.data.toolCallId;
+      } else if ((ev.type === 'subagent.completed' || ev.type === 'subagent.failed') && ev.data?.toolCallId === activeSubagent) {
+        activeSubagent = null;
+      } else if (activeSubagent && !ownerMap.has(ev.stableId)) {
+        ownerMap.set(ev.stableId, activeSubagent);
       }
     }
 
@@ -93,8 +112,67 @@ describe('Subagent view filtering logic', () => {
 
     it('should not attribute messages without parentToolCallId', () => {
       const { ownerMap } = computeSubagentOwnership(baseEvents);
+      // e10 is after subagent.completed, so NOT attributed
       expect(ownerMap.has('e10')).toBe(false);
+      // e1 is before any subagent.started, so NOT attributed
       expect(ownerMap.has('e1')).toBe(false);
+    });
+
+    it('should temporally attribute unowned events between subagent boundaries', () => {
+      const events = [
+        { type: 'session.start', stableId: 't0', data: {} },
+        { type: 'subagent.started', stableId: 't1', data: { toolCallId: 'sa-t', agentDisplayName: 'Temporal' } },
+        { type: 'assistant.message', stableId: 't2', data: { message: 'No parentToolCallId' } },
+        { type: 'reasoning', stableId: 't3', data: { reasoningText: 'Thinking...' } },
+        { type: 'subagent.completed', stableId: 't4', data: { toolCallId: 'sa-t' } },
+        { type: 'assistant.message', stableId: 't5', data: { message: 'After subagent' } },
+      ];
+      const { ownerMap } = computeSubagentOwnership(events);
+      // t2 and t3 are between started/completed, should be temporally attributed
+      expect(ownerMap.get('t2')).toBe('sa-t');
+      expect(ownerMap.get('t3')).toBe('sa-t');
+      // t0 is before subagent, t5 is after — not attributed
+      expect(ownerMap.has('t0')).toBe(false);
+      expect(ownerMap.has('t5')).toBe(false);
+    });
+
+    it('should not overwrite explicit parentToolCallId attribution with temporal', () => {
+      const events = [
+        { type: 'subagent.started', stableId: 'o1', data: { toolCallId: 'sa-a', agentDisplayName: 'A' } },
+        { type: 'assistant.message', stableId: 'o2', data: { message: 'Explicit', parentToolCallId: 'sa-a' } },
+        { type: 'subagent.completed', stableId: 'o3', data: { toolCallId: 'sa-a' } },
+      ];
+      const { ownerMap } = computeSubagentOwnership(events);
+      // Explicit attribution should remain (parentToolCallId)
+      expect(ownerMap.get('o2')).toBe('sa-a');
+    });
+
+    it('should handle temporal attribution with subagent.failed boundary', () => {
+      const events = [
+        { type: 'subagent.started', stableId: 'f1', data: { toolCallId: 'sa-f', agentDisplayName: 'Failing' } },
+        { type: 'assistant.message', stableId: 'f2', data: { message: 'Working' } },
+        { type: 'subagent.failed', stableId: 'f3', data: { toolCallId: 'sa-f' } },
+        { type: 'assistant.message', stableId: 'f4', data: { message: 'After failure' } },
+      ];
+      const { ownerMap } = computeSubagentOwnership(events);
+      expect(ownerMap.get('f2')).toBe('sa-f');
+      expect(ownerMap.has('f4')).toBe(false);
+    });
+
+    it('should handle multiple sequential subagent spans with temporal attribution', () => {
+      const events = [
+        { type: 'subagent.started', stableId: 'm1', data: { toolCallId: 'sa-x', agentDisplayName: 'X' } },
+        { type: 'assistant.message', stableId: 'm2', data: { message: 'In X' } },
+        { type: 'subagent.completed', stableId: 'm3', data: { toolCallId: 'sa-x' } },
+        { type: 'assistant.message', stableId: 'm4', data: { message: 'Between' } },
+        { type: 'subagent.started', stableId: 'm5', data: { toolCallId: 'sa-y', agentDisplayName: 'Y' } },
+        { type: 'assistant.message', stableId: 'm6', data: { message: 'In Y' } },
+        { type: 'subagent.completed', stableId: 'm7', data: { toolCallId: 'sa-y' } },
+      ];
+      const { ownerMap } = computeSubagentOwnership(events);
+      expect(ownerMap.get('m2')).toBe('sa-x');
+      expect(ownerMap.has('m4')).toBe(false);
+      expect(ownerMap.get('m6')).toBe('sa-y');
     });
 
     it('should return empty maps for sessions without subagents', () => {
@@ -114,6 +192,40 @@ describe('Subagent view filtering logic', () => {
       ];
       const { ownerMap } = computeSubagentOwnership(events);
       expect(ownerMap.get('s1')).toBe('claude-sa');
+    });
+
+    it('should discover subagents purely from _subagent metadata (no subagent.started)', () => {
+      const events = [
+        { type: 'user.message', stableId: 'c0', data: { message: 'Hello' } },
+        { type: 'assistant.message', stableId: 'c1', _subagent: { id: 'agent-explore', name: 'Explorer' }, data: { message: 'Searching...' } },
+        { type: 'assistant.message', stableId: 'c2', _subagent: { id: 'agent-explore', name: 'Explorer' }, data: { message: 'Found it' } },
+        { type: 'assistant.message', stableId: 'c3', _subagent: { id: 'agent-build', name: 'Builder' }, data: { message: 'Building...' } },
+        { type: 'assistant.message', stableId: 'c4', data: { message: 'Main thread' } },
+      ];
+      const { ownerMap, subagentInfo } = computeSubagentOwnership(events);
+      // Should discover both subagents from _subagent metadata
+      expect(subagentInfo.size).toBe(2);
+      expect(subagentInfo.get('agent-explore').name).toBe('Explorer');
+      expect(subagentInfo.get('agent-build').name).toBe('Builder');
+      // Should attribute events
+      expect(ownerMap.get('c1')).toBe('agent-explore');
+      expect(ownerMap.get('c2')).toBe('agent-explore');
+      expect(ownerMap.get('c3')).toBe('agent-build');
+      // Main thread event should not be attributed
+      expect(ownerMap.has('c4')).toBe(false);
+    });
+
+    it('should include _subagent events in filter even without subagent.started', () => {
+      const events = [
+        { type: 'user.message', stableId: 'f0', data: { message: 'Hello' } },
+        { type: 'assistant.message', stableId: 'f1', _subagent: { id: 'sa-only', name: 'MetaAgent' }, data: { message: 'Working' } },
+        { type: 'assistant.message', stableId: 'f2', _subagent: { id: 'sa-only', name: 'MetaAgent' }, data: { message: 'Done' } },
+        { type: 'assistant.message', stableId: 'f3', data: { message: 'Main' } },
+      ];
+      const { ownerMap } = computeSubagentOwnership(events);
+      const filtered = filterBySubagent(events, 'sa-only', ownerMap);
+      expect(filtered.length).toBe(2);
+      expect(filtered.map(e => e.stableId)).toEqual(['f1', 'f2']);
     });
   });
 

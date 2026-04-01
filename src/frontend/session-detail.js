@@ -381,6 +381,20 @@
         }
       }
 
+      // 1c. Claude format: collect subagent info from _subagent metadata on any event
+      for (const ev of sorted) {
+        if (ev._subagent?.id) {
+          const sid = ev._subagent.id;
+          if (!subagentInfo.has(sid)) {
+            subagentInfo.set(sid, {
+              name: ev._subagent.name || 'SubAgent',
+              colorIndex: colorIdx++
+            });
+          }
+          ownerMap.set(ev.stableId, sid);
+        }
+      }
+
       if (subagentInfo.size === 0) return { ownerMap, subagentInfo };
 
       // 2. Build id → event lookup for parentId chain walking
@@ -456,6 +470,20 @@
         const ptcid = ev.data?.parentToolCallId;
         if (ptcid && subagentInfo.has(ptcid)) {
           ownerMap.set(ev.stableId, ptcid);
+        }
+      }
+
+      // 7. Temporal attribution: attribute unowned events between subagent boundaries
+      // Events between subagent.started and subagent.completed/failed are attributed
+      // to the enclosing subagent if they don't already have an owner.
+      let activeSubagent = null;
+      for (const ev of sorted) {
+        if (ev.type === 'subagent.started' && ev.data?.toolCallId && subagentInfo.has(ev.data.toolCallId)) {
+          activeSubagent = ev.data.toolCallId;
+        } else if ((ev.type === 'subagent.completed' || ev.type === 'subagent.failed') && ev.data?.toolCallId === activeSubagent) {
+          activeSubagent = null;
+        } else if (activeSubagent && !ownerMap.has(ev.stableId)) {
+          ownerMap.set(ev.stableId, activeSubagent);
         }
       }
 
@@ -1781,7 +1809,7 @@
 
           <!-- Usage Section -->
           <div v-if="metadata.usage" class="sidebar-section">
-            <div class="sidebar-section-title">Usage</div>
+            <div class="sidebar-section-title">Token Usage</div>
             <div class="usage-container">
               <!-- Compact view (always visible) -->
               <div class="usage-compact" @click="toggleUsage">
@@ -2061,8 +2089,10 @@
                     <span
                       v-if="getSubagentInfo(item)"
                       class="subagent-owner-tag"
-                      :style="{ color: getSubagentColor(item), borderColor: getSubagentColor(item) }"
-                    >{{ getSubagentInfo(item).name }}</span>
+                      :style="{ color: getSubagentColor(item), borderColor: getSubagentColor(item), cursor: 'pointer' }"
+                      :title="'Filter to ' + getSubagentInfo(item).name"
+                      @click.stop="selectSubagent(getSubagentInfo(item).toolCallId)"
+                    >🤖 {{ getSubagentInfo(item).name }}</span>
                     <span v-if="metadata.source !== 'vscode'" class="event-timestamp">{{ formatTime(item.timestamp) }}</span>
                   </div>
 
