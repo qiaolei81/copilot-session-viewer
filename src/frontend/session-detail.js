@@ -77,6 +77,7 @@
     const currentTurnIndex = ref(0);  // Current selected turn
     const scrollerRef = ref(null);
     const visibleRange = ref({ start: 0, end: 0 });
+    const selectedSubagent = ref(null); // null = all events, toolCallId = specific subagent
 
     // Debounce search input
     let searchTimeout = null;
@@ -167,9 +168,26 @@
       return events;
     });
 
-    // Final filtered events (search + type filter)
+    // Final filtered events (search + type filter + subagent filter)
     const filteredEvents = computed(() => {
       let events = searchFilteredEvents.value;
+
+      // Apply subagent filter
+      if (selectedSubagent.value) {
+        const { ownerMap } = subagentOwnership.value;
+        const tcid = selectedSubagent.value;
+        events = events.filter(e => {
+          // Include subagent dividers for this subagent
+          if ((e.type === 'subagent.started' || e.type === 'subagent.completed' || e.type === 'subagent.failed') && e.data?.toolCallId === tcid) return true;
+          // Include events owned by this subagent
+          if (ownerMap.get(e.stableId) === tcid) return true;
+          // Include events with _subagent metadata
+          if (e._subagent?.id === tcid) return true;
+          // Include VS Code subagent events
+          if (e.data?.subAgentId === tcid) return true;
+          return false;
+        });
+      }
 
       // Apply type filter
       if (currentFilter.value !== 'all') {
@@ -444,7 +462,48 @@
       return { ownerMap, subagentInfo };
     });
 
-    // Methods
+    // List of subagents for the selector dropdown
+    const subagentList = computed(() => {
+      const { subagentInfo } = subagentOwnership.value;
+      if (subagentInfo.size === 0) return [];
+      const list = [];
+      for (const [toolCallId, info] of subagentInfo) {
+        list.push({ toolCallId, name: info.name, colorIndex: info.colorIndex });
+      }
+      return list;
+    });
+
+    // Token usage for the currently selected subagent (computed from events)
+    const subagentTokenUsage = computed(() => {
+      if (!selectedSubagent.value) return null;
+      const { ownerMap, subagentInfo } = subagentOwnership.value;
+      const tcid = selectedSubagent.value;
+      if (!subagentInfo.has(tcid)) return null;
+
+      let eventCount = 0;
+      let startTime = null;
+      let endTime = null;
+
+      for (const ev of flatEvents.value) {
+        // Count events belonging to this subagent
+        const isSubagentDivider = (ev.type === 'subagent.started' || ev.type === 'subagent.completed' || ev.type === 'subagent.failed') && ev.data?.toolCallId === tcid;
+        const isOwned = ownerMap.get(ev.stableId) === tcid;
+        const isSubagentMeta = ev._subagent?.id === tcid;
+        const isVsCode = ev.data?.subAgentId === tcid;
+
+        if (isSubagentDivider || isOwned || isSubagentMeta || isVsCode) {
+          eventCount++;
+          if (ev.timestamp) {
+            const t = new Date(ev.timestamp).getTime();
+            if (!startTime || t < startTime) startTime = t;
+            if (!endTime || t > endTime) endTime = t;
+          }
+        }
+      }
+
+      const durationMs = startTime && endTime ? endTime - startTime : 0;
+      return { eventCount, durationMs };
+    });
     const formatTime = (timestamp) => {
       if (!timestamp) return '';
       const date = new Date(timestamp);
@@ -921,10 +980,23 @@
       currentFilter.value = type;
     };
 
+    const selectSubagent = (toolCallId) => {
+      selectedSubagent.value = toolCallId;
+      // Reset type filter when switching subagent view
+      currentFilter.value = 'all';
+      if (window.trackClick) {
+        window.trackClick('SubagentSelected', {
+          subagent: toolCallId,
+          sessionId: sessionId.value
+        });
+      }
+    };
+
     const scrollToTurn = (turn) => {
-      // Clear search and filter when jumping to a turn
+      // Clear search, filter, and subagent selection when jumping to a turn
       searchText.value = '';
       currentFilter.value = 'all';
+      selectedSubagent.value = null;
 
       currentTurnIndex.value = turn.id;
 
@@ -1582,6 +1654,11 @@
       getSubagentInfo,
       getSubagentColor,
       setFilter,
+      selectSubagent,
+      selectedSubagent,
+      subagentList,
+      subagentTokenUsage,
+      SUBAGENT_COLORS,
       scrollToTurn,
       scrollToTop,
       scrollToBottom,
@@ -1869,6 +1946,22 @@
               </select>
             </div>
             <div class="content-toolbar-center">
+              <!-- Subagent selector -->
+              <div v-if="subagentList.length > 0" class="subagent-selector">
+                <select
+                  :value="selectedSubagent || ''"
+                  @change="selectSubagent($event.target.value || null)"
+                  class="subagent-dropdown"
+                >
+                  <option value="">All Events</option>
+                  <option v-for="sa in subagentList" :key="sa.toolCallId" :value="sa.toolCallId">
+                    🤖 {{ sa.name }}
+                  </option>
+                </select>
+                <span v-if="subagentTokenUsage" class="subagent-usage-badge">
+                  {{ subagentTokenUsage.eventCount }} events · {{ formatDuration(subagentTokenUsage.durationMs) }}
+                </span>
+              </div>
             </div>
             <div class="content-toolbar-right">
               <input

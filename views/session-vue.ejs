@@ -628,6 +628,39 @@
       gap: 12px;
       padding: 0 16px;
     }
+
+    .subagent-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subagent-dropdown {
+      padding: 4px 8px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 13px;
+      cursor: pointer;
+      max-width: 220px;
+    }
+
+    .subagent-dropdown:hover {
+      border-color: #58a6ff;
+    }
+
+    .subagent-dropdown:focus {
+      outline: none;
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
+    }
+
+    .subagent-usage-badge {
+      font-size: 11px;
+      color: #7d8590;
+      white-space: nowrap;
+    }
     
     .scroll-float-btns {
       position: fixed;
@@ -1329,6 +1362,13 @@
       .turn-dropdown {
         max-width: 140px;
         font-size: 12px;
+      }
+      .subagent-dropdown {
+        max-width: 130px;
+        font-size: 12px;
+      }
+      .subagent-usage-badge {
+        display: none;
       }
 
       /* Float buttons: slightly smaller, keep fixed */
