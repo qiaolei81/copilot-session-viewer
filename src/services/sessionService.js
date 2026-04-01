@@ -977,6 +977,14 @@ class SessionService {
       case 'assistant':
         // Convert Claude user/assistant messages to standard format
         if (event.message) {
+          if (event.message.model) {
+            normalized.model = event.message.model;
+          }
+
+          if (event.message.usage) {
+            normalized.usage = event.message.usage;
+          }
+
           // Extract text content from message.content
           if (event.message.content) {
             const textContent = this._extractClaudeTextContent(event.message.content);
@@ -1161,28 +1169,246 @@ class SessionService {
   }
 
   /**
-   * Extract usage data from session.shutdown event
+   * Normalize optional Claude token counters into finite numbers.
+   * @private
+   * @param {*} value - Raw token count
+   * @returns {number} Normalized token count
+   */
+  _getClaudeUsageNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
+  /**
+   * Extract cache creation tokens from Claude usage data.
+   * @private
+   * @param {Object} usage - Claude usage payload
+   * @returns {number} Cache write token count
+   */
+  _getClaudeCacheWriteTokens(usage) {
+    const topLevel = this._getClaudeUsageNumber(usage?.cache_creation_input_tokens);
+    if (topLevel > 0) {
+      return topLevel;
+    }
+
+    if (!usage?.cache_creation || typeof usage.cache_creation !== 'object') {
+      return 0;
+    }
+
+    return Object.values(usage.cache_creation)
+      .reduce((total, value) => total + this._getClaudeUsageNumber(value), 0);
+  }
+
+  /**
+   * Get Claude usage payload from a normalized event.
+   * Supports both message.usage and newer top-level usage fields.
+   * @private
+   * @param {Object} event - Normalized event
+   * @returns {Object|null} Usage payload
+   */
+  _getClaudeUsagePayload(event) {
+    if (event?.usage && typeof event.usage === 'object') {
+      return event.usage;
+    }
+
+    if (event?.toolUseResult?.usage && typeof event.toolUseResult.usage === 'object') {
+      return event.toolUseResult.usage;
+    }
+
+    if (event?.message?.usage && typeof event.message.usage === 'object') {
+      return event.message.usage;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get total Claude token count from an event or nested toolUseResult payload.
+   * @private
+   * @param {Object} event - Normalized event
+   * @returns {number} Total token count
+   */
+  _getClaudeEventTotalTokens(event) {
+    return this._getClaudeUsageNumber(event?.totalTokens)
+      || this._getClaudeUsageNumber(event?.toolUseResult?.totalTokens);
+  }
+
+  /**
+   * Get total Claude API duration from an event or nested toolUseResult payload.
+   * @private
+   * @param {Object} event - Normalized event
+   * @returns {number} Total duration in milliseconds
+   */
+  _getClaudeEventDurationMs(event) {
+    return this._getClaudeUsageNumber(event?.totalDurationMs)
+      || this._getClaudeUsageNumber(event?.toolUseResult?.totalDurationMs);
+  }
+
+  /**
+   * Get the Claude model directly declared on an event.
+   * @private
+   * @param {Object} event - Normalized event
+   * @returns {string|null} Model name
+   */
+  _getClaudeEventModel(event) {
+    return event?.model || event?.message?.model || event?._originalMessage?.model || null;
+  }
+
+  /**
+   * Resolve the Claude model for a usage event using direct fields and lineage.
+   * @private
+   * @param {Object} event - Normalized event
+   * @param {Map<string, string>} modelByUuid - UUID to model map
+   * @returns {string} Model name
+   */
+  _resolveClaudeUsageModel(event, modelByUuid) {
+    return this._getClaudeEventModel(event)
+      || modelByUuid.get(event?.sourceToolAssistantUUID)
+      || modelByUuid.get(event?.parentUuid)
+      || modelByUuid.get(event?.uuid)
+      || 'unknown';
+  }
+
+  /**
+   * Index Claude tool-result wrapper usage events by related assistant UUID.
+   * Preserves original event order and avoids duplicate insertion when both
+   * sourceToolAssistantUUID and parentUuid point to the same assistant.
+   * @private
+   * @param {Array} events - Normalized Claude events
+   * @returns {Map<string, Array>} Assistant UUID to related usage wrapper events
+   */
+  _indexClaudeRelatedUsageEvents(events) {
+    const relatedUsageEventsByAssistantUuid = new Map();
+
+    for (const event of events) {
+      if (!event?._isToolResultWrapper) {
+        continue;
+      }
+
+      if (!this._getClaudeUsagePayload(event) && this._getClaudeEventTotalTokens(event) === 0) {
+        continue;
+      }
+
+      const assistantUuids = new Set([
+        event.sourceToolAssistantUUID,
+        event.parentUuid
+      ].filter(uuid => typeof uuid === 'string' && uuid.length > 0));
+
+      for (const assistantUuid of assistantUuids) {
+        if (!relatedUsageEventsByAssistantUuid.has(assistantUuid)) {
+          relatedUsageEventsByAssistantUuid.set(assistantUuid, []);
+        }
+        relatedUsageEventsByAssistantUuid.get(assistantUuid).push(event);
+      }
+    }
+
+    return relatedUsageEventsByAssistantUuid;
+  }
+
+  /**
+   * Aggregate Claude per-message usage into the shared usage metadata shape.
    * @private
    * @param {Array} events - Session events
    * @returns {Object|null} Usage data or null if not found
    */
-  _extractUsageData(events) {
-    const shutdownEvent = events.find(e => e.type === 'session.shutdown');
-    if (!shutdownEvent || !shutdownEvent.data) {
+  _extractClaudeUsageData(events) {
+    const modelMetrics = {};
+    const modelByUuid = new Map();
+
+    for (const event of events) {
+      const model = this._getClaudeEventModel(event);
+      if (model && event?.uuid) {
+        modelByUuid.set(event.uuid, model);
+      }
+    }
+
+    let totalApiDurationMs = 0;
+
+    for (const event of events) {
+      const usageEvents = [event, ...(Array.isArray(event._relatedUsageEvents) ? event._relatedUsageEvents : [])];
+
+      for (const usageEvent of usageEvents) {
+        const usage = this._getClaudeUsagePayload(usageEvent) || {};
+
+        const cacheReadTokens = this._getClaudeUsageNumber(usage.cache_read_input_tokens);
+        const cacheWriteTokens = this._getClaudeCacheWriteTokens(usage);
+        const uncachedInputTokens = this._getClaudeUsageNumber(usage.input_tokens);
+        const outputTokens = this._getClaudeUsageNumber(usage.output_tokens);
+        const fallbackTotalTokens = this._getClaudeEventTotalTokens(usageEvent);
+        let inputTokens = uncachedInputTokens + cacheReadTokens + cacheWriteTokens;
+
+        if (inputTokens === 0 && outputTokens === 0 && fallbackTotalTokens > 0) {
+          inputTokens = Math.max(fallbackTotalTokens - outputTokens, 0);
+        }
+
+        if (inputTokens === 0 && outputTokens === 0) {
+          continue;
+        }
+
+        const model = this._resolveClaudeUsageModel(usageEvent, modelByUuid);
+        if (!modelMetrics[model]) {
+          modelMetrics[model] = {
+            requests: { count: 0 },
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0
+            }
+          };
+        }
+
+        modelMetrics[model].requests.count += 1;
+        modelMetrics[model].usage.inputTokens += inputTokens;
+        modelMetrics[model].usage.outputTokens += outputTokens;
+        modelMetrics[model].usage.cacheReadTokens += cacheReadTokens;
+        modelMetrics[model].usage.cacheWriteTokens += cacheWriteTokens;
+        totalApiDurationMs += this._getClaudeEventDurationMs(usageEvent);
+      }
+    }
+
+    if (Object.keys(modelMetrics).length === 0) {
       return null;
     }
 
-    const data = shutdownEvent.data;
     return {
-      modelMetrics: data.modelMetrics || {},
-      totalPremiumRequests: data.totalPremiumRequests || 0,
-      totalApiDurationMs: data.totalApiDurationMs || 0,
-      codeChanges: data.codeChanges || { linesAdded: 0, linesRemoved: 0, filesModified: [] },
-      currentTokens: data.currentTokens || 0,
-      systemTokens: data.systemTokens || 0,
-      conversationTokens: data.conversationTokens || 0,
-      toolDefinitionsTokens: data.toolDefinitionsTokens || 0
+      modelMetrics,
+      totalPremiumRequests: 0,
+      totalApiDurationMs,
+      codeChanges: { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+      currentTokens: 0,
+      systemTokens: 0,
+      conversationTokens: 0,
+      toolDefinitionsTokens: 0
     };
+  }
+
+  /**
+   * Extract usage data from session events.
+   * Public API so controllers and other callers do not depend on service internals.
+   * @param {Array} events - Session events
+   * @returns {Object|null} Usage data or null if not found
+   */
+  extractUsageData(events) {
+    if (!Array.isArray(events) || events.length === 0) {
+      return null;
+    }
+
+    const shutdownEvent = events.find(e => e.type === 'session.shutdown');
+    if (shutdownEvent && shutdownEvent.data) {
+      const data = shutdownEvent.data;
+      return {
+        modelMetrics: data.modelMetrics || {},
+        totalPremiumRequests: data.totalPremiumRequests || 0,
+        totalApiDurationMs: data.totalApiDurationMs || 0,
+        codeChanges: data.codeChanges || { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+        currentTokens: data.currentTokens || 0,
+        systemTokens: data.systemTokens || 0,
+        conversationTokens: data.conversationTokens || 0,
+        toolDefinitionsTokens: data.toolDefinitionsTokens || 0
+      };
+    }
+
+    return this._extractClaudeUsageData(events);
   }
 
   async getSessionWithEvents(sessionId) {
@@ -1222,7 +1448,7 @@ class SessionService {
     }
 
     // Extract usage data from session.shutdown event
-    metadata.usage = this._extractUsageData(events);
+    metadata.usage = this.extractUsageData(events);
 
     return { session, events, metadata };
   }
@@ -1654,9 +1880,9 @@ class SessionService {
         expanded.push({
           type: 'assistant.turn_start',
           id: `${assistantId}-start`,
+          uuid: event.uuid,
           timestamp,
           parentId: event.parentId,
-          uuid: event.uuid,
           data: {
             message: messageText,
             turnId: assistantId
@@ -1670,9 +1896,9 @@ class SessionService {
         expanded.push({
           type: 'assistant.message',
           id: assistantId,
+          uuid: event.uuid,
           timestamp,
           parentId: event.parentId,
-          uuid: event.uuid,
           data: {
             message: messageText,
             tools: event.data?.tools || []
@@ -1708,9 +1934,9 @@ class SessionService {
         expanded.push({
           type: 'assistant.turn_complete',
           id: `${assistantId}-complete`,
+          uuid: event.uuid,
           timestamp,
           parentId: assistantId,
-          uuid: event.uuid,
           data: {
             message: messageText
           },
@@ -1738,6 +1964,7 @@ class SessionService {
   _expandClaudeToTimelineFormat(events) {
     const expanded = [];
     let turnCounter = 0;
+    const relatedUsageEventsByAssistantUuid = this._indexClaudeRelatedUsageEvents(events);
 
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
@@ -1761,6 +1988,9 @@ class SessionService {
       if (event.type === 'assistant') {
         const assistantId = event.id || `claude-assistant-${i}`;
         const timestamp = event.timestamp;
+        const relatedUsageEvents = event.uuid
+          ? (relatedUsageEventsByAssistantUuid.get(event.uuid) || [])
+          : [];
 
         // Extract message content (already normalized in _normalizeEvent)
         const messageText = event.data?.message || '';
@@ -1769,6 +1999,7 @@ class SessionService {
         expanded.push({
           type: 'assistant.turn_start',
           id: `${assistantId}-start`,
+          uuid: event.uuid,
           timestamp,
           parentId: event.parentId,
           data: {
@@ -1784,8 +2015,11 @@ class SessionService {
         expanded.push({
           type: 'assistant.message',
           id: assistantId,
+          uuid: event.uuid,
           timestamp,
           parentId: event.parentId,
+          model: event.model,
+          usage: event.usage,
           data: {
             message: messageText,
             tools: event.data?.tools || []
@@ -1837,8 +2071,18 @@ class SessionService {
         expanded.push({
           type: 'assistant.turn_complete',
           id: `${assistantId}-complete`,
+          uuid: event.uuid,
           timestamp,
           parentId: assistantId,
+          model: event.model,
+          _relatedUsageEvents: relatedUsageEvents.map(usageEvent => ({
+            uuid: usageEvent.uuid,
+            parentUuid: usageEvent.parentUuid,
+            sourceToolAssistantUUID: usageEvent.sourceToolAssistantUUID,
+            usage: this._getClaudeUsagePayload(usageEvent),
+            totalTokens: this._getClaudeEventTotalTokens(usageEvent),
+            totalDurationMs: this._getClaudeEventDurationMs(usageEvent)
+          })),
           data: {
             message: messageText
           },

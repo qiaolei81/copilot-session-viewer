@@ -161,6 +161,84 @@ describe('SessionService - Coverage Enhancement', () => {
       expect(events.length).toBeGreaterThan(0);
     });
 
+    it('should preserve Claude task usage metadata through getSessionEvents expansion', async () => {
+      const sessionId = 'claude-task-usage-session';
+      const claudeDir = path.join(tmpDir, 'claude');
+      const projectDir = path.join(claudeDir, 'project1');
+      await fs.promises.mkdir(projectDir, { recursive: true });
+
+      const eventsFile = path.join(projectDir, `${sessionId}.jsonl`);
+      await fs.promises.writeFile(eventsFile, [
+        JSON.stringify({
+          type: 'assistant',
+          uuid: 'assistant-1',
+          timestamp: '2026-02-20T10:00:01.000Z',
+          message: {
+            role: 'assistant',
+            model: 'claude-sonnet-4.5',
+            content: [{
+              type: 'tool_use',
+              id: 'tool-task-1',
+              name: 'Task',
+              input: { description: 'Run subagent' }
+            }],
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0
+            }
+          }
+        }),
+        JSON.stringify({
+          type: 'user',
+          uuid: 'task-result-1',
+          parentUuid: 'assistant-1',
+          sourceToolAssistantUUID: 'assistant-1',
+          timestamp: '2026-02-20T10:00:02.000Z',
+          message: {
+            role: 'user',
+            content: [{
+              type: 'tool_result',
+              tool_use_id: 'tool-task-1',
+              content: 'Subagent completed'
+            }]
+          },
+          toolUseResult: {
+            status: 'completed',
+            totalDurationMs: 270194,
+            totalTokens: 68655,
+            totalToolUseCount: 6,
+            usage: {
+              input_tokens: 22079,
+              cache_creation_input_tokens: 0,
+              cache_read_input_tokens: 46275,
+              output_tokens: 301
+            }
+          }
+        })
+      ].join('\n'));
+
+      const mockSession = { id: sessionId, type: 'file', source: 'claude' };
+      mockRepository.findById.mockResolvedValue(mockSession);
+
+      const events = await service.getSessionEvents(sessionId);
+      const usage = service.extractUsageData(events);
+
+      expect(usage).toEqual(expect.objectContaining({
+        modelMetrics: {
+          'claude-sonnet-4.5': {
+            requests: { count: 1 },
+            usage: {
+              inputTokens: 68354,
+              outputTokens: 301,
+              cacheReadTokens: 46275,
+              cacheWriteTokens: 0
+            }
+          }
+        },
+        totalApiDurationMs: 270194
+      }));
+    });
+
     it('should return empty array if claude source not found', async () => {
       const sessionId = 'claude-no-source';
       const mockSession = { id: sessionId, type: 'file', source: 'claude' };
@@ -763,6 +841,140 @@ describe('SessionService - Coverage Enhancement', () => {
       expect(normalized.usage).toEqual({
         inputTokens: 100,
         outputTokens: 50
+      });
+    });
+
+    it('should preserve usage metadata in claude assistant messages', () => {
+      const event = {
+        type: 'assistant',
+        message: {
+          model: 'claude-opus-4.6',
+          content: [{ type: 'text', text: 'Test' }],
+          usage: {
+            input_tokens: 120,
+            cache_read_input_tokens: 30,
+            output_tokens: 45
+          }
+        }
+      };
+
+      const normalized = service._normalizeEvent(event, 'claude');
+
+      expect(normalized.model).toBe('claude-opus-4.6');
+      expect(normalized.usage).toEqual({
+        input_tokens: 120,
+        cache_read_input_tokens: 30,
+        output_tokens: 45
+      });
+    });
+
+    it('should aggregate claude usage into the shared usage metadata shape', () => {
+      const usage = service.extractUsageData([
+        {
+          type: 'assistant.message',
+          model: 'claude-opus-4.6',
+          usage: {
+            input_tokens: 100,
+            cache_read_input_tokens: 200,
+            cache_creation_input_tokens: 50,
+            output_tokens: 25
+          }
+        },
+        {
+          type: 'assistant.message',
+          model: 'claude-opus-4.6',
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5
+          }
+        },
+        {
+          type: 'assistant.message',
+          model: 'claude-haiku-4.5',
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0
+          }
+        }
+      ]);
+
+      expect(usage).toEqual({
+        modelMetrics: {
+          'claude-opus-4.6': {
+            requests: { count: 2 },
+            usage: {
+              inputTokens: 360,
+              outputTokens: 30,
+              cacheReadTokens: 200,
+              cacheWriteTokens: 50
+            }
+          }
+        },
+        totalPremiumRequests: 0,
+        totalApiDurationMs: 0,
+        codeChanges: { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+        currentTokens: 0,
+        systemTokens: 0,
+        conversationTokens: 0,
+        toolDefinitionsTokens: 0
+      });
+    });
+
+    it('should aggregate top-level Claude task usage and merge subagent totals into the model summary', () => {
+      const usage = service.extractUsageData([
+        {
+          type: 'assistant',
+          uuid: 'task-assistant-1',
+          model: 'claude-sonnet-4.5',
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0
+          }
+        },
+        {
+          type: 'user',
+          uuid: 'task-result-1',
+          parentUuid: 'task-assistant-1',
+          sourceToolAssistantUUID: 'task-assistant-1',
+          totalDurationMs: 270194,
+          totalTokens: 68655,
+          totalToolUseCount: 6,
+          usage: {
+            input_tokens: 22079,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 46275,
+            output_tokens: 301
+          }
+        },
+        {
+          type: 'assistant.message',
+          model: 'claude-sonnet-4.5',
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5
+          }
+        }
+      ]);
+
+      expect(usage).toEqual({
+        modelMetrics: {
+          'claude-sonnet-4.5': {
+            requests: { count: 2 },
+            usage: {
+              inputTokens: 68364,
+              outputTokens: 306,
+              cacheReadTokens: 46275,
+              cacheWriteTokens: 0
+            }
+          }
+        },
+        totalPremiumRequests: 0,
+        totalApiDurationMs: 270194,
+        codeChanges: { linesAdded: 0, linesRemoved: 0, filesModified: [] },
+        currentTokens: 0,
+        systemTokens: 0,
+        conversationTokens: 0,
+        toolDefinitionsTokens: 0
       });
     });
   });

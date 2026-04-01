@@ -64,19 +64,9 @@ class SessionController {
       // Extract usage data from events
       try {
         const events = await this.sessionService.getSessionEvents(sessionId);
-        const shutdownEvent = events.find(e => e.type === 'session.shutdown');
-        if (shutdownEvent && shutdownEvent.data) {
-          const data = shutdownEvent.data;
-          metadata.usage = {
-            modelMetrics: data.modelMetrics || {},
-            totalPremiumRequests: data.totalPremiumRequests || 0,
-            totalApiDurationMs: data.totalApiDurationMs || 0,
-            codeChanges: data.codeChanges || { linesAdded: 0, linesRemoved: 0, filesModified: [] },
-            currentTokens: data.currentTokens || 0,
-            systemTokens: data.systemTokens || 0,
-            conversationTokens: data.conversationTokens || 0,
-            toolDefinitionsTokens: data.toolDefinitionsTokens || 0
-          };
+        const usage = this.sessionService.extractUsageData(events);
+        if (usage) {
+          metadata.usage = usage;
         }
       } catch (err) {
         console.error('Error extracting usage data:', err);

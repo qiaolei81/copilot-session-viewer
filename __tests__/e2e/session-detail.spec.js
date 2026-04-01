@@ -4,15 +4,44 @@ test.describe('Session Detail Page', () => {
   // Use a known session ID from your test environment
   // This will be dynamically fetched in the actual test
   let SESSION_ID;
+  let CLAUDE_USAGE_SESSION_ID;
+
+  const getWithRetry = async (request, url, attempts = 3) => {
+    let lastError;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await request.get(url);
+      } catch (error) {
+        lastError = error;
+        if (attempt < attempts) {
+          await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+        }
+      }
+    }
+
+    throw lastError;
+  };
   
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API
-    const response = await request.get('/api/sessions');
+    const response = await getWithRetry(request, '/api/sessions');
     const sessions = await response.json();
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
     } else {
       throw new Error('No sessions available for testing');
+    }
+
+    const claudeResponse = await getWithRetry(request, '/api/sessions?source=claude');
+    const claudeSessions = await claudeResponse.json();
+    for (const session of claudeSessions.slice(0, 10)) {
+      const detailResponse = await getWithRetry(request, `/session/${session.id}`);
+      const detailHtml = await detailResponse.text();
+      if (detailHtml.includes('"usage":') && detailHtml.includes('"modelMetrics"')) {
+        CLAUDE_USAGE_SESSION_ID = session.id;
+        break;
+      }
     }
   });
   
@@ -50,6 +79,18 @@ test.describe('Session Detail Page', () => {
     
     // Check session info is shown
     await expect(page.locator('.session-info')).toBeVisible();
+  });
+
+  test('should display usage summary for Claude sessions when usage data exists', async ({ page }) => {
+    test.skip(!CLAUDE_USAGE_SESSION_ID, 'No Claude session with usage data available');
+
+    await page.goto(`/session/${CLAUDE_USAGE_SESSION_ID}`);
+    await page.waitForSelector('.main-layout', { timeout: 10000 });
+
+    const usageCompact = page.locator('.usage-compact').first();
+    await expect(usageCompact).toBeVisible();
+    await expect(usageCompact).toContainText('reqs');
+    await expect(usageCompact).toContainText('tokens');
   });
 
   test('should display event list', async ({ page }) => {

@@ -20,6 +20,42 @@ function createMockEvent(message, type = 'user.message', index = 0) {
   };
 }
 
+// Helper to fetch session ID with retry (guards against transient ECONNRESET)
+async function fetchSessionId(request, retries = 3) {
+  let lastError;
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await request.get('/api/sessions');
+
+      if (!response.ok()) {
+        throw new Error(`/api/sessions returned ${response.status()}`);
+      }
+
+      const sessions = await response.json();
+
+      if (!Array.isArray(sessions)) {
+        throw new Error('/api/sessions did not return an array of sessions');
+      }
+
+      const sessionId = sessions.find(session => typeof session?.id === 'string' && session.id.trim())?.id;
+      if (!sessionId) {
+        throw new Error('No valid session ID available from /api/sessions');
+      }
+
+      return sessionId;
+    } catch (_e) {
+      lastError = _e;
+      if (attempt === retries - 1) {
+        throw new Error(`Failed to fetch session ID from /api/sessions after ${retries} attempts: ${_e.message}`, { cause: _e });
+      }
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+
+  throw lastError;
+}
+
 test.describe('XSS Prevention in Session Viewer', () => {
   test('should sanitize javascript: protocol in rendered links', async ({ page, request }) => {
     // Create a mock session with malicious markdown
@@ -34,9 +70,8 @@ test.describe('XSS Prevention in Session Viewer', () => {
     });
 
     // Get a valid session ID
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
-    
+    const sessionId = await fetchSessionId(request);
+
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
 
@@ -59,8 +94,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
@@ -88,8 +122,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
@@ -110,8 +143,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
@@ -138,8 +170,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     
@@ -150,8 +181,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
   });
 
   test('DOMPurify should be loaded on session pages', async ({ page, request }) => {
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
@@ -175,8 +205,7 @@ test.describe('XSS Prevention in Session Viewer', () => {
       });
     });
 
-    const sessions = await (await request.get('/api/sessions')).json();
-    const sessionId = sessions[0]?.id;
+    const sessionId = await fetchSessionId(request);
     
     await page.goto(`/session/${sessionId}`);
     await page.waitForSelector('.event-content', { timeout: 10000 });
