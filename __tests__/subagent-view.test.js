@@ -1,79 +1,13 @@
 /**
  * Unit tests for subagent view filtering logic.
  *
- * These test the pure filtering logic extracted from session-detail.js
- * to verify subagent event attribution and filtering behavior.
+ * These test the production logic in src/frontend/subagent-utils.js
+ * which is shared with the Vue frontend (session-detail.js).
  */
 
+const { computeSubagentOwnership, filterBySubagent } = require('../src/frontend/subagent-utils');
+
 describe('Subagent view filtering logic', () => {
-  // Simulate the subagent ownership computation
-  function computeSubagentOwnership(events) {
-    const ownerMap = new Map();
-    const subagentInfo = new Map();
-    let colorIdx = 0;
-
-    for (const ev of events) {
-      if (ev.type === 'subagent.started') {
-        const tcid = ev.data?.toolCallId;
-        if (tcid) {
-          subagentInfo.set(tcid, {
-            name: ev.data?.agentDisplayName || ev.data?.agentName || 'SubAgent',
-            colorIndex: colorIdx++
-          });
-        }
-      }
-    }
-
-    // Attribute assistant.message events via parentToolCallId
-    for (const ev of events) {
-      if (ev.type === 'assistant.message') {
-        const ptcid = ev.data?.parentToolCallId;
-        if (ptcid && subagentInfo.has(ptcid)) {
-          ownerMap.set(ev.stableId, ptcid);
-        }
-      }
-    }
-
-    // Attribute _subagent metadata events (also discover subagents from metadata)
-    for (const ev of events) {
-      if (ev._subagent?.id) {
-        const sid = ev._subagent.id;
-        if (!subagentInfo.has(sid)) {
-          subagentInfo.set(sid, {
-            name: ev._subagent.name || 'SubAgent',
-            colorIndex: colorIdx++
-          });
-        }
-        ownerMap.set(ev.stableId, sid);
-      }
-    }
-
-    // Temporal attribution: attribute unowned events between subagent boundaries
-    let activeSubagent = null;
-    for (const ev of events) {
-      if (ev.type === 'subagent.started' && ev.data?.toolCallId && subagentInfo.has(ev.data.toolCallId)) {
-        activeSubagent = ev.data.toolCallId;
-      } else if ((ev.type === 'subagent.completed' || ev.type === 'subagent.failed') && ev.data?.toolCallId === activeSubagent) {
-        activeSubagent = null;
-      } else if (activeSubagent && !ownerMap.has(ev.stableId)) {
-        ownerMap.set(ev.stableId, activeSubagent);
-      }
-    }
-
-    return { ownerMap, subagentInfo };
-  }
-
-  // Simulate the subagent filter from filteredEvents
-  function filterBySubagent(events, selectedSubagent, ownerMap) {
-    if (!selectedSubagent) return events;
-    return events.filter(e => {
-      if ((e.type === 'subagent.started' || e.type === 'subagent.completed' || e.type === 'subagent.failed') && e.data?.toolCallId === selectedSubagent) return true;
-      if (ownerMap.get(e.stableId) === selectedSubagent) return true;
-      if (e._subagent?.id === selectedSubagent) return true;
-      if (e.data?.subAgentId === selectedSubagent) return true;
-      return false;
-    });
-  }
 
   const baseEvents = [
     { type: 'session.start', stableId: 'e0', data: {} },
