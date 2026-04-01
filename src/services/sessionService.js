@@ -1269,6 +1269,42 @@ class SessionService {
   }
 
   /**
+   * Index Claude tool-result wrapper usage events by related assistant UUID.
+   * Preserves original event order and avoids duplicate insertion when both
+   * sourceToolAssistantUUID and parentUuid point to the same assistant.
+   * @private
+   * @param {Array} events - Normalized Claude events
+   * @returns {Map<string, Array>} Assistant UUID to related usage wrapper events
+   */
+  _indexClaudeRelatedUsageEvents(events) {
+    const relatedUsageEventsByAssistantUuid = new Map();
+
+    for (const event of events) {
+      if (!event?._isToolResultWrapper) {
+        continue;
+      }
+
+      if (!this._getClaudeUsagePayload(event) && this._getClaudeEventTotalTokens(event) === 0) {
+        continue;
+      }
+
+      const assistantUuids = new Set([
+        event.sourceToolAssistantUUID,
+        event.parentUuid
+      ].filter(uuid => typeof uuid === 'string' && uuid.length > 0));
+
+      for (const assistantUuid of assistantUuids) {
+        if (!relatedUsageEventsByAssistantUuid.has(assistantUuid)) {
+          relatedUsageEventsByAssistantUuid.set(assistantUuid, []);
+        }
+        relatedUsageEventsByAssistantUuid.get(assistantUuid).push(event);
+      }
+    }
+
+    return relatedUsageEventsByAssistantUuid;
+  }
+
+  /**
    * Aggregate Claude per-message usage into the shared usage metadata shape.
    * @private
    * @param {Array} events - Session events
@@ -1928,6 +1964,7 @@ class SessionService {
   _expandClaudeToTimelineFormat(events) {
     const expanded = [];
     let turnCounter = 0;
+    const relatedUsageEventsByAssistantUuid = this._indexClaudeRelatedUsageEvents(events);
 
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
@@ -1951,11 +1988,9 @@ class SessionService {
       if (event.type === 'assistant') {
         const assistantId = event.id || `claude-assistant-${i}`;
         const timestamp = event.timestamp;
-        const relatedUsageEvents = events.filter(candidate =>
-          candidate._isToolResultWrapper &&
-          (candidate.sourceToolAssistantUUID === event.uuid || candidate.parentUuid === event.uuid) &&
-          (this._getClaudeUsagePayload(candidate) || this._getClaudeEventTotalTokens(candidate) > 0)
-        );
+        const relatedUsageEvents = event.uuid
+          ? (relatedUsageEventsByAssistantUuid.get(event.uuid) || [])
+          : [];
 
         // Extract message content (already normalized in _normalizeEvent)
         const messageText = event.data?.message || '';
