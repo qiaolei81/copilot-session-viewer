@@ -33,7 +33,7 @@ test.describe('Subagent View', () => {
       const data = await eventsResponse.json();
       const events = Array.isArray(data) ? data : (data.events || []);
       const hasSubagentStarted = events.some(e => e.type === 'subagent.started');
-      const hasVsCodeSubagent = events.some(e => e.type === 'assistant.message' && e.data?.subAgentId);
+      const hasVsCodeSubagent = events.some(e => e.type === 'assistant.message' && e.data?.subAgentName && e.data?.subAgentId);
       if (hasSubagentStarted || hasVsCodeSubagent) {
         SUBAGENT_SESSION_ID = session.id;
         break;
