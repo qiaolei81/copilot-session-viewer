@@ -228,7 +228,7 @@ describe('SessionService - Coverage Enhancement', () => {
           'claude-sonnet-4.5': {
             requests: { count: 1 },
             usage: {
-              inputTokens: 68354,
+              inputTokens: 22079,
               outputTokens: 301,
               cacheReadTokens: 46275,
               cacheWriteTokens: 0
@@ -903,7 +903,7 @@ describe('SessionService - Coverage Enhancement', () => {
           'claude-opus-4.6': {
             requests: { count: 2 },
             usage: {
-              inputTokens: 360,
+              inputTokens: 110,
               outputTokens: 30,
               cacheReadTokens: 200,
               cacheWriteTokens: 50
@@ -961,7 +961,7 @@ describe('SessionService - Coverage Enhancement', () => {
           'claude-sonnet-4.5': {
             requests: { count: 2 },
             usage: {
-              inputTokens: 68364,
+              inputTokens: 22089,
               outputTokens: 306,
               cacheReadTokens: 46275,
               cacheWriteTokens: 0

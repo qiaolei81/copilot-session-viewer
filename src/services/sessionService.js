@@ -1334,14 +1334,14 @@ class SessionService {
         const uncachedInputTokens = this._getClaudeUsageNumber(usage.input_tokens);
         const outputTokens = this._getClaudeUsageNumber(usage.output_tokens);
         const fallbackTotalTokens = this._getClaudeEventTotalTokens(usageEvent);
-        let inputTokens = uncachedInputTokens + cacheReadTokens + cacheWriteTokens;
+        let inputTokens = uncachedInputTokens;
 
-        if (inputTokens === 0 && outputTokens === 0 && fallbackTotalTokens > 0) {
-          inputTokens = Math.max(fallbackTotalTokens - outputTokens, 0);
-        }
-
-        if (inputTokens === 0 && outputTokens === 0) {
-          continue;
+        if (inputTokens === 0 && outputTokens === 0 && cacheReadTokens === 0 && cacheWriteTokens === 0) {
+          if (fallbackTotalTokens > 0) {
+            inputTokens = Math.max(fallbackTotalTokens - outputTokens, 0);
+          } else {
+            continue;
+          }
         }
 
         const model = this._resolveClaudeUsageModel(usageEvent, modelByUuid);
@@ -1396,8 +1396,21 @@ class SessionService {
     const shutdownEvent = events.find(e => e.type === 'session.shutdown');
     if (shutdownEvent && shutdownEvent.data) {
       const data = shutdownEvent.data;
+      // Copilot CLI includes cacheRead/cacheWrite in inputTokens.
+      // Normalize so inputTokens only reflects uncached input.
+      const modelMetrics = data.modelMetrics || {};
+      for (const model of Object.keys(modelMetrics)) {
+        const usage = modelMetrics[model]?.usage;
+        if (usage) {
+          const cacheRead = usage.cacheReadTokens || 0;
+          const cacheWrite = usage.cacheWriteTokens || 0;
+          if (cacheRead > 0 || cacheWrite > 0) {
+            usage.inputTokens = Math.max((usage.inputTokens || 0) - cacheRead - cacheWrite, 0);
+          }
+        }
+      }
       return {
-        modelMetrics: data.modelMetrics || {},
+        modelMetrics,
         totalPremiumRequests: data.totalPremiumRequests || 0,
         totalApiDurationMs: data.totalApiDurationMs || 0,
         codeChanges: data.codeChanges || { linesAdded: 0, linesRemoved: 0, filesModified: [] },
@@ -1971,6 +1984,12 @@ class SessionService {
 
       // Convert user → user.message
       if (event.type === 'user') {
+        // Skip tool-result-wrapper events — their usage data is already captured
+        // via _relatedUsageEvents on assistant.turn_complete. Including them here
+        // would cause double-counting in _extractClaudeUsageData.
+        if (event._isToolResultWrapper) {
+          continue;
+        }
         turnCounter++;
         expanded.push({
           ...event,
