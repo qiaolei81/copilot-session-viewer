@@ -177,6 +177,34 @@ describe('InsightController - Additional Coverage', () => {
       consoleErrorSpy.mockRestore();
     });
 
+    it('should return 400 when events file is missing', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockReq.params.id = 'valid-session-id';
+      const error = new Error('Events file not found');
+      mockInsightService.generateInsight.mockRejectedValue(error);
+
+      await controller.generateInsight(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Events file not found' });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should return 503 when insight generation lock cannot be acquired', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockReq.params.id = 'valid-session-id';
+      const error = new Error('Failed to acquire lock for insight generation');
+      mockInsightService.generateInsight.mockRejectedValue(error);
+
+      await controller.generateInsight(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(503);
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Failed to acquire lock for insight generation' });
+
+      consoleErrorSpy.mockRestore();
+    });
+
     it('should handle error without message', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockReq.params.id = 'valid-session-id';

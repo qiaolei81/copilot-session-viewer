@@ -2,6 +2,27 @@ const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 test.describe('Agent Review Tests', () => {
   let SESSION_ID;
+  let REVIEWABLE_SESSION_ID;
+
+  const getEventfulSessionId = async (request, sessions) => {
+    for (const session of sessions) {
+      if (!session?.hasEvents || session.eventCount <= 0) {
+        continue;
+      }
+
+      const response = await request.get(`/api/sessions/${session.id}/events`);
+      if (!response.ok()) {
+        continue;
+      }
+
+      const events = await response.json();
+      if (Array.isArray(events) && events.length > 0) {
+        return session.id;
+      }
+    }
+
+    return null;
+  };
 
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API
@@ -11,6 +32,8 @@ test.describe('Agent Review Tests', () => {
     } else {
       throw new Error('No sessions available for testing');
     }
+
+    REVIEWABLE_SESSION_ID = await getEventfulSessionId(request, sessions);
   });
 
   test.describe('Agent Review Tab on Analysis Page', () => {
@@ -202,7 +225,9 @@ test.describe('Agent Review Tests', () => {
       // Note: We won't actually generate in CI to avoid API costs
       // This test verifies the endpoint exists and accepts requests
 
-      const response = await request.post(`/session/${SESSION_ID}/insight`, {
+      test.skip(!REVIEWABLE_SESSION_ID, 'No eventful session available for agent review generation');
+
+      const response = await request.post(`/session/${REVIEWABLE_SESSION_ID}/insight`, {
         failOnStatusCode: false // Don't fail on rate limits or feature flags
       });
 

@@ -28,7 +28,7 @@
 
   console.log('Initializing Vue app...');
 
-  const { createApp, ref, computed, onMounted, onBeforeUnmount,  watch } = Vue;
+  const { createApp, ref, computed, onMounted, onBeforeUnmount, watch } = Vue;
   const { DynamicScroller, DynamicScrollerItem } = window.VueVirtualScroller;
 
   const app = createApp({
@@ -81,6 +81,25 @@
     const scrollerRef = ref(null);
     const visibleRange = ref({ start: 0, end: 0 });
     const selectedSubagent = ref(null); // null = all events, toolCallId = specific subagent
+    const typeFilterOpen = ref(false); // Event type dropdown open state
+
+    // Active filter count (computed)
+    const activeFilterCount = computed(() => {
+      let count = 0;
+      if (currentFilter.value !== 'all') count++;
+      if (selectedSubagent.value) count++;
+      if (searchText.value.trim()) count++;
+      return count;
+    });
+
+    // Clear all filters
+    const clearAllFilters = () => {
+      currentFilter.value = 'all';
+      selectedSubagent.value = null;
+      searchText.value = '';
+      debouncedSearchText.value = '';
+      typeFilterOpen.value = false;
+    };
 
     // Debounce search input
     let searchTimeout = null;
@@ -1036,6 +1055,18 @@
 
     // Lifecycle
     onMounted(async () => {
+      // Close type filter dropdown on outside click
+      const closeTypeFilter = (e) => {
+        const dropdown = document.querySelector('.filter-type-wrapper');
+        if (dropdown && !dropdown.contains(e.target)) {
+          typeFilterOpen.value = false;
+        }
+      };
+      document.addEventListener('click', closeTypeFilter);
+      onBeforeUnmount(() => {
+        document.removeEventListener('click', closeTypeFilter);
+      });
+
       // Load events asynchronously
       try {
         console.log('[Navigation] Starting event loading...');
@@ -1539,6 +1570,9 @@
       subagentList,
       subagentTokenUsage,
       SUBAGENT_COLORS,
+      typeFilterOpen,
+      activeFilterCount,
+      clearAllFilters,
       scrollToTurn,
       scrollToTop,
       scrollToBottom,
@@ -1726,21 +1760,6 @@
             </div>
           </div>
 
-          <div class="sidebar-section">
-            <div class="sidebar-section-title">Event Filters</div>
-            <div class="event-filters">
-              <button
-                v-for="filter in filters"
-                :key="filter.type"
-                :class="['filter-btn', { active: currentFilter === filter.type }]"
-                :disabled="filter.disabled"
-                @click="setFilter(filter.type)"
-              >
-                {{ filter.label }}
-              </button>
-            </div>
-          </div>
-
           <!-- Session Tags -->
           <div class="sidebar-section session-tags-container">
             <div class="sidebar-section-title">Tags</div>
@@ -1797,8 +1816,8 @@
         </div>
 
         <div class="content">
-          <div class="scroll-indicator">
-            <div class="content-toolbar-left">
+          <div class="unified-filter-bar">
+            <div class="filter-bar-row">
               <button
                 class="sidebar-toggle"
                 @click="() => { sidebarCollapsed = !sidebarCollapsed; trackClick && trackClick('SidebarToggled', { state: sidebarCollapsed ? 'open' : 'collapsed', sessionId: sessionId }); }"
@@ -1806,6 +1825,20 @@
               >
                 ☰
               </button>
+
+              <div class="filter-bar-search">
+                <input
+                  v-model="searchText"
+                  type="text"
+                  placeholder="🔍 Search events..."
+                  class="search-input"
+                />
+                <span v-if="searchResultCount" class="search-result-count">
+                  {{ searchResultCount }}
+                </span>
+              </div>
+
+              <div class="filter-bar-divider"></div>
 
               <!-- Turn dropdown with optgroup -->
               <select
@@ -1824,8 +1857,9 @@
                   </option>
                 </optgroup>
               </select>
-            </div>
-            <div class="content-toolbar-center">
+
+              <div class="filter-bar-divider"></div>
+
               <!-- Subagent selector -->
               <div v-if="subagentList.length > 0" class="subagent-selector">
                 <select
@@ -1833,7 +1867,7 @@
                   @change="selectSubagent($event.target.value || null)"
                   class="subagent-dropdown"
                 >
-                  <option value="">All Events</option>
+                  <option value="">🤖 All Agents</option>
                   <option v-for="sa in subagentList" :key="sa.toolCallId" :value="sa.toolCallId">
                     🤖 {{ sa.name }}
                   </option>
@@ -1842,17 +1876,50 @@
                   {{ subagentTokenUsage.eventCount }} events · {{ formatDuration(subagentTokenUsage.durationMs) }}
                 </span>
               </div>
+
+              <div class="filter-bar-divider"></div>
+
+              <!-- Event type dropdown -->
+              <div class="filter-type-wrapper">
+                <button
+                  class="filter-type-toggle"
+                  :class="{ active: currentFilter !== 'all' }"
+                  @click.stop="typeFilterOpen = !typeFilterOpen"
+                >
+                  ⚡ {{ currentFilter === 'all' ? 'All Types' : currentFilter }} ▾
+                </button>
+                <div v-if="typeFilterOpen" class="filter-type-menu">
+                  <div class="filter-type-menu-header">Event Types</div>
+                  <div class="filter-type-menu-options">
+                    <div
+                      v-for="filter in filters"
+                      :key="filter.type"
+                      :class="['filter-type-menu-item', { active: currentFilter === filter.type }]"
+                      @click="setFilter(filter.type); typeFilterOpen = false"
+                    >
+                      <span class="filter-type-menu-label">{{ filter.type === 'all' ? 'All' : filter.type }}</span>
+                      <span class="filter-type-menu-count">{{ filter.count }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="content-toolbar-right">
-              <input
-                v-model="searchText"
-                type="text"
-                placeholder="🔍 Search events..."
-                class="search-input"
-              />
-              <span v-if="searchResultCount" class="search-result-count">
-                {{ searchResultCount }}
+
+            <!-- Active filter chips -->
+            <div v-if="activeFilterCount > 0" class="active-filters-bar">
+              <span v-if="currentFilter !== 'all'" class="filter-chip">
+                Type: {{ currentFilter }}
+                <button @click="setFilter('all')" class="filter-chip-remove" title="Remove filter">×</button>
               </span>
+              <span v-if="selectedSubagent" class="filter-chip">
+                Agent: {{ subagentList.find(s => s.toolCallId === selectedSubagent)?.name || selectedSubagent }}
+                <button @click="selectSubagent(null)" class="filter-chip-remove" title="Remove filter">×</button>
+              </span>
+              <span v-if="searchText.trim()" class="filter-chip">
+                Search: "{{ searchText.length > 20 ? searchText.substring(0, 20) + '…' : searchText }}"
+                <button @click="searchText = ''" class="filter-chip-remove" title="Remove filter">×</button>
+              </span>
+              <button class="clear-all-filters-btn" @click="clearAllFilters">Clear all</button>
             </div>
           </div>
 

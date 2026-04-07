@@ -4,6 +4,7 @@ test.describe('Session Detail Page', () => {
   // Use a known session ID from your test environment
   // This will be dynamically fetched in the actual test
   let SESSION_ID;
+  let EVENTFUL_SESSION_ID;
   let CLAUDE_USAGE_SESSION_ID;
 
   const getWithRetry = async (request, url, attempts = 3) => {
@@ -22,7 +23,25 @@ test.describe('Session Detail Page', () => {
 
     throw lastError;
   };
-  
+
+  const getRenderedEventItems = page => page.locator('.event, .turn-divider, .subagent-divider');
+
+  const waitForEventsToRender = async (page) => {
+    await page.waitForSelector('.main-layout', { timeout: 15000 });
+
+    await page.waitForFunction(() => {
+      const loadingEl = document.querySelector('.loading-message');
+      return loadingEl === null || window.getComputedStyle(loadingEl).display === 'none';
+    }, { timeout: 30000 });
+
+    const errorEl = page.locator('.error-message');
+    if (await errorEl.isVisible().catch(() => false)) {
+      throw new Error(`Events failed to load: ${await errorEl.textContent()}`);
+    }
+
+    await expect(getRenderedEventItems(page).first()).toBeVisible({ timeout: 15000 });
+  };
+
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API
     const response = await getWithRetry(request, '/api/sessions');
@@ -31,6 +50,23 @@ test.describe('Session Detail Page', () => {
       SESSION_ID = sessions[0].id;
     } else {
       throw new Error('No sessions available for testing');
+    }
+
+    for (const session of sessions) {
+      if (!session?.hasEvents || session.eventCount <= 0) {
+        continue;
+      }
+
+      const eventsResponse = await getWithRetry(request, `/api/sessions/${session.id}/events`);
+      if (!eventsResponse.ok()) {
+        continue;
+      }
+
+      const events = await eventsResponse.json();
+      if (Array.isArray(events) && events.length > 0) {
+        EVENTFUL_SESSION_ID = session.id;
+        break;
+      }
     }
 
     const claudeResponse = await getWithRetry(request, '/api/sessions?source=claude');
@@ -94,57 +130,39 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should display event list', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
-    
-    // Wait for Vue to mount
-    await page.waitForSelector('.main-layout', { timeout: 15000 });
-    
-    // Wait for loading to finish (either events load or error appears)
-    await page.waitForFunction(() => {
-      const loadingEl = document.querySelector('.loading-message');
-      return loadingEl === null || window.getComputedStyle(loadingEl).display === 'none';
-    }, { timeout: 30000 });
-    
-    // Check if error occurred
-    const errorEl = page.locator('.error-message');
-    if (await errorEl.count() > 0) {
-      throw new Error(`Events failed to load: ${await errorEl.textContent()}`);
-    }
-    
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await waitForEventsToRender(page);
+
     // Check events are displayed
-    const events = page.locator('.event-header');
-    await expect(events.first()).toBeVisible({ timeout: 5000 });
+    const events = getRenderedEventItems(page);
     const count = await events.count();
     expect(count).toBeGreaterThan(0);
   });
 
   test('should filter events by search', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    // Wait for Vue to mount and events to load
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
 
-    // Wait for event headers - may fail if events can't load (e.g., rate limiting)
-    try {
-      await page.waitForSelector('.event-header', { timeout: 15000 });
-    } catch {
-      // If events didn't load (e.g., "Too Many Requests"), skip the rest
-      const errorVisible = await page.locator('text=Error loading events').count();
-      if (errorVisible > 0) {
-        console.log('Events failed to load (likely rate limiting) — skipping filter test');
-        return;
-      }
-      throw new Error('Event headers did not appear and no loading error was shown');
-    }
+    await waitForEventsToRender(page);
 
     // Wait for virtual scroller to stabilize
     await page.waitForTimeout(1000);
 
-    // Get initial event count from "All (N)" button text
+    // Get initial event count from type dropdown toggle text (shows "⚡ All Types ▾" by default)
+    // Open the type dropdown and read the "All" entry count
     const getEventCount = async () => {
-      const allButtonText = await page.locator('button').filter({ hasText: /^All \(\d+\)$/ }).textContent();
-      const match = allButtonText.match(/All \((\d+)\)/);
-      return match ? parseInt(match[1]) : 0;
+      const toggle = page.locator('.filter-type-toggle');
+      await toggle.click();
+      await page.waitForTimeout(200);
+      const allItem = page.locator('.filter-type-menu-item').first();
+      const countText = await allItem.locator('.filter-type-menu-count').textContent();
+      // Close dropdown
+      await toggle.click();
+      await page.waitForTimeout(100);
+      return parseInt(countText) || 0;
     };
     
     const initialCount = await getEventCount();
@@ -164,32 +182,25 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should clear search filter', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
-    await page.waitForSelector('.main-layout', { timeout: 15000 });
-    
-    // Wait for loading to finish
-    await page.waitForFunction(() => {
-      const loadingEl = document.querySelector('.loading-message');
-      return loadingEl === null || window.getComputedStyle(loadingEl).display === 'none';
-    }, { timeout: 30000 });
-    
-    // Check if error occurred
-    const errorEl = page.locator('.error-message');
-    if (await errorEl.count() > 0) {
-      throw new Error(`Events failed to load: ${await errorEl.textContent()}`);
-    }
-    
-    // Wait for events to appear
-    await page.waitForSelector('.event-header', { timeout: 5000 });
-    
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await waitForEventsToRender(page);
+
     // Wait for virtual scroller to stabilize
     await page.waitForTimeout(1000);
     
-    // Helper function to get event count from "All (N)" button
+    // Helper function to get event count from type dropdown "All" entry
     const getEventCount = async () => {
-      const allButtonText = await page.locator('button').filter({ hasText: /^All \(\d+\)$/ }).textContent();
-      const match = allButtonText.match(/All \((\d+)\)/);
-      return match ? parseInt(match[1]) : 0;
+      const toggle = page.locator('.filter-type-toggle');
+      await toggle.click();
+      await page.waitForTimeout(200);
+      const allItem = page.locator('.filter-type-menu-item').first();
+      const countText = await allItem.locator('.filter-type-menu-count').textContent();
+      // Close dropdown
+      await toggle.click();
+      await page.waitForTimeout(100);
+      return parseInt(countText) || 0;
     };
     
     const searchInput = page.locator('input[placeholder="🔍 Search events..."]');
@@ -211,7 +222,9 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should expand and collapse tool details', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     // Wait for page content to load - try multiple possible selectors
@@ -251,7 +264,9 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should toggle content visibility', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     // Wait for page content to load - try multiple possible selectors
@@ -294,7 +309,9 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should toggle sidebar', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     // Wait for page content to load - try multiple possible selectors
@@ -352,5 +369,131 @@ test.describe('Session Detail Page', () => {
     
     // Should show error message
     await expect(page.locator('body')).toContainText('Session not found');
+  });
+
+  test('should open event type dropdown and select a type', async ({ page }) => {
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await waitForEventsToRender(page);
+    await page.waitForTimeout(1000);
+
+    // Click the type filter toggle
+    const toggle = page.locator('.filter-type-toggle');
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+
+    // Menu should appear
+    const menu = page.locator('.filter-type-menu');
+    await expect(menu).toBeVisible();
+
+    // Should have multiple items
+    const items = menu.locator('.filter-type-menu-item');
+    const count = await items.count();
+    expect(count).toBeGreaterThan(1);
+
+    // Select the second item (first specific type)
+    if (count > 1) {
+      const secondItem = items.nth(1);
+      const typeLabel = await secondItem.locator('.filter-type-menu-label').textContent();
+      await secondItem.click();
+
+      // Dropdown should close
+      await expect(menu).not.toBeVisible();
+
+      // Toggle button should show active state with the selected type
+      await expect(toggle).toContainText(typeLabel.trim());
+
+      // Filter chip should appear
+      const chipBar = page.locator('.active-filters-bar');
+      await expect(chipBar).toBeVisible();
+      await expect(chipBar.locator('.filter-chip')).toContainText('Type:');
+    }
+  });
+
+  test('should show filter chips when filters active and clear all', async ({ page }) => {
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await waitForEventsToRender(page);
+    await page.waitForTimeout(1000);
+
+    // Initially no active filters bar
+    const chipBar = page.locator('.active-filters-bar');
+    await expect(chipBar).not.toBeVisible();
+
+    // Type in search
+    const searchInput = page.locator('input[placeholder="🔍 Search events..."]');
+    await searchInput.fill('test');
+    await page.waitForTimeout(400);
+
+    // Filter chip should appear for search
+    await expect(chipBar).toBeVisible();
+    await expect(chipBar.locator('.filter-chip')).toContainText('Search:');
+
+    // Click "Clear all"
+    const clearBtn = chipBar.locator('.clear-all-filters-btn');
+    await expect(clearBtn).toBeVisible();
+    await clearBtn.click();
+    await page.waitForTimeout(400);
+
+    // Filter chips should be gone
+    await expect(chipBar).not.toBeVisible();
+
+    // Search input should be cleared
+    await expect(searchInput).toHaveValue('');
+  });
+
+  test('should dismiss filter chip individually', async ({ page }) => {
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await waitForEventsToRender(page);
+    await page.waitForTimeout(1000);
+
+    // Select a type filter via dropdown
+    const toggle = page.locator('.filter-type-toggle');
+    await toggle.click();
+    await page.waitForTimeout(200);
+
+    const items = page.locator('.filter-type-menu-item');
+    const count = await items.count();
+    if (count > 1) {
+      await items.nth(1).click();
+      await page.waitForTimeout(300);
+
+      // Chip should be visible
+      const chipBar = page.locator('.active-filters-bar');
+      await expect(chipBar).toBeVisible();
+
+      // Remove the type filter chip
+      const removeBtn = chipBar.locator('.filter-chip .filter-chip-remove').first();
+      await removeBtn.click();
+      await page.waitForTimeout(300);
+
+      // Toggle should reset to "All Types"
+      await expect(toggle).toContainText('All Types');
+    }
+  });
+
+  test('should close type dropdown when clicking outside', async ({ page }) => {
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await waitForEventsToRender(page);
+    await page.waitForTimeout(1000);
+
+    // Open dropdown
+    const toggle = page.locator('.filter-type-toggle');
+    await toggle.click();
+    const menu = page.locator('.filter-type-menu');
+    await expect(menu).toBeVisible();
+
+    // Click outside (on the content area)
+    await page.locator('.content').click({ position: { x: 10, y: 200 } });
+    await page.waitForTimeout(200);
+
+    // Menu should be closed
+    await expect(menu).not.toBeVisible();
   });
 });

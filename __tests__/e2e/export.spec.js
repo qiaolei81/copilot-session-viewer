@@ -4,20 +4,33 @@ const AdmZip = require('adm-zip');
 test.describe('Export Tests', () => {
   let copilotSessionId, claudeSessionId, piSessionId;
 
+  const getEventfulSessionId = async (request, sessions, source) => {
+    for (const session of sessions) {
+      if (session.source !== source || !session?.hasEvents || session.eventCount <= 0) {
+        continue;
+      }
+
+      const response = await request.get(`/api/sessions/${session.id}/events`);
+      if (!response.ok()) {
+        continue;
+      }
+
+      const events = await response.json();
+      if (Array.isArray(events) && events.length > 0) {
+        return session.id;
+      }
+    }
+
+    return null;
+  };
+
   test.beforeAll(async ({ request }) => {
     // Get sessions from API to find different source types
     const sessions = await getSessionsWithRetry(request);
 
-    // Find sessions by source type
-    for (const session of sessions) {
-      if (session.source === 'copilot' && !copilotSessionId) {
-        copilotSessionId = session.id;
-      } else if (session.source === 'claude' && !claudeSessionId) {
-        claudeSessionId = session.id;
-      } else if (session.source === 'pi-mono' && !piSessionId) {
-        piSessionId = session.id;
-      }
-    }
+    copilotSessionId = await getEventfulSessionId(request, sessions, 'copilot');
+    claudeSessionId = await getEventfulSessionId(request, sessions, 'claude');
+    piSessionId = await getEventfulSessionId(request, sessions, 'pi-mono');
 
     // At minimum, we need one session
     if (!copilotSessionId && !claudeSessionId && !piSessionId) {

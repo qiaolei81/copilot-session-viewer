@@ -74,9 +74,10 @@ test.describe('Subagent View', () => {
     if (count > 0) {
       await expect(dropdown).toBeVisible();
 
-      // Should have "All Events" as first option
+      // First option should be the reset state for the subagent filter
       const firstOption = dropdown.locator('option').first();
-      await expect(firstOption).toHaveText('All Events');
+      await expect(firstOption).toHaveAttribute('value', '');
+      await expect(firstOption).toHaveText(/All Agents/);
     } else {
       // Session may have _subagent metadata but no subagent.started events visible
       console.log('Subagent dropdown not visible - session may not have detectable subagent events in frontend');
@@ -123,13 +124,17 @@ test.describe('Subagent View', () => {
     await page.waitForSelector('.event-header', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    // Get initial "All" count from filter button
+    // Get initial "All" count from type dropdown
     const getAllCount = async () => {
-      const btn = page.locator('button').filter({ hasText: /^All \(\d+\)$/ });
-      if (await btn.count() === 0) return 0;
-      const text = await btn.textContent();
-      const match = text.match(/All \((\d+)\)/);
-      return match ? parseInt(match[1]) : 0;
+      const toggle = page.locator('.filter-type-toggle');
+      if (await toggle.count() === 0) return 0;
+      await toggle.click();
+      await page.waitForTimeout(200);
+      const allItem = page.locator('.filter-type-menu-item').first();
+      const countText = await allItem.locator('.filter-type-menu-count').textContent();
+      await toggle.click();
+      await page.waitForTimeout(100);
+      return parseInt(countText) || 0;
     };
 
     const initialCount = await getAllCount();
@@ -140,7 +145,7 @@ test.describe('Subagent View', () => {
     const optionCount = await options.count();
 
     if (optionCount > 1) {
-      // Select second option (first subagent, after "All Events")
+      // Select second option (first subagent, after "All Agents")
       const secondOption = options.nth(1);
       const value = await secondOption.getAttribute('value');
       await dropdown.selectOption(value);
@@ -190,7 +195,7 @@ test.describe('Subagent View', () => {
     }
   });
 
-  test('should return to all events when "All Events" is selected', async ({ page }) => {
+  test('should return to all events when "All Agents" is selected', async ({ page }) => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
     await page.goto(`/session/${SUBAGENT_SESSION_ID}`);
@@ -205,11 +210,15 @@ test.describe('Subagent View', () => {
     await page.waitForTimeout(1000);
 
     const getAllCount = async () => {
-      const btn = page.locator('button').filter({ hasText: /^All \(\d+\)$/ });
-      if (await btn.count() === 0) return 0;
-      const text = await btn.textContent();
-      const match = text.match(/All \((\d+)\)/);
-      return match ? parseInt(match[1]) : 0;
+      const toggle = page.locator('.filter-type-toggle');
+      if (await toggle.count() === 0) return 0;
+      await toggle.click();
+      await page.waitForTimeout(200);
+      const allItem = page.locator('.filter-type-menu-item').first();
+      const countText = await allItem.locator('.filter-type-menu-count').textContent();
+      await toggle.click();
+      await page.waitForTimeout(100);
+      return parseInt(countText) || 0;
     };
 
     const initialCount = await getAllCount();
@@ -225,7 +234,7 @@ test.describe('Subagent View', () => {
       await dropdown.selectOption(value);
       await page.waitForTimeout(500);
 
-      // Switch back to "All Events"
+      // Switch back to "All Agents"
       await dropdown.selectOption('');
       await page.waitForTimeout(500);
 

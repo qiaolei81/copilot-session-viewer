@@ -20,6 +20,24 @@ class InsightController {
     }
   }
 
+  _getGenerateInsightErrorResponse(err) {
+    if (err instanceof Error) {
+      if (err.message === 'Events file not found') {
+        return { status: 400, body: { error: err.message } };
+      }
+
+      if (err.message === 'Failed to acquire lock for insight generation') {
+        return { status: 503, body: { error: err.message } };
+      }
+
+      if (err.message) {
+        return { status: 500, body: { error: err.message } };
+      }
+    }
+
+    return { status: 500, body: { error: 'Error generating insight' } };
+  }
+
   // Generate or get insight
   async generateInsight(req, res) {
     try {
@@ -64,7 +82,8 @@ class InsightController {
         operation: 'generateInsight'
       });
 
-      res.status(500).json({ error: err.message || 'Error generating insight' });
+      const errorResponse = this._getGenerateInsightErrorResponse(err);
+      res.status(errorResponse.status).json(errorResponse.body);
     }
   }
 
