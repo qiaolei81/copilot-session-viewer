@@ -242,4 +242,60 @@ test.describe('Subagent View', () => {
       expect(restoredCount).toBe(initialCount);
     }
   });
+
+  test('should preserve type filter when clearing agent chip', async ({ page }) => {
+    test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
+
+    await page.goto(`/session/${SUBAGENT_SESSION_ID}`);
+    await page.waitForSelector('.main-layout', { timeout: 10000 });
+
+    await page.waitForFunction(() => {
+      const loadingEl = document.querySelector('.loading-message');
+      return loadingEl === null || window.getComputedStyle(loadingEl).display === 'none';
+    }, { timeout: 30000 });
+
+    await page.waitForSelector('.event-header', { timeout: 10000 });
+    await page.waitForTimeout(1000);
+
+    const dropdown = page.locator('.subagent-dropdown');
+    const options = dropdown.locator('option');
+    const optionCount = await options.count();
+    const toggle = page.locator('.filter-type-toggle');
+    await expect(toggle).toBeVisible();
+
+    if (optionCount > 1) {
+      const secondOption = options.nth(1);
+      const value = await secondOption.getAttribute('value');
+      await dropdown.selectOption(value);
+      await page.waitForTimeout(500);
+
+      await toggle.click();
+      await page.waitForTimeout(200);
+
+      const items = page.locator('.filter-type-menu-item');
+      const typeCount = await items.count();
+      if (typeCount <= 1) {
+        await toggle.click();
+        return;
+      }
+
+      const typeItem = items.nth(1);
+      const selectedTypeLabel = (await typeItem.locator('.filter-type-menu-label').textContent()).trim();
+      await typeItem.click();
+      await page.waitForTimeout(300);
+
+
+      const chipBar = page.locator('.active-filters-bar');
+      await expect(chipBar).toBeVisible();
+
+      const agentChipRemoveBtn = chipBar.locator('.filter-chip').filter({ hasText: 'Agent:' }).locator('.filter-chip-remove');
+      await expect(agentChipRemoveBtn).toBeVisible();
+      await agentChipRemoveBtn.click();
+      await page.waitForTimeout(300);
+
+      await expect(toggle).toContainText(selectedTypeLabel);
+      await expect(chipBar.locator('.filter-chip')).toContainText(['Type:']);
+      await expect(chipBar.locator('.filter-chip').filter({ hasText: 'Agent:' })).toHaveCount(0);
+    }
+  });
 });

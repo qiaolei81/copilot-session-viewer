@@ -103,6 +103,7 @@
 
     // Debounce search input
     let searchTimeout = null;
+    let scrollCleanup = null;
     watch(searchText, (newValue) => {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
@@ -881,8 +882,10 @@
 
     const selectSubagent = (toolCallId) => {
       selectedSubagent.value = toolCallId;
-      // Reset type filter when switching subagent view
-      currentFilter.value = 'all';
+      // Reset type filter only when switching into a specific subagent view
+      if (toolCallId) {
+        currentFilter.value = 'all';
+      }
       if (window.trackClick) {
         window.trackClick('SubagentSelected', {
           subagent: toolCallId,
@@ -1052,20 +1055,49 @@
       }
     };
 
+    const closeTypeFilter = (e) => {
+      const dropdown = document.querySelector('.filter-type-wrapper');
+      if (dropdown && !dropdown.contains(e.target)) {
+        typeFilterOpen.value = false;
+      }
+    };
+
+    const handleKeydown = (e) => {
+      if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        sidebarCollapsed.value = !sidebarCollapsed.value;
+      }
+    };
+
+    onBeforeUnmount(() => {
+      document.removeEventListener('click', closeTypeFilter);
+      window.removeEventListener('keydown', handleKeydown);
+
+      // Clear search timeout (memory leak fix)
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+        searchTimeout = null;
+      }
+
+      // Clean scroll listeners
+      if (scrollCleanup) {
+        scrollCleanup();
+        scrollCleanup = null;
+      }
+
+      // Clear expansion state (memory leak fix)
+      expandedTools.value = {};
+      expandedContent.value = {};
+
+      // Clear markdown cache (memory leak fix)
+      markdownCache.clear();
+    });
+
 
     // Lifecycle
     onMounted(async () => {
       // Close type filter dropdown on outside click
-      const closeTypeFilter = (e) => {
-        const dropdown = document.querySelector('.filter-type-wrapper');
-        if (dropdown && !dropdown.contains(e.target)) {
-          typeFilterOpen.value = false;
-        }
-      };
       document.addEventListener('click', closeTypeFilter);
-      onBeforeUnmount(() => {
-        document.removeEventListener('click', closeTypeFilter);
-      });
 
       // Load events asynchronously
       try {
@@ -1179,12 +1211,7 @@
         eventsLoading.value = false;
       }
 
-      window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'b') {
-          e.preventDefault();
-          sidebarCollapsed.value = !sidebarCollapsed.value;
-        }
-      });
+      window.addEventListener('keydown', handleKeydown);
 
       if (window.marked) {
         marked.setOptions({
@@ -1231,7 +1258,6 @@
       };
 
       // 初始更新和添加滚动监听
-      let scrollCleanup = null;
       setTimeout(() => {
         updateVisibleRange();
 
@@ -1245,26 +1271,6 @@
         }
       }, 500);
 
-      // Cleanup on unmount
-      onBeforeUnmount(() => {
-        // Clear search timeout (memory leak fix)
-        if (searchTimeout) {
-          clearTimeout(searchTimeout);
-          searchTimeout = null;
-        }
-
-        // Clean scroll listeners
-        if (scrollCleanup) {
-          scrollCleanup();
-        }
-
-        // Clear expansion state (memory leak fix)
-        expandedTools.value = {};
-        expandedContent.value = {};
-
-        // Clear markdown cache (memory leak fix)
-        markdownCache.clear();
-      });
     });
 
     // Session Tags
