@@ -116,6 +116,9 @@ class SessionService {
       return (a._fileIndex ?? 0) - (b._fileIndex ?? 0);
     });
 
+    // Remove file-history-snapshot events early to avoid unnecessary normalization work
+    events = events.filter(e => e.type !== 'file-history-snapshot');
+
     // Normalize events to unified format (convert Claude format to standard)
     events = events.map(event => this._normalizeEvent(event, session.source));
     
@@ -142,9 +145,6 @@ class SessionService {
     
     // Clean up events for timeline rendering
     events = events.filter(e => {
-      // Remove file-history-snapshot events (not useful in UI)
-      if (e.type === 'file-history-snapshot') return false;
-
       // Keep events with valid timestamps
       const ts = e.timestamp || e.snapshot?.timestamp;
       if (!ts) {
