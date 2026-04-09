@@ -197,6 +197,29 @@ describe('SessionService', () => {
       expect(events[999].data.tool).toBe('tool_999');
     });
 
+    it('should filter out file-history-snapshot events from Claude sessions', async () => {
+      const sessionDir = path.join(tmpDir, sessionId);
+      await fs.promises.mkdir(sessionDir, { recursive: true });
+
+      const claudeEvents = [
+        { type: 'user', uuid: 'user-1', timestamp: '2026-02-20T10:00:00.000Z', message: { role: 'user', content: [{ type: 'text', text: 'Hello' }] } },
+        { type: 'file-history-snapshot', timestamp: '2026-02-20T10:00:00.500Z', snapshot: { trackedFileBackups: { 'file1.js': { version: 1 } } } },
+        { type: 'assistant', uuid: 'asst-1', parentUuid: 'user-1', timestamp: '2026-02-20T10:00:01.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Hi' }] } }
+      ];
+
+      const content = claudeEvents.map(e => JSON.stringify(e)).join('\n');
+      await fs.promises.writeFile(path.join(sessionDir, 'events.jsonl'), content);
+      await fs.promises.writeFile(path.join(sessionDir, 'workspace.yaml'), 'repo: test\n');
+
+      const events = await service.getSessionEvents(sessionId);
+
+      // file-history-snapshot events should be excluded from the result
+      const snapshotEvents = events.filter(e => e.type === 'file-history-snapshot');
+      expect(snapshotEvents).toHaveLength(0);
+      // Other events should still be present
+      expect(events.some(e => e.type === 'user.message')).toBe(true);
+    });
+
     it('should preserve _fileIndex during streaming', async () => {
       const sessionDir = path.join(tmpDir, sessionId);
       await fs.promises.mkdir(sessionDir, { recursive: true });

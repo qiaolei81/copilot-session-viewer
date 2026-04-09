@@ -142,6 +142,9 @@ class SessionService {
     
     // Clean up events for timeline rendering
     events = events.filter(e => {
+      // Remove file-history-snapshot events (not useful in UI)
+      if (e.type === 'file-history-snapshot') return false;
+
       // Keep events with valid timestamps
       const ts = e.timestamp || e.snapshot?.timestamp;
       if (!ts) {
