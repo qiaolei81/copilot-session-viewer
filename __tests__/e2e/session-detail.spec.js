@@ -3,6 +3,7 @@ const { test, expect } = require('./fixtures');
 test.describe('Session Detail Page', () => {
   // Use a known session ID from your test environment
   // This will be dynamically fetched in the actual test
+  const CLAUDE_DUPLICATE_SAMPLE_SESSION_ID = '698c6c53-52fa-4312-8de2-ba36173d537b';
   let SESSION_ID;
   let EVENTFUL_SESSION_ID;
   let CLAUDE_USAGE_SESSION_ID;
@@ -139,6 +140,50 @@ test.describe('Session Detail Page', () => {
     const events = getRenderedEventItems(page);
     const count = await events.count();
     expect(count).toBeGreaterThan(0);
+  });
+
+  test('should not surface duplicated Claude replay events in session detail counts', async ({ page, request }) => {
+    const response = await request.get(`/api/sessions/${CLAUDE_DUPLICATE_SAMPLE_SESSION_ID}/events`);
+    test.skip(!response.ok(), 'Provided Claude duplicate sample session is not available');
+
+    const events = await response.json();
+    test.skip(!Array.isArray(events) || events.length === 0, 'Provided Claude duplicate sample has no events');
+
+    const visibleEvents = events.filter(event => {
+      const eventType = event.type || '';
+      return eventType !== 'assistant.turn_end'
+        && eventType !== 'assistant.turn_complete'
+        && eventType !== 'tool.execution_start'
+        && eventType !== 'tool.execution_complete';
+    });
+
+    const uniqueEventKeys = new Set(visibleEvents.map(event => JSON.stringify([
+      event.type || '',
+      event.timestamp || '',
+      event.uuid || event.id || '',
+      event.parentUuid || event.parentId || '',
+      event.data?.message || event.data?.text || event.data?.content || event.data?.reason || '',
+      event.data?.toolCallId || '',
+      event.data?.toolName || ''
+    ])));
+
+    expect(uniqueEventKeys.size).toBe(visibleEvents.length);
+
+    await page.goto(`/session/${CLAUDE_DUPLICATE_SAMPLE_SESSION_ID}`);
+    await waitForEventsToRender(page);
+    await page.waitForTimeout(1000);
+
+    const toggle = page.locator('.filter-type-toggle');
+    await toggle.click();
+    await page.waitForTimeout(200);
+
+    const allItem = page.locator('.filter-type-menu-item').first();
+    const countText = await allItem.locator('.filter-type-menu-count').textContent();
+
+    await toggle.click();
+    await page.waitForTimeout(100);
+
+    expect(parseInt(countText, 10)).toBe(visibleEvents.length);
   });
 
   test('should filter events by search', async ({ page }) => {

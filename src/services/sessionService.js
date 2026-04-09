@@ -189,6 +189,9 @@ class SessionService {
    */
   async _mergeSubAgentEvents(events, mainEventsFile, sessionId, source) {
     let subagentsDir;
+    const existingClaudeEventKeys = source === 'claude'
+      ? new Set(events.map(event => this._getClaudeSubagentMergeKey(event)).filter(Boolean))
+      : null;
     
     if (source === 'claude') {
       // For Claude sessions, look in .claude/projects/*/sessionId/subagents
@@ -314,7 +317,25 @@ class SessionService {
           if (subagentEvents.length === 0) continue;
           
           // Normalize sub-agent events (use same source as parent session)
-          const normalizedSubEvents = subagentEvents.map(event => this._normalizeEvent(event, source));
+          let normalizedSubEvents = subagentEvents.map(event => this._normalizeEvent(event, source));
+
+          if (existingClaudeEventKeys) {
+            normalizedSubEvents = normalizedSubEvents.filter(event => {
+              const eventKey = this._getClaudeSubagentMergeKey(event);
+              if (!eventKey) {
+                return true;
+              }
+
+              if (existingClaudeEventKeys.has(eventKey)) {
+                return false;
+              }
+
+              existingClaudeEventKeys.add(eventKey);
+              return true;
+            });
+          }
+
+          if (normalizedSubEvents.length === 0) continue;
           
           // Get first and last event timestamps
           const firstEvent = normalizedSubEvents[0];
@@ -370,6 +391,51 @@ class SessionService {
     } catch (err) {
       console.error('Error processing sub-agents:', err);
     }
+  }
+
+  _getClaudeSubagentMergeKey(event) {
+    if (!event || event.type?.startsWith('subagent.')) {
+      return null;
+    }
+
+    const timestamp = event.timestamp || event.snapshot?.timestamp;
+    if (!timestamp) {
+      return null;
+    }
+
+    const identifier = event.uuid || event.id || '';
+    const parentIdentifier = event.parentUuid || event.parentId || '';
+    const message = event.data?.message || '';
+    const toolSignature = Array.isArray(event.data?.tools)
+      ? event.data.tools.map(tool => {
+        if (!tool || typeof tool !== 'object') {
+          return '';
+        }
+
+        if (tool.type === 'tool_use') {
+          return `${tool.type}:${tool.id || ''}:${tool.name || ''}`;
+        }
+
+        if (tool.type === 'tool_result') {
+          return `${tool.type}:${tool.tool_use_id || ''}`;
+        }
+
+        return `${tool.type || 'tool'}:${tool.id || ''}:${tool.name || ''}`;
+      }).join('|')
+      : '';
+
+    if (!identifier && !parentIdentifier && !message && !toolSignature) {
+      return null;
+    }
+
+    return JSON.stringify([
+      event.type,
+      timestamp,
+      identifier,
+      parentIdentifier,
+      message,
+      toolSignature
+    ]);
   }
 
   /**

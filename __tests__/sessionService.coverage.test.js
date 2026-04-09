@@ -239,6 +239,99 @@ describe('SessionService - Coverage Enhancement', () => {
       }));
     });
 
+    it('should skip Claude subagent events that mirror the main session', async () => {
+      const sessionId = 'claude-deduped-subagent-session';
+      const claudeDir = path.join(tmpDir, 'claude');
+      const projectDir = path.join(claudeDir, 'project1');
+      const sessionDir = path.join(projectDir, sessionId);
+      const subagentsDir = path.join(sessionDir, 'subagents');
+      await fs.promises.mkdir(subagentsDir, { recursive: true });
+
+      const mainEvents = [
+        {
+          type: 'user',
+          uuid: 'main-user-1',
+          timestamp: '2026-02-20T10:00:00.000Z',
+          message: {
+            role: 'user',
+            content: 'Main prompt'
+          }
+        },
+        {
+          type: 'assistant',
+          uuid: 'main-assistant-1',
+          parentUuid: 'main-user-1',
+          timestamp: '2026-02-20T10:00:05.000Z',
+          message: {
+            role: 'assistant',
+            model: 'claude-sonnet-4.5',
+            content: [{ type: 'text', text: 'Main answer' }],
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0
+            }
+          }
+        }
+      ];
+
+      await fs.promises.writeFile(
+        path.join(projectDir, `${sessionId}.jsonl`),
+        mainEvents.map(event => JSON.stringify(event)).join('\n')
+      );
+
+      const subagentEvents = [
+        {
+          ...mainEvents[0],
+          isSidechain: true,
+          agentId: 'mirror-agent'
+        },
+        {
+          ...mainEvents[1],
+          isSidechain: true,
+          agentId: 'mirror-agent'
+        },
+        {
+          type: 'assistant',
+          uuid: 'subagent-assistant-1',
+          parentUuid: 'main-assistant-1',
+          timestamp: '2026-02-20T10:01:00.000Z',
+          isSidechain: true,
+          agentId: 'mirror-agent',
+          message: {
+            role: 'assistant',
+            model: 'claude-haiku-4.5',
+            content: [{ type: 'text', text: 'Unique subagent work' }],
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0
+            }
+          }
+        }
+      ];
+
+      await fs.promises.writeFile(
+        path.join(subagentsDir, 'agent-mirror-agent.jsonl'),
+        subagentEvents.map(event => JSON.stringify(event)).join('\n')
+      );
+
+      const mockSession = { id: sessionId, type: 'file', source: 'claude' };
+      mockRepository.findById.mockResolvedValue(mockSession);
+
+      const events = await service.getSessionEvents(sessionId);
+
+      expect(events.filter(event => event.type === 'user.message' && event.data?.message === 'Main prompt')).toHaveLength(1);
+      expect(events.filter(event => event.type === 'assistant.message' && event.data?.message === 'Main answer')).toHaveLength(1);
+      expect(events.filter(event => event.type === 'assistant.message' && event.data?.message === 'Unique subagent work')).toHaveLength(1);
+
+      const startedEvent = events.find(event => event.type === 'subagent.started');
+      const completedEvent = events.find(event => event.type === 'subagent.completed');
+
+      expect(startedEvent).toBeDefined();
+      expect(startedEvent.timestamp).toBe('2026-02-20T10:01:00.000Z');
+      expect(completedEvent).toBeDefined();
+      expect(completedEvent.timestamp).toBe('2026-02-20T10:01:00.000Z');
+    });
+
     it('should return empty array if claude source not found', async () => {
       const sessionId = 'claude-no-source';
       const mockSession = { id: sessionId, type: 'file', source: 'claude' };
