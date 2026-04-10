@@ -82,6 +82,8 @@
     const visibleRange = ref({ start: 0, end: 0 });
     const selectedSubagent = ref(null); // null = all events, toolCallId = specific subagent
     const typeFilterOpen = ref(false); // Event type dropdown open state
+    const turnFilterOpen = ref(false); // Turn dropdown open state
+    const subagentFilterOpen = ref(false); // Subagent dropdown open state
 
     // Active filter count (computed)
     const activeFilterCount = computed(() => {
@@ -99,6 +101,8 @@
       searchText.value = '';
       debouncedSearchText.value = '';
       typeFilterOpen.value = false;
+      turnFilterOpen.value = false;
+      subagentFilterOpen.value = false;
     };
 
     // Debounce search input
@@ -1055,10 +1059,18 @@
       }
     };
 
-    const closeTypeFilter = (e) => {
-      const dropdown = document.querySelector('.filter-type-wrapper');
-      if (dropdown && !dropdown.contains(e.target)) {
+    const closeDropdowns = (e) => {
+      const typeWrapper = document.querySelector('.filter-type-wrapper');
+      if (typeWrapper && !typeWrapper.contains(e.target)) {
         typeFilterOpen.value = false;
+      }
+      const turnWrapper = document.querySelector('.turn-dropdown-wrapper');
+      if (turnWrapper && !turnWrapper.contains(e.target)) {
+        turnFilterOpen.value = false;
+      }
+      const subagentWrapper = document.querySelector('.subagent-dropdown-wrapper');
+      if (subagentWrapper && !subagentWrapper.contains(e.target)) {
+        subagentFilterOpen.value = false;
       }
     };
 
@@ -1070,7 +1082,7 @@
     };
 
     onBeforeUnmount(() => {
-      document.removeEventListener('click', closeTypeFilter);
+      document.removeEventListener('click', closeDropdowns);
       window.removeEventListener('keydown', handleKeydown);
 
       // Clear search timeout (memory leak fix)
@@ -1096,8 +1108,8 @@
 
     // Lifecycle
     onMounted(async () => {
-      // Close type filter dropdown on outside click
-      document.addEventListener('click', closeTypeFilter);
+      // Close dropdowns on outside click
+      document.addEventListener('click', closeDropdowns);
 
       // Load events asynchronously
       try {
@@ -1577,6 +1589,8 @@
       subagentTokenUsage,
       SUBAGENT_COLORS,
       typeFilterOpen,
+      turnFilterOpen,
+      subagentFilterOpen,
       activeFilterCount,
       clearAllFilters,
       scrollToTurn,
@@ -1766,6 +1780,21 @@
             </div>
           </div>
 
+          <!-- Event Filters -->
+          <div class="sidebar-section">
+            <div class="sidebar-section-title">Event Filters</div>
+            <div class="event-filters">
+              <button
+                v-for="filter in filters"
+                :key="filter.type"
+                :class="['filter-btn', { active: currentFilter === filter.type }]"
+                @click="setFilter(filter.type)"
+              >
+                {{ filter.type === 'all' ? 'All' : filter.type }} ({{ filter.count }})
+              </button>
+            </div>
+          </div>
+
           <!-- Session Tags -->
           <div class="sidebar-section session-tags-container">
             <div class="sidebar-section-title">Tags</div>
@@ -1846,38 +1875,66 @@
 
               <div class="filter-bar-divider"></div>
 
-              <!-- Turn dropdown with optgroup -->
-              <select
-                v-if="turns.length > 0"
-                v-model="currentTurnIndex"
-                @change="jumpToTurn(currentTurnIndex)"
-                class="turn-dropdown"
-              >
-                <optgroup
-                  v-for="req in userReqs"
-                  :key="req.reqNumber"
-                  :label="req.reqNumber > 0 ? 'UserReq ' + req.reqNumber + ': ' + truncateText(req.message, 40) : 'Setup'"
+              <!-- Turn dropdown (custom) -->
+              <div v-if="turns.length > 0" class="turn-dropdown-wrapper">
+                <button
+                  class="turn-dropdown-toggle"
+                  :class="{ active: currentTurnIndex > 0 }"
+                  @click.stop="turnFilterOpen = !turnFilterOpen; subagentFilterOpen = false; typeFilterOpen = false"
                 >
-                  <option v-for="turn in req.turns" :key="turn.id" :value="turn.id">
-                    Turn {{ turn.originalTurnId ?? turn.id }} ({{ turn.duration }})
-                  </option>
-                </optgroup>
-              </select>
+                  🔄 {{ currentTurnIndex > 0 ? 'Turn ' + (turns[currentTurnIndex]?.originalTurnId ?? currentTurnIndex) : 'All Turns' }} ▾
+                </button>
+                <div v-if="turnFilterOpen" class="turn-dropdown-menu">
+                  <div class="turn-dropdown-menu-header">Turns</div>
+                  <div class="turn-dropdown-menu-options">
+                    <template v-for="req in userReqs" :key="req.reqNumber">
+                      <div class="turn-dropdown-group-label">
+                        {{ req.reqNumber > 0 ? 'UserReq ' + req.reqNumber + ': ' + truncateText(req.message, 40) : 'Setup' }}
+                      </div>
+                      <div
+                        v-for="turn in req.turns"
+                        :key="turn.id"
+                        :class="['turn-dropdown-menu-item', { active: currentTurnIndex === turn.id }]"
+                        @click="currentTurnIndex = turn.id; jumpToTurn(turn.id); turnFilterOpen = false"
+                      >
+                        <span class="turn-dropdown-menu-label">Turn {{ turn.originalTurnId ?? turn.id }}</span>
+                        <span class="turn-dropdown-menu-duration">{{ turn.duration }}</span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
 
               <div class="filter-bar-divider"></div>
 
-              <!-- Subagent selector -->
-              <div v-if="subagentList.length > 0" class="subagent-selector">
-                <select
-                  :value="selectedSubagent || ''"
-                  @change="selectSubagent($event.target.value || null)"
-                  class="subagent-dropdown"
+              <!-- Subagent selector (custom) -->
+              <div v-if="subagentList.length > 0" class="subagent-dropdown-wrapper">
+                <button
+                  class="subagent-dropdown-toggle"
+                  :class="{ active: selectedSubagent }"
+                  @click.stop="subagentFilterOpen = !subagentFilterOpen; turnFilterOpen = false; typeFilterOpen = false"
                 >
-                  <option value="">🤖 All Agents</option>
-                  <option v-for="sa in subagentList" :key="sa.toolCallId" :value="sa.toolCallId">
-                    🤖 {{ sa.name }}
-                  </option>
-                </select>
+                  🤖 {{ selectedSubagent ? (subagentList.find(s => s.toolCallId === selectedSubagent)?.name || 'Agent') : 'All Agents' }} ▾
+                </button>
+                <div v-if="subagentFilterOpen" class="subagent-dropdown-menu">
+                  <div class="subagent-dropdown-menu-header">Agents</div>
+                  <div class="subagent-dropdown-menu-options">
+                    <div
+                      :class="['subagent-dropdown-menu-item', { active: !selectedSubagent }]"
+                      @click="selectSubagent(null); subagentFilterOpen = false"
+                    >
+                      <span class="subagent-dropdown-menu-label">🤖 All Agents</span>
+                    </div>
+                    <div
+                      v-for="sa in subagentList"
+                      :key="sa.toolCallId"
+                      :class="['subagent-dropdown-menu-item', { active: selectedSubagent === sa.toolCallId }]"
+                      @click="selectSubagent(sa.toolCallId); subagentFilterOpen = false"
+                    >
+                      <span class="subagent-dropdown-menu-label">🤖 {{ sa.name }}</span>
+                    </div>
+                  </div>
+                </div>
                 <span v-if="subagentTokenUsage" class="subagent-usage-badge">
                   {{ subagentTokenUsage.eventCount }} events · {{ formatDuration(subagentTokenUsage.durationMs) }}
                 </span>
@@ -1890,7 +1947,7 @@
                 <button
                   class="filter-type-toggle"
                   :class="{ active: currentFilter !== 'all' }"
-                  @click.stop="typeFilterOpen = !typeFilterOpen"
+                  @click.stop="typeFilterOpen = !typeFilterOpen; turnFilterOpen = false; subagentFilterOpen = false"
                 >
                   ⚡ {{ currentFilter === 'all' ? 'All Types' : currentFilter }} ▾
                 </button>

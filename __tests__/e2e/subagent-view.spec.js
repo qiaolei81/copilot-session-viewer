@@ -68,16 +68,13 @@ test.describe('Subagent View', () => {
     // Wait for events to render and Vue reactivity to compute subagent list
     await page.waitForTimeout(2000);
 
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('.subagent-dropdown-toggle');
     // Dropdown only appears if subagents were detected in the events
     const count = await dropdown.count();
     if (count > 0) {
       await expect(dropdown).toBeVisible();
-
-      // First option should be the reset state for the subagent filter
-      const firstOption = dropdown.locator('option').first();
-      await expect(firstOption).toHaveAttribute('value', '');
-      await expect(firstOption).toHaveText(/All Agents/);
+      // Default state should show "All Agents"
+      await expect(dropdown).toContainText('All Agents');
     } else {
       // Session may have _subagent metadata but no subagent.started events visible
       console.log('Subagent dropdown not visible - session may not have detectable subagent events in frontend');
@@ -101,7 +98,7 @@ test.describe('Subagent View', () => {
     await page.waitForTimeout(2000);
 
     // If no subagents, dropdown should not be visible
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('.subagent-dropdown-toggle');
     const count = await dropdown.count();
     // Either not present, or present because session has subagents (both ok)
     if (count === 0) {
@@ -140,23 +137,29 @@ test.describe('Subagent View', () => {
     const initialCount = await getAllCount();
 
     // Select the first subagent option
-    const dropdown = page.locator('.subagent-dropdown');
-    const options = dropdown.locator('option');
-    const optionCount = await options.count();
+    const dropdown = page.locator('.subagent-dropdown-toggle');
+    const dropdownCount = await dropdown.count();
 
-    if (optionCount > 1) {
-      // Select second option (first subagent, after "All Agents")
-      const secondOption = options.nth(1);
-      const value = await secondOption.getAttribute('value');
-      await dropdown.selectOption(value);
+    if (dropdownCount > 0) {
+      // Open the subagent menu
+      await dropdown.click();
+      await page.waitForTimeout(200);
 
-      // Wait for re-render
-      await page.waitForTimeout(500);
+      const menuItems = page.locator('.subagent-dropdown-menu-item');
+      const optionCount = await menuItems.count();
 
-      const filteredCount = await getAllCount();
+      if (optionCount > 1) {
+        // Click second item (first subagent, after "All Agents")
+        await menuItems.nth(1).click();
 
-      // Filtered count should be less than or equal to initial
-      expect(filteredCount).toBeLessThanOrEqual(initialCount);
+        // Wait for re-render
+        await page.waitForTimeout(500);
+
+        const filteredCount = await getAllCount();
+
+        // Filtered count should be less than or equal to initial
+        expect(filteredCount).toBeLessThanOrEqual(initialCount);
+      }
     }
   });
 
@@ -173,25 +176,28 @@ test.describe('Subagent View', () => {
 
     await page.waitForTimeout(1000);
 
-    const dropdown = page.locator('.subagent-dropdown');
-    const options = dropdown.locator('option');
-    const optionCount = await options.count();
+    const dropdown = page.locator('.subagent-dropdown-toggle');
+    const dropdownCount = await dropdown.count();
 
-    if (optionCount > 1) {
+    if (dropdownCount > 0) {
       // Usage badge should not be visible before selection
       const usageBadge = page.locator('.subagent-usage-badge');
       await expect(usageBadge).not.toBeVisible();
 
-      // Select first subagent
-      const secondOption = options.nth(1);
-      const value = await secondOption.getAttribute('value');
-      await dropdown.selectOption(value);
+      // Open menu and select first subagent
+      await dropdown.click();
+      await page.waitForTimeout(200);
+      const menuItems = page.locator('.subagent-dropdown-menu-item');
+      const optionCount = await menuItems.count();
 
-      await page.waitForTimeout(500);
+      if (optionCount > 1) {
+        await menuItems.nth(1).click();
+        await page.waitForTimeout(500);
 
-      // Usage badge should now be visible
-      await expect(usageBadge).toBeVisible();
-      await expect(usageBadge).toContainText('events');
+        // Usage badge should now be visible
+        await expect(usageBadge).toBeVisible();
+        await expect(usageBadge).toContainText('events');
+      }
     }
   });
 
@@ -223,23 +229,29 @@ test.describe('Subagent View', () => {
 
     const initialCount = await getAllCount();
 
-    const dropdown = page.locator('.subagent-dropdown');
-    const options = dropdown.locator('option');
-    const optionCount = await options.count();
+    const dropdown = page.locator('.subagent-dropdown-toggle');
+    const dropdownCount = await dropdown.count();
 
-    if (optionCount > 1) {
-      // Select a subagent
-      const secondOption = options.nth(1);
-      const value = await secondOption.getAttribute('value');
-      await dropdown.selectOption(value);
-      await page.waitForTimeout(500);
+    if (dropdownCount > 0) {
+      // Open menu and select a subagent
+      await dropdown.click();
+      await page.waitForTimeout(200);
+      const menuItems = page.locator('.subagent-dropdown-menu-item');
+      const optionCount = await menuItems.count();
 
-      // Switch back to "All Agents"
-      await dropdown.selectOption('');
-      await page.waitForTimeout(500);
+      if (optionCount > 1) {
+        await menuItems.nth(1).click();
+        await page.waitForTimeout(500);
 
-      const restoredCount = await getAllCount();
-      expect(restoredCount).toBe(initialCount);
+        // Open menu again and switch back to "All Agents"
+        await dropdown.click();
+        await page.waitForTimeout(200);
+        await page.locator('.subagent-dropdown-menu-item').first().click();
+        await page.waitForTimeout(500);
+
+        const restoredCount = await getAllCount();
+        expect(restoredCount).toBe(initialCount);
+      }
     }
   });
 
@@ -257,17 +269,21 @@ test.describe('Subagent View', () => {
     await page.waitForSelector('.event-header', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    const dropdown = page.locator('.subagent-dropdown');
-    const options = dropdown.locator('option');
-    const optionCount = await options.count();
+    const dropdown = page.locator('.subagent-dropdown-toggle');
+    const dropdownCount = await dropdown.count();
     const toggle = page.locator('.filter-type-toggle');
     await expect(toggle).toBeVisible();
 
-    if (optionCount > 1) {
-      const secondOption = options.nth(1);
-      const value = await secondOption.getAttribute('value');
-      await dropdown.selectOption(value);
-      await page.waitForTimeout(500);
+    if (dropdownCount > 0) {
+      // Open menu and select a subagent
+      await dropdown.click();
+      await page.waitForTimeout(200);
+      const menuItems = page.locator('.subagent-dropdown-menu-item');
+      const optionCount = await menuItems.count();
+
+      if (optionCount > 1) {
+        await menuItems.nth(1).click();
+        await page.waitForTimeout(500);
 
       await toggle.click();
       await page.waitForTimeout(200);
@@ -296,6 +312,7 @@ test.describe('Subagent View', () => {
       await expect(toggle).toContainText(selectedTypeLabel);
       await expect(chipBar.locator('.filter-chip')).toContainText(['Type:']);
       await expect(chipBar.locator('.filter-chip').filter({ hasText: 'Agent:' })).toHaveCount(0);
+      }
     }
   });
 });
