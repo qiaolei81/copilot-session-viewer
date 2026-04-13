@@ -198,7 +198,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
   });
 
   test.describe('Tool Summary Section', () => {
-    test('should display tool summary items sorted by count descending', async ({ page }) => {
+    test('should display tool summary items sorted by count descending', async ({ page }, testInfo) => {
       await page.goto(`/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
@@ -208,7 +208,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
       // Look for the Tool Summary heading
       const toolSummaryHeading = page.locator('h3:has-text("Tool Summary")');
       if (await toolSummaryHeading.count() === 0) {
-        test.skip();
+        testInfo.skip(true, 'No Tool Summary section found in this session');
         return;
       }
 

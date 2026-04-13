@@ -1340,18 +1340,17 @@
 
     // Tool calling summary: count tool calls by name, sorted descending by count
     const toolCallingSummary = computed(() => {
-      const countMap = {};
+      const countMap = new Map();
       for (const event of flatEvents.value) {
         if (event.data?.tools && Array.isArray(event.data.tools)) {
           for (const tool of event.data.tools) {
             if (tool && tool.name) {
-              countMap[tool.name] = (countMap[tool.name] || 0) + 1;
+              countMap.set(tool.name, (countMap.get(tool.name) || 0) + 1);
             }
           }
         }
       }
-      return Object.entries(countMap)
-        .map(([name, count]) => ({ name, count }))
+      return Array.from(countMap, ([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
     });
 
