@@ -1338,6 +1338,23 @@
       return Math.round((cacheRead / totalInput) * 100);
     };
 
+    // Tool calling summary: count tool calls by name, sorted descending by count
+    const toolCallingSummary = computed(() => {
+      const countMap = {};
+      for (const event of flatEvents.value) {
+        if (event.data?.tools && Array.isArray(event.data.tools)) {
+          for (const tool of event.data.tools) {
+            if (tool && tool.name) {
+              countMap[tool.name] = (countMap[tool.name] || 0) + 1;
+            }
+          }
+        }
+      }
+      return Object.entries(countMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+    });
+
     // Format cost as premium request count
     const formatCost = (cost) => {
       if (cost === undefined || cost === null) return '';
@@ -1616,7 +1633,8 @@
       formatCost,
       totalTokens,
       totalRequests,
-      getCacheHitRatio
+      getCacheHitRatio,
+      toolCallingSummary
     };
   },
 
@@ -1762,6 +1780,18 @@
                     <span class="usage-code-files">({{ metadata.usage.codeChanges.filesModified?.length || 0 }} files)</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tool Calling Summary -->
+          <div v-if="toolCallingSummary.length" class="sidebar-section">
+            <div class="sidebar-section-title">Tool Calls</div>
+            <div class="tool-summary-list">
+              <div v-for="item in toolCallingSummary" :key="item.name" class="tool-summary-item">
+                <div class="tool-summary-bar" :style="{ width: (item.count / toolCallingSummary[0].count * 100) + '%' }"></div>
+                <span class="tool-summary-name" :title="item.name">{{ item.name }}</span>
+                <span class="tool-summary-count">{{ item.count }}</span>
               </div>
             </div>
           </div>

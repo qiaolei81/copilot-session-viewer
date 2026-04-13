@@ -967,7 +967,7 @@ const app = createApp({
         if (t.isError) catMap[cat].errors++;
       });
 
-      return Object.values(catMap).sort((a, b) => b.totalTime - a.totalTime);
+      return Object.values(catMap).sort((a, b) => b.count - a.count);
     });
 
     const maxCategoryTime = computed(() => {

@@ -197,6 +197,44 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
   });
 
+  test.describe('Tool Summary Section', () => {
+    test('should display tool summary items sorted by count descending', async ({ page }) => {
+      await page.goto(`/session/${SESSION_ID}/time-analyze`);
+      await page.waitForSelector('.container', { timeout: 10000 });
+
+      // Wait for Vue to render
+      await page.waitForTimeout(3000);
+
+      // Look for the Tool Summary heading
+      const toolSummaryHeading = page.locator('h3:has-text("Tool Summary")');
+      if (await toolSummaryHeading.count() === 0) {
+        test.skip();
+        return;
+      }
+
+      // Get all tool summary items - they contain a count like "N calls"
+      const toolItems = page.locator('text=/\\d+ calls?/');
+      const itemCount = await toolItems.count();
+
+      if (itemCount >= 2) {
+        // Extract counts and verify descending order
+        const counts = [];
+        for (let i = 0; i < itemCount; i++) {
+          const text = await toolItems.nth(i).textContent();
+          const match = text.match(/(\d+) calls?/);
+          if (match) {
+            counts.push(parseInt(match[1], 10));
+          }
+        }
+
+        // Verify counts are in descending order
+        for (let i = 1; i < counts.length; i++) {
+          expect(counts[i]).toBeLessThanOrEqual(counts[i - 1]);
+        }
+      }
+    });
+  });
+
   test.describe('Tab Switching', () => {
     test('should have Timeline and Agent Review tabs', async ({ page }) => {
       await page.goto(`/session/${SESSION_ID}/time-analyze`);

@@ -129,8 +129,6 @@
       overflow-y: auto;
       padding: 16px;
       transition: all 0.3s ease;
-      position: relative;
-      z-index: 10;
     }
     .sidebar.collapsed {
       width: 0;
@@ -562,6 +560,48 @@
       color: #8b949e;
     }
 
+    /* Tool Calling Summary */
+    .tool-summary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .tool-summary-item {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 6px;
+      font-size: 12px;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .tool-summary-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: rgba(158, 106, 3, 0.15);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .tool-summary-name {
+      position: relative;
+      color: #c9d1d9;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1;
+    }
+    .tool-summary-count {
+      position: relative;
+      color: #d29922;
+      font-weight: 600;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
     /* Content */
     .content {
       flex: 1;
@@ -623,7 +663,7 @@
     .filter-type-menu {
       position: absolute;
       top: calc(100% + 4px);
-      right: 0;
+      left: 0;
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 6px;

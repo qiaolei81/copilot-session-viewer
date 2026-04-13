@@ -185,6 +185,40 @@ test.describe('Session Detail Page', () => {
     await expect(usageCompact).toContainText('tokens');
   });
 
+  test('should display tool calling summary in sidebar sorted by count descending', async ({ page }) => {
+    test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
+
+    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await waitForEventsToRender(page);
+
+    // Check for Tool Calls sidebar section
+    const toolCallsSection = page.locator('.sidebar-section').filter({
+      has: page.locator('.sidebar-section-title:has-text("Tool Calls")')
+    });
+
+    // Tool Calls section may not appear if session has no tools
+    if (await toolCallsSection.count() === 0) {
+      return;
+    }
+
+    await expect(toolCallsSection).toBeVisible();
+
+    // Verify items exist and counts are in descending order
+    const items = toolCallsSection.locator('.tool-summary-item');
+    const itemCount = await items.count();
+    expect(itemCount).toBeGreaterThan(0);
+
+    const counts = [];
+    for (let i = 0; i < itemCount; i++) {
+      const countText = await items.nth(i).locator('.tool-summary-count').textContent();
+      counts.push(parseInt(countText, 10));
+    }
+
+    for (let i = 1; i < counts.length; i++) {
+      expect(counts[i]).toBeLessThanOrEqual(counts[i - 1]);
+    }
+  });
+
   test('should display event list', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
