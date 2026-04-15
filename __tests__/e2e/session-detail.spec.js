@@ -179,10 +179,15 @@ test.describe('Session Detail Page', () => {
     await page.goto(`/session/${CLAUDE_USAGE_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
-    const usageCompact = page.locator('.usage-compact').first();
-    await expect(usageCompact).toBeVisible();
-    await expect(usageCompact).toContainText('reqs');
-    await expect(usageCompact).toContainText('tokens');
+    const usageSummary = page.locator('.usage-summary').first();
+    await expect(usageSummary).toBeVisible();
+    await expect(usageSummary).toContainText('reqs');
+    await expect(usageSummary).toContainText('tokens');
+
+    const usageExpanded = page.locator('.usage-expanded').first();
+    await expect(usageExpanded).toBeVisible();
+    await expect(usageExpanded).toContainText('Input');
+    await expect(usageExpanded).toContainText('Output');
   });
 
   test('should display tool calling summary in sidebar sorted by count descending', async ({ page }) => {

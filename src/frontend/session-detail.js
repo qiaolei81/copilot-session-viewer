@@ -13,6 +13,7 @@
 (function() {
   // Shared subagent ownership/filtering logic
   const { computeSubagentOwnership, filterBySubagent } = require('./subagent-utils');
+  const { getDisplayInputTokens, getCacheHitRatio: getUsageCacheHitRatio } = require('./usage-utils');
 
   // Verify Vue is loaded
   if (typeof Vue === 'undefined') {
@@ -1285,9 +1286,6 @@
     const autocompleteOptions = ref([]);
     const autocompleteSelectedIndex = ref(0);
 
-    // Usage section
-    const usageExpanded = ref(false);
-
     // Format large numbers as "105K", "29K" etc
     const formatTokens = (num) => {
       if (!num || num === 0) return '0';
@@ -1328,14 +1326,22 @@
       return total;
     });
 
+    const totalModels = computed(() => {
+      if (!metadata.value.usage || !metadata.value.usage.modelMetrics) return 0;
+      return Object.keys(metadata.value.usage.modelMetrics).length;
+    });
+
     // Calculate cache hit ratio per model
     const getCacheHitRatio = (model) => {
       const metrics = metadata.value.usage?.modelMetrics[model];
       if (!metrics || !metrics.usage) return null;
-      const cacheRead = metrics.usage.cacheReadTokens || 0;
-      const totalInput = metrics.usage.inputTokens || 0;
-      if (totalInput === 0) return null;
-      return Math.round((cacheRead / totalInput) * 100);
+      return getUsageCacheHitRatio(metrics.usage);
+    };
+
+    const getDisplayUsageInputTokens = (model) => {
+      const metrics = metadata.value.usage?.modelMetrics[model];
+      if (!metrics || !metrics.usage) return 0;
+      return getDisplayInputTokens(metrics.usage);
     };
 
     // Tool calling summary: count tool calls by name, sorted descending by count
@@ -1358,10 +1364,6 @@
     const formatCost = (cost) => {
       if (cost === undefined || cost === null) return '';
       return cost + ' premium';
-    };
-
-    const toggleUsage = () => {
-      usageExpanded.value = !usageExpanded.value;
     };
 
     // Tag colors (6 colors cycling based on hash)
@@ -1625,13 +1627,13 @@
       selectAutocompleteOption,
       saveTagsOnBlur,
       // Usage
-      usageExpanded,
-      toggleUsage,
       formatTokens,
       formatDuration,
       formatCost,
       totalTokens,
       totalRequests,
+      totalModels,
+      getDisplayUsageInputTokens,
       getCacheHitRatio,
       toolCallingSummary
     };
@@ -1663,7 +1665,6 @@
           <div class="sidebar-section">
             <div class="sidebar-section-title">Session Info</div>
             <div class="session-info">
-              <div v-if="metadata.summary" class="session-summary-block">{{ metadata.summary }}</div>
               <table class="session-info-table">
                 <tbody>
                   <tr v-if="metadata.source">
@@ -1720,32 +1721,64 @@
           <div v-if="metadata.usage" class="sidebar-section">
             <div class="sidebar-section-title">Token Usage</div>
             <div class="usage-container">
-              <!-- Compact view (always visible) -->
-              <div class="usage-compact" @click="toggleUsage">
-                {{ totalRequests }} reqs · {{ formatTokens(totalTokens) }} tokens · {{ formatDuration(metadata.usage.totalApiDurationMs) }}
-                <span class="usage-expand-icon">{{ usageExpanded ? '▲' : '▼' }}</span>
+              <div class="usage-summary">
+                <div class="usage-summary-eyebrow">Overview</div>
+                <div class="usage-summary-total">
+                  {{ formatTokens(totalTokens) }} <span class="usage-summary-total-unit">tokens</span>
+                </div>
+                <div class="usage-summary-caption">
+                  Usage captured across {{ totalModels }} model{{ totalModels === 1 ? '' : 's' }}
+                </div>
+                <div class="usage-summary-metrics">
+                  <div class="usage-metric-card usage-metric-card-summary">
+                    <span class="usage-metric-label">Requests</span>
+                    <span class="usage-metric-value">{{ totalRequests }} reqs</span>
+                  </div>
+                  <div class="usage-metric-card usage-metric-card-summary">
+                    <span class="usage-metric-label">Models</span>
+                    <span class="usage-metric-value">{{ totalModels }}</span>
+                  </div>
+                  <div class="usage-metric-card usage-metric-card-summary">
+                    <span class="usage-metric-label">API Time</span>
+                    <span class="usage-metric-value">{{ formatDuration(metadata.usage.totalApiDurationMs) }}</span>
+                  </div>
+                </div>
               </div>
 
-              <!-- Expanded view -->
-              <div v-if="usageExpanded" class="usage-expanded">
+              <div class="usage-expanded">
                 <!-- Model breakdown -->
                 <div v-if="Object.keys(metadata.usage.modelMetrics).length > 0" class="usage-section">
-                  <div class="usage-section-title">Models</div>
-                  <div v-for="(metrics, model) in metadata.usage.modelMetrics" :key="model" class="usage-model">
-                    <div class="usage-model-name">{{ model }}</div>
-                    <div class="usage-model-details">
-                      <div>{{ metrics.requests?.count || 0 }} reqs</div>
-                      <div v-if="metrics.requests?.cost">Cost: {{ formatCost(metrics.requests.cost) }}</div>
-                      <div v-if="metrics.usage">
-                        <span class="usage-token-label">In:</span> {{ formatTokens(metrics.usage.inputTokens || 0) }}
-                        <span class="usage-token-label">Out:</span> {{ formatTokens(metrics.usage.outputTokens || 0) }}
+                  <div class="usage-section-header">
+                    <div class="usage-section-title">Models</div>
+                    <div class="usage-section-badge">{{ totalModels }}</div>
+                  </div>
+                  <div class="usage-model-list">
+                    <div v-for="(metrics, model) in metadata.usage.modelMetrics" :key="model" class="usage-model">
+                      <div class="usage-model-header">
+                        <div class="usage-model-name" :title="model">{{ model }}</div>
+                        <div class="usage-model-meta">
+                          <span class="usage-meta-pill">{{ metrics.requests?.count || 0 }} reqs</span>
+                          <span v-if="metrics.requests?.cost" class="usage-meta-pill usage-meta-pill-premium">{{ formatCost(metrics.requests.cost) }}</span>
+                          <span v-if="getCacheHitRatio(model)" class="usage-meta-pill usage-meta-pill-cache">{{ getCacheHitRatio(model) }}% cache</span>
+                        </div>
                       </div>
-                      <div v-if="metrics.usage?.cacheReadTokens">
-                        <span class="usage-token-label">Cache Read:</span> {{ formatTokens(metrics.usage.cacheReadTokens) }}
-                        <span v-if="getCacheHitRatio(model)" class="usage-cache-ratio">({{ getCacheHitRatio(model) }}%)</span>
-                      </div>
-                      <div v-if="metrics.usage?.cacheWriteTokens">
-                        <span class="usage-token-label">Cache Write:</span> {{ formatTokens(metrics.usage.cacheWriteTokens) }}
+                      <div v-if="metrics.usage" class="usage-metric-grid">
+                        <div class="usage-metric-card">
+                          <span class="usage-metric-label">Input</span>
+                          <span class="usage-metric-value">{{ formatTokens(getDisplayUsageInputTokens(model)) }}</span>
+                        </div>
+                        <div class="usage-metric-card">
+                          <span class="usage-metric-label">Output</span>
+                          <span class="usage-metric-value">{{ formatTokens(metrics.usage.outputTokens || 0) }}</span>
+                        </div>
+                        <div v-if="metrics.usage?.cacheReadTokens" class="usage-metric-card">
+                          <span class="usage-metric-label">Cache Read</span>
+                          <span class="usage-metric-value">{{ formatTokens(metrics.usage.cacheReadTokens) }}</span>
+                        </div>
+                        <div v-if="metrics.usage?.cacheWriteTokens" class="usage-metric-card">
+                          <span class="usage-metric-label">Cache Write</span>
+                          <span class="usage-metric-value">{{ formatTokens(metrics.usage.cacheWriteTokens) }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1753,30 +1786,47 @@
 
                 <!-- Context window breakdown -->
                 <div v-if="metadata.usage.currentTokens || metadata.usage.systemTokens || metadata.usage.conversationTokens || metadata.usage.toolDefinitionsTokens" class="usage-section">
-                  <div class="usage-section-title">Context Window</div>
-                  <div class="usage-context">
-                    <div v-if="metadata.usage.currentTokens">
-                      <span class="usage-token-label">Current:</span> {{ formatTokens(metadata.usage.currentTokens) }}
+                  <div class="usage-section-header">
+                    <div class="usage-section-title">Context Window</div>
+                  </div>
+                  <div class="usage-metric-grid">
+                    <div v-if="metadata.usage.currentTokens" class="usage-metric-card">
+                      <span class="usage-metric-label">Current</span>
+                      <span class="usage-metric-value">{{ formatTokens(metadata.usage.currentTokens) }}</span>
                     </div>
-                    <div v-if="metadata.usage.systemTokens">
-                      <span class="usage-token-label">System:</span> {{ formatTokens(metadata.usage.systemTokens) }}
+                    <div v-if="metadata.usage.systemTokens" class="usage-metric-card">
+                      <span class="usage-metric-label">System</span>
+                      <span class="usage-metric-value">{{ formatTokens(metadata.usage.systemTokens) }}</span>
                     </div>
-                    <div v-if="metadata.usage.conversationTokens">
-                      <span class="usage-token-label">Conversation:</span> {{ formatTokens(metadata.usage.conversationTokens) }}
+                    <div v-if="metadata.usage.conversationTokens" class="usage-metric-card">
+                      <span class="usage-metric-label">Conversation</span>
+                      <span class="usage-metric-value">{{ formatTokens(metadata.usage.conversationTokens) }}</span>
                     </div>
-                    <div v-if="metadata.usage.toolDefinitionsTokens">
-                      <span class="usage-token-label">Tools:</span> {{ formatTokens(metadata.usage.toolDefinitionsTokens) }}
+                    <div v-if="metadata.usage.toolDefinitionsTokens" class="usage-metric-card">
+                      <span class="usage-metric-label">Tools</span>
+                      <span class="usage-metric-value">{{ formatTokens(metadata.usage.toolDefinitionsTokens) }}</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- Code changes -->
                 <div v-if="metadata.usage.codeChanges && (metadata.usage.codeChanges.linesAdded > 0 || metadata.usage.codeChanges.linesRemoved > 0)" class="usage-section">
-                  <div class="usage-section-title">Code Changes</div>
-                  <div class="usage-code-changes">
-                    <span class="usage-code-added">+{{ metadata.usage.codeChanges.linesAdded }}</span>
-                    <span class="usage-code-removed">-{{ metadata.usage.codeChanges.linesRemoved }}</span>
-                    <span class="usage-code-files">({{ metadata.usage.codeChanges.filesModified?.length || 0 }} files)</span>
+                  <div class="usage-section-header">
+                    <div class="usage-section-title">Code Changes</div>
+                  </div>
+                  <div class="usage-metric-grid usage-metric-grid-compact">
+                    <div class="usage-metric-card">
+                      <span class="usage-metric-label">Added</span>
+                      <span class="usage-metric-value usage-metric-value-added">+{{ metadata.usage.codeChanges.linesAdded }}</span>
+                    </div>
+                    <div class="usage-metric-card">
+                      <span class="usage-metric-label">Removed</span>
+                      <span class="usage-metric-value usage-metric-value-removed">-{{ metadata.usage.codeChanges.linesRemoved }}</span>
+                    </div>
+                    <div class="usage-metric-card">
+                      <span class="usage-metric-label">Files</span>
+                      <span class="usage-metric-value">{{ metadata.usage.codeChanges.filesModified?.length || 0 }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
