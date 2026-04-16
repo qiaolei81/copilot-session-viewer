@@ -120,7 +120,7 @@ class VsCodeAdapter extends BaseSourceAdapter {
             if (requests.length === 0) continue;
 
             const realWorkspacePath = await this._resolveWorkspacePath(path.join(dir, hash));
-            const statsWithPath = { ...stats, filePath: fullPath };
+            const statsWithPath = { ...stats, filePath: fullPath, birthtime: stats.birthtime };
             candidates.push(this._buildSession(
               sessionId, requests, sessionJson, statsWithPath, hash,
               realWorkspacePath || path.join(dir, hash)
@@ -283,7 +283,7 @@ class VsCodeAdapter extends BaseSourceAdapter {
         const requests = sessionJson.requests || [];
         if (requests.length === 0) continue;
 
-        const statsWithPath = { ...stats, filePath: fullPath };
+        const statsWithPath = { ...stats, filePath: fullPath, birthtime: stats.birthtime };
         const session = this._buildSession(
           sessionId, requests, sessionJson, statsWithPath, workspaceHash,
           realWorkspacePath || workspaceHashDir
