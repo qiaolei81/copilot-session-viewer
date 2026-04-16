@@ -1632,7 +1632,7 @@
         </h1>
         <div style="display: flex; gap: 10px;">
           <a :href="'/session/' + sessionId + '/time-analyze'" class="time-analyze-btn" @click="trackClick && trackClick('TimeAnalyzeClicked', { sessionId: sessionId })">⏱ Analysis</a>
-          <button @click="exportSession" class="export-btn" :disabled="exporting">
+          <button @click="exportSession" class="export-btn" :disabled="exporting" v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)">
             {{ exporting ? '⏳ Sharing...' : '📤 Share Session' }}
           </button>
         </div>
