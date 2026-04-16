@@ -129,30 +129,30 @@ describe('SessionService - Additional Coverage', () => {
 
       expect(result).toBeNull();
       expect(mockRepository.findAll).not.toHaveBeenCalled();
+      expect(mockRepository.findById).not.toHaveBeenCalled();
     });
 
-    it('should find session from getAllSessions', async () => {
-      const mockSessions = [
-        { id: 'session-1', summary: 'First' },
-        { id: 'session-2', summary: 'Second' }
-      ];
-      mockRepository.findAll.mockResolvedValue(
-        mockSessions.map(s => ({ ...s, toJSON: () => s }))
-      );
+    it('should find session via repository lookup', async () => {
+      mockRepository.findById.mockResolvedValue({
+        id: 'session-2',
+        summary: 'Second',
+        toJSON: () => ({ id: 'session-2', summary: 'Second' })
+      });
 
       const result = await service.getSessionById('session-2');
 
       expect(result).toEqual({ id: 'session-2', summary: 'Second' });
+      expect(mockRepository.findById).toHaveBeenCalledWith('session-2');
+      expect(mockRepository.findAll).not.toHaveBeenCalled();
     });
 
     it('should return null if session not found', async () => {
-      mockRepository.findAll.mockResolvedValue([
-        { id: 'other-session', toJSON: () => ({ id: 'other-session' }) }
-      ]);
+      mockRepository.findById.mockResolvedValue(null);
 
       const result = await service.getSessionById('nonexistent');
 
       expect(result).toBeUndefined();
+      expect(mockRepository.findById).toHaveBeenCalledWith('nonexistent');
     });
   });
 

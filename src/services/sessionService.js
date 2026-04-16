@@ -49,8 +49,12 @@ class SessionService {
       return null;
     }
 
-    const sessions = await this.getAllSessions();
-    return sessions.find(s => s.id === sessionId);
+    const session = await this.sessionRepository.findById(sessionId);
+    if (!session) {
+      return undefined;
+    }
+
+    return typeof session.toJSON === 'function' ? session.toJSON() : session;
   }
 
   async getSessionEvents(sessionId, options = null) {

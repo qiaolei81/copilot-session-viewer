@@ -82,4 +82,10 @@ class ProcessManager {
   }
 }
 
-module.exports = new ProcessManager();
+const PROCESS_MANAGER_SINGLETON_KEY = '__copilotSessionViewerProcessManager';
+
+if (!globalThis[PROCESS_MANAGER_SINGLETON_KEY]) {
+  globalThis[PROCESS_MANAGER_SINGLETON_KEY] = new ProcessManager();
+}
+
+module.exports = globalThis[PROCESS_MANAGER_SINGLETON_KEY];

@@ -185,6 +185,13 @@ class SessionRepository {
       }
       if (!dir) continue;
 
+      try {
+        await fs.access(dir);
+      } catch {
+        console.warn(`Source directory not found: ${dir}`);
+        continue;
+      }
+
       const session = await adapter.findById(sessionId, dir);
       if (session) return session;
     }

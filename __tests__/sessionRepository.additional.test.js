@@ -824,5 +824,24 @@ describe('SessionRepository - Additional Coverage', () => {
       const result = await repo.findById('some-session-id');
       expect(result).toBeNull();
     });
+
+    it('findById skips missing source directories before calling the adapter', async () => {
+      const missingDir = path.join(tmpDir, 'stable-missing');
+      const repo = new SessionRepository([{
+        type: 'vscode',
+        dir: missingDir
+      }]);
+      const adapter = repo.registry.get('vscode');
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const findByIdSpy = jest.spyOn(adapter, 'findById').mockResolvedValue(null);
+
+      const result = await repo.findById('some-session-id');
+
+      expect(result).toBeNull();
+      expect(findByIdSpy).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(`Source directory not found: ${missingDir}`);
+
+      warnSpy.mockRestore();
+    });
   });
 });

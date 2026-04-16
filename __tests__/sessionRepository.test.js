@@ -18,6 +18,7 @@ describe('SessionRepository', () => {
     jest.resetAllMocks();
 
     // Mock fs.readdir
+    jest.spyOn(fs, 'access').mockResolvedValue(undefined);
     jest.spyOn(fs, 'readdir').mockResolvedValue([]);
     jest.spyOn(fs, 'stat').mockResolvedValue({
       isDirectory: jest.fn().mockReturnValue(true),
