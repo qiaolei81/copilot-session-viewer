@@ -45,7 +45,7 @@ class Session {
       ? new Date(workspace.created_at)
       : workspace?.startTime
         ? new Date(workspace.startTime)
-        : stats.birthtime;
+        : (stats.birthtime || (stats.birthtimeMs ? new Date(stats.birthtimeMs) : undefined));
     const updatedAt = workspace?.updated_at
       ? new Date(workspace.updated_at)
       : workspace?.endTime
@@ -85,7 +85,7 @@ class Session {
     return new Session(id, 'file', {
       filePath: filePath,
       directory: path.dirname(filePath), // Directory containing the file
-      createdAt: stats.birthtime,
+      createdAt: stats.birthtime || (stats.birthtimeMs ? new Date(stats.birthtimeMs) : undefined),
       updatedAt: stats.mtime,
       summary: summary || 'Legacy session',
       hasEvents: true,
