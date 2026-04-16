@@ -125,7 +125,7 @@ class CopilotAdapter extends BaseSourceAdapter {
         const lastEventMs = new Date(optimizedMetadata.lastEventTime).getTime();
         const mtimeMs = new Date(stats.mtime).getTime();
         if (lastEventMs > mtimeMs) {
-          stats = { ...stats, mtime: new Date(lastEventMs), birthtime: stats.birthtime };
+          stats = { ...stats, mtime: new Date(lastEventMs) };
         }
       }
     }
