@@ -1,6 +1,7 @@
 const path = require('path');
 const os = require('os');
-const fs = require('fs').promises;
+const fsSync = require('fs');
+const fs = fsSync.promises;
 const BaseSourceAdapter = require('./BaseSourceAdapter');
 const Session = require('../models/Session');
 const { countLines, shouldSkipEntry } = require('../utils/fileUtils');
@@ -179,6 +180,33 @@ class PiMonoAdapter extends BaseSourceAdapter {
       console.error(`[PI-MONO] Error scanning dir ${projectPath}:`, err.message);
       return [];
     }
+  }
+
+  async detectImportCandidate(extractDir) {
+    const piPattern = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_([a-zA-Z0-9_-]+)\.jsonl$/;
+    const entries = await fs.readdir(extractDir);
+    for (const entry of entries) {
+      const m = entry.match(piPattern);
+      if (!m) continue;
+      const firstLine = await readFirstLine(path.join(extractDir, entry));
+      let parsed; try { parsed = firstLine ? JSON.parse(firstLine) : null; } catch { parsed = null; }
+      if (parsed?.type === 'session') {
+        return { matched: true, score: 100, reason: 'Pi-Mono timestamped JSONL', sessionId: m[1], fileName: entry };
+      }
+    }
+    return { matched: false, score: 0, reason: 'No Pi-Mono timestamped session JSONL found' };
+  }
+
+  async importDetectedSession(det, ctx) {
+    const { isValidSessionId } = require('../utils/helpers');
+    const { sessionId, fileName } = det;
+    if (!isValidSessionId(sessionId)) return { success: false, error: 'Invalid session ID', statusCode: 400 };
+    const project = ctx.req.query.project || 'imported-sessions';
+    const baseDir = ctx.targetDir || await this.resolveDir();
+    const projectPath = path.join(baseDir, project);
+    await fs.mkdir(projectPath, { recursive: true });
+    await fs.rename(path.join(ctx.extractDir, fileName), path.join(projectPath, fileName));
+    return { success: true, sessionId, format: this.type, project };
   }
 }
 

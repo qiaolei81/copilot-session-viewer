@@ -251,6 +251,25 @@ class BaseSourceAdapter {
   async resolveExportPath(_session, _dir) {
     return null;
   }
+
+  /**
+   * Inspect extracted zip and decide if this adapter can import it.
+   * @param {string} _extractDir
+   * @returns {Promise<{matched:boolean, score:number, reason:string, [key:string]:*}>}
+   */
+  async detectImportCandidate(_extractDir) {
+    return { matched: false, score: 0, reason: `${this.type} import detection not implemented` };
+  }
+
+  /**
+   * Import a previously matched extracted zip directory.
+   * @param {Object} _detection  - from detectImportCandidate
+   * @param {Object} _ctx        - { extractDir, req, targetDir? }
+   * @returns {Promise<Object>}
+   */
+  async importDetectedSession(_detection, _ctx) {
+    return { success: false, error: `Import not implemented for ${this.type}`, statusCode: 400 };
+  }
 }
 
 module.exports = BaseSourceAdapter;

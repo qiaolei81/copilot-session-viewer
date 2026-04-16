@@ -192,6 +192,12 @@ class ModernizeAdapter extends CopilotAdapter {
     }
     return session;
   }
+
+  // Modernize uses the same format as Copilot but shouldn't claim zip imports;
+  // Copilot adapter handles the generic events.jsonl-directory format.
+  async detectImportCandidate(_extractDir) {
+    return { matched: false, score: 0, reason: 'Modernize does not support zip import (use Copilot)' };
+  }
 }
 
 module.exports = ModernizeAdapter;

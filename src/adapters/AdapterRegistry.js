@@ -59,6 +59,26 @@ class AdapterRegistry {
   get size() {
     return this._adapters.size;
   }
+
+  /**
+   * Ask every adapter to inspect an extracted zip.
+   * Returns sorted results (highest score first).
+   * @param {string} extractDir
+   * @returns {Promise<Object[]>}
+   */
+  async detectImportCandidates(extractDir) {
+    const results = await Promise.all(
+      this.all().map(async (adapter) => {
+        try {
+          const r = await adapter.detectImportCandidate(extractDir);
+          return { source: adapter.type, matched: false, score: 0, ...r };
+        } catch (err) {
+          return { source: adapter.type, matched: false, score: 0, reason: `Detection error: ${err.message}` };
+        }
+      })
+    );
+    return results.sort((a, b) => (b.score || 0) - (a.score || 0));
+  }
 }
 
 module.exports = AdapterRegistry;

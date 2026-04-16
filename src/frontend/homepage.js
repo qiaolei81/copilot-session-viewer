@@ -172,7 +172,7 @@ fileInput.addEventListener('change', async (e) => {
 
   try {
     const formData = new FormData();
-    formData.append('sessionZip', file);
+    formData.append('zipFile', file);
 
     const response = await fetch('/session/import', {
       method: 'POST',

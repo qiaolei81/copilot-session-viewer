@@ -1,6 +1,7 @@
 const path = require('path');
 const os = require('os');
-const fs = require('fs').promises;
+const fsSync = require('fs');
+const fs = fsSync.promises;
 const BaseSourceAdapter = require('./BaseSourceAdapter');
 const Session = require('../models/Session');
 const { countLines, shouldSkipEntry } = require('../utils/fileUtils');
@@ -261,6 +262,44 @@ class ClaudeAdapter extends BaseSourceAdapter {
       console.error(`Error creating Claude subagents session ${sessionId}:`, err.message);
       return null;
     }
+  }
+
+  async detectImportCandidate(extractDir) {
+    const entries = await fs.readdir(extractDir);
+    for (const entry of entries) {
+      if (!entry.endsWith('.jsonl')) continue;
+      const entryPath = path.join(extractDir, entry);
+      const stat = await fs.stat(entryPath);
+      if (!stat.isFile()) continue;
+      const sessionId = entry.replace(/\.jsonl$/, '');
+      // Read first line to check for Claude signatures
+      const firstLine = (await fs.readFile(entryPath, 'utf-8')).split('\n').find(l => l.trim());
+      let parsed; try { parsed = firstLine ? JSON.parse(firstLine) : null; } catch { parsed = null; }
+      if (parsed && (parsed.type === 'user' || parsed.type === 'assistant' || parsed.parentUuid || parsed.uuid)) {
+        const hasDir = fsSync.existsSync(path.join(extractDir, sessionId));
+        return {
+          matched: true, score: hasDir ? 95 : 90,
+          reason: hasDir ? 'Claude JSONL + companion dir' : 'Claude JSONL file',
+          sessionId, fileName: entry, hasDirectory: hasDir, directoryName: hasDir ? sessionId : undefined
+        };
+      }
+    }
+    return { matched: false, score: 0, reason: 'No Claude session JSONL signature found' };
+  }
+
+  async importDetectedSession(det, ctx) {
+    const { isValidSessionId } = require('../utils/helpers');
+    const { sessionId, fileName, hasDirectory, directoryName } = det;
+    if (!isValidSessionId(sessionId)) return { success: false, error: 'Invalid session ID', statusCode: 400 };
+    const project = ctx.req.query.project || 'imported-sessions';
+    const baseDir = ctx.targetDir || await this.resolveDir();
+    const projectPath = path.join(baseDir, project);
+    await fs.mkdir(projectPath, { recursive: true });
+    await fs.rename(path.join(ctx.extractDir, fileName), path.join(projectPath, fileName));
+    if (hasDirectory && directoryName) {
+      await fs.rename(path.join(ctx.extractDir, directoryName), path.join(projectPath, directoryName));
+    }
+    return { success: true, sessionId, format: this.type, project };
   }
 }
 
