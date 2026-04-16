@@ -1759,7 +1759,7 @@
                         <div class="usage-model-meta">
                           <span class="usage-meta-pill">{{ metrics.requests?.count || 0 }} reqs</span>
                           <span v-if="metrics.requests?.cost" class="usage-meta-pill usage-meta-pill-premium">{{ formatCost(metrics.requests.cost) }}</span>
-                          <span v-if="getCacheHitRatio(model)" class="usage-meta-pill usage-meta-pill-cache">{{ getCacheHitRatio(model) }}% cache</span>
+                          <span v-if="getCacheHitRatio(model) !== null" class="usage-meta-pill usage-meta-pill-cache">{{ getCacheHitRatio(model) }}% cache</span>
                         </div>
                       </div>
                       <div v-if="metrics.usage" class="usage-metric-grid">

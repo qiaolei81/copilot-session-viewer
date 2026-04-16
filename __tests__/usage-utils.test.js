@@ -40,6 +40,14 @@ describe('usage utils', () => {
       })).toBe(65);
     });
 
+    it('should preserve a rounded zero ratio when cache reads are very small', () => {
+      expect(getCacheHitRatio({
+        inputTokens: 1000,
+        cacheReadTokens: 1,
+        cacheWriteTokens: 0
+      })).toBe(0);
+    });
+
     it('should return null when there are no cache reads', () => {
       expect(getCacheHitRatio({
         inputTokens: 120,
