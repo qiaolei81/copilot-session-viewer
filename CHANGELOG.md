@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.8] - 2026-04-21
+
+### Added
+- **Modernize CLI Source Adapter** - New source adapter for Modernize CLI session logs (#6).
+- **Claude Token Usage** - Session detail sidebar now shows Claude token usage data (#7).
+- **Subagent Event Visualization** - Enhanced subagent event display with multi-source ownership, filtering, and timeline analysis (#8).
+- **Tool Calling Summary** - Session detail sidebar shows tool call summary sorted by count (#13).
+- **Session Info Refinement** - Refined session detail sidebar usage UI and simplified session info layout (#14).
+
+### Fixed
+- **js-yaml Restore** - Restored js-yaml dependency for block scalar summary parsing.
+- **Claude file-history-snapshot** - Removed file-history-snapshot events from Claude session UI (#10).
+- **Claude Subagent Deduplication** - Deduplicated replayed Claude subagent events in session detail (#11).
+- **File Birthtime Fallback** - Fallback to `birthtimeMs` when `birthtime` getter is lost after object spread (#9, #17).
+
 ## [0.3.7] - 2026-03-31
 
 ### Added
