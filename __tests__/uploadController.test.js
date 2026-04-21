@@ -105,14 +105,33 @@ async function setupImportSessionTest(controller, req, fsMocks = {}) {
 
   // Mock fs operations with defaults
   jest.spyOn(fs.promises, 'mkdir').mockResolvedValue();
-  jest.spyOn(fs.promises, 'stat').mockResolvedValue({ size: 1000 }); // Mock file size
+  jest.spyOn(fs.promises, 'writeFile').mockResolvedValue();
+  jest.spyOn(fs.promises, 'readFile').mockResolvedValue('');
+  jest.spyOn(fs.promises, 'stat').mockImplementation(async (p) => {
+    if (fsMocks.stat) return fsMocks.stat(p);
+    // Return proper stat-like objects for adapter detection
+    return { size: 1000, isDirectory: () => true, isFile: () => false };
+  });
   jest.spyOn(fs.promises, 'unlink').mockResolvedValue();
   jest.spyOn(fs.promises, 'rm').mockResolvedValue();
   
   if (fsMocks.readdir) jest.spyOn(fs.promises, 'readdir').mockResolvedValue(fsMocks.readdir);
   if (fsMocks.access) jest.spyOn(fs.promises, 'access').mockImplementation(fsMocks.access);
   if (fsMocks.rename) jest.spyOn(fs.promises, 'rename').mockImplementation(fsMocks.rename);
-  if (fsMocks.existsSync !== undefined) jest.spyOn(fs, 'existsSync').mockReturnValue(fsMocks.existsSync);
+  if (fsMocks.existsSync !== undefined) {
+    if (typeof fsMocks.existsSync === 'function') {
+      jest.spyOn(fs, 'existsSync').mockImplementation(fsMocks.existsSync);
+    } else {
+      // Boolean: true for events.jsonl (detection), use value for target path
+      jest.spyOn(fs, 'existsSync').mockImplementation((p) => {
+        if (String(p).endsWith('events.jsonl')) return true;
+        return fsMocks.existsSync;
+      });
+    }
+  } else {
+    // Default: events.jsonl exists, target path doesn't
+    jest.spyOn(fs, 'existsSync').mockImplementation((p) => String(p).endsWith('events.jsonl'));
+  }
 
   controller.importSession(req, res);
   
@@ -654,7 +673,8 @@ describe('UploadController', () => {
       );
       expect(response.body).toEqual({
         success: true,
-        sessionId
+        sessionId,
+        format: 'copilot'
       });
     });
 
@@ -712,7 +732,7 @@ describe('UploadController', () => {
 
       // Mock ALL fs operations used in importSession
       jest.spyOn(fs.promises, 'mkdir').mockResolvedValue();
-      jest.spyOn(fs.promises, 'stat').mockResolvedValue({ size: 1000 });
+      jest.spyOn(fs.promises, 'stat').mockResolvedValue({ size: 1000, isDirectory: () => true, isFile: () => false });
       jest.spyOn(fs.promises, 'unlink').mockResolvedValue();
       jest.spyOn(fs.promises, 'rm').mockResolvedValue();
 
@@ -756,7 +776,7 @@ describe('UploadController', () => {
 
       const response = await res.responsePromise;
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Empty zip file' });
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Empty zip file' }));
     });
 
     it('should reject invalid session directory names', async () => {
@@ -776,7 +796,7 @@ describe('UploadController', () => {
 
       const response = await res.responsePromise;
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Invalid session directory name in zip file' });
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid session directory name in zip file' }));
     });
 
     it('should reject sessions without events.jsonl', async () => {
@@ -789,7 +809,7 @@ describe('UploadController', () => {
       const req = { file: { path: zipPath } };
       const { res, closeHandler } = await setupImportSessionTest(controller, req, {
         readdir: [sessionId],
-        access: jest.fn().mockRejectedValue(new Error('ENOENT'))
+        existsSync: () => false  // events.jsonl not found → detection fails
       });
 
       if (closeHandler) {
@@ -797,8 +817,8 @@ describe('UploadController', () => {
       }
 
       const response = await res.responsePromise;
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Invalid session structure (no events.jsonl)' });
+      expect(response.status).toBe(415);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Unsupported session zip format' }));
     });
 
     it('should reject session that already exists', async () => {
@@ -972,17 +992,16 @@ describe('UploadController', () => {
       expect(response.body).toEqual({ error: 'Error importing session' });
     });
 
-    it('should handle errors during access check for events.jsonl in close handler', async () => {
+    it('should return unsupported-format when no adapter recognizes the zip', async () => {
       const sessionId = 'test-session-id';
       const zipPath = path.join(controller.uploadDir, 'test.zip');
-      // Ensure directory exists (defense against CI race conditions)
       await fs.promises.mkdir(path.dirname(zipPath), { recursive: true });
       await fs.promises.writeFile(zipPath, 'dummy');
 
       const req = { file: { path: zipPath } };
       const { res, closeHandler } = await setupImportSessionTest(controller, req, {
         readdir: [sessionId],
-        access: jest.fn().mockRejectedValue(new Error('No events.jsonl'))
+        existsSync: () => false  // no events.jsonl → no adapter matches
       });
 
       if (closeHandler) {
@@ -990,9 +1009,8 @@ describe('UploadController', () => {
       }
 
       const response = await res.responsePromise;
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Invalid session structure (no events.jsonl)' });
+      expect(response.status).toBe(415);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Unsupported session zip format' }));
     });
 
     it('should handle errors during rename in close handler', async () => {
@@ -1032,8 +1050,6 @@ describe('UploadController', () => {
     it('should handle cleanup errors gracefully in close handler catch block', async () => {
       const sessionId = 'test-session-id';
       const zipPath = path.join(controller.uploadDir, 'test.zip');
-      
-      // Ensure directory exists before writing file (use real fs, not mocked)
       const realFs = jest.requireActual('fs');
       if (!realFs.existsSync(controller.uploadDir)) {
         await realFs.promises.mkdir(controller.uploadDir, { recursive: true });
@@ -1041,13 +1057,11 @@ describe('UploadController', () => {
       await realFs.promises.writeFile(zipPath, 'dummy');
 
       const req = { file: { path: zipPath } };
-      
-      // Mock rm to fail during cleanup (should be caught and ignored)
       const rmSpy = jest.spyOn(fs.promises, 'rm').mockRejectedValue(new Error('Cleanup failed'));
 
       const { res, closeHandler } = await setupImportSessionTest(controller, req, {
         readdir: [sessionId],
-        access: jest.fn().mockRejectedValue(new Error('No events'))
+        existsSync: () => false  // no adapter matches
       });
 
       if (closeHandler) {
@@ -1055,11 +1069,11 @@ describe('UploadController', () => {
       }
 
       const response = await res.responsePromise;
-
       rmSpy.mockRestore();
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Invalid session structure (no events.jsonl)' });
+      // Even with cleanup failure, the response should still indicate unsupported format
+      expect(response.status).toBe(415);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Unsupported session zip format' }));
     });
   });
 

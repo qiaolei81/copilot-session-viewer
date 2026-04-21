@@ -92,12 +92,12 @@ describe('UploadController - Multi-Format Support', () => {
 
       const formatInfo = await controller._detectFormat(extractDir);
 
-      expect(formatInfo).toEqual({
+      expect(formatInfo).toEqual(expect.objectContaining({
         format: 'pi-mono',
         sessionId: 'abc-123-def',
         fileName: piMonoFile,
         extractDir
-      });
+      }));
 
       await fs.promises.rm(extractDir, { recursive: true, force: true });
     });
@@ -111,12 +111,12 @@ describe('UploadController - Multi-Format Support', () => {
 
       const formatInfo = await controller._detectFormat(extractDir);
 
-      expect(formatInfo).toEqual({
+      expect(formatInfo).toEqual(expect.objectContaining({
         format: 'copilot',
         sessionId,
         directoryName: sessionId,
         extractDir
-      });
+      }));
 
       await fs.promises.rm(extractDir, { recursive: true, force: true });
     });
@@ -129,14 +129,14 @@ describe('UploadController - Multi-Format Support', () => {
 
       const formatInfo = await controller._detectFormat(extractDir);
 
-      expect(formatInfo).toEqual({
+      expect(formatInfo).toEqual(expect.objectContaining({
         format: 'claude',
         sessionId,
         fileName: claudeFile,
         hasDirectory: false,
         directoryName: undefined,
         extractDir
-      });
+      }));
 
       await fs.promises.rm(extractDir, { recursive: true, force: true });
     });
@@ -153,14 +153,14 @@ describe('UploadController - Multi-Format Support', () => {
 
       const formatInfo = await controller._detectFormat(extractDir);
 
-      expect(formatInfo).toEqual({
+      expect(formatInfo).toEqual(expect.objectContaining({
         format: 'claude',
         sessionId,
         fileName: claudeFile,
         hasDirectory: true,
         directoryName: sessionId,
         extractDir
-      });
+      }));
 
       await fs.promises.rm(extractDir, { recursive: true, force: true });
     });
@@ -519,6 +519,77 @@ describe('UploadController - Multi-Format Support', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Unsupported format');
       expect(result.statusCode).toBe(400);
+      expect(result.code).toBe('unsupported-format');
+    });
+  });
+
+  describe('Structured Detection (adapter-based)', () => {
+    it('should return structured match for unique candidate', async () => {
+      const extractDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'extract-'));
+      const sessionId = 'unique-copilot-session';
+      await fs.promises.mkdir(path.join(extractDir, sessionId));
+      await fs.promises.writeFile(path.join(extractDir, sessionId, 'events.jsonl'), '{"type":"session.start"}');
+
+      const result = await controller._detectImportCandidates(extractDir);
+      expect(result.status).toBe('matched');
+      expect(result.match).toEqual(expect.objectContaining({
+        source: 'copilot', matched: true, sessionId, score: expect.any(Number)
+      }));
+
+      await fs.promises.rm(extractDir, { recursive: true, force: true });
+    });
+
+    it('should return ambiguous when multiple adapters match', async () => {
+      const extractDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'extract-'));
+      const id = 'shared-id';
+      await fs.promises.mkdir(path.join(extractDir, id));
+      await fs.promises.writeFile(path.join(extractDir, id, 'events.jsonl'), '{"type":"session.start"}');
+      await fs.promises.writeFile(path.join(extractDir, `${id}.jsonl`), '{"type":"user"}');
+
+      const result = await controller._detectImportCandidates(extractDir);
+      expect(result.status).toBe('ambiguous');
+      expect(result.matches.map(m => m.source).sort()).toEqual(['claude', 'copilot']);
+
+      await fs.promises.rm(extractDir, { recursive: true, force: true });
+    });
+
+    it('should return unsupported-format when nothing matches', async () => {
+      const extractDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'extract-'));
+      await fs.promises.writeFile(path.join(extractDir, 'notes.txt'), 'not a session');
+
+      const result = await controller._detectImportCandidates(extractDir);
+      expect(result.status).toBe('unsupported-format');
+      expect(result.error).toBe('Unsupported session zip format');
+      expect(Array.isArray(result.candidates)).toBe(true);
+
+      await fs.promises.rm(extractDir, { recursive: true, force: true });
+    });
+
+    it('should return ambiguous-format on _importExtractedSession with multiple matches', async () => {
+      const extractDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'extract-'));
+      const id = 'ambig-id';
+      await fs.promises.mkdir(path.join(extractDir, id));
+      await fs.promises.writeFile(path.join(extractDir, id, 'events.jsonl'), '{"type":"session.start"}');
+      await fs.promises.writeFile(path.join(extractDir, `${id}.jsonl`), '{"type":"user"}');
+
+      const result = await controller._importExtractedSession(extractDir, { query: {} });
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('ambiguous-format');
+      expect(result.statusCode).toBe(400);
+
+      await fs.promises.rm(extractDir, { recursive: true, force: true });
+    });
+
+    it('should return unsupported-format on _importExtractedSession with no matches', async () => {
+      const extractDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'extract-'));
+      await fs.promises.writeFile(path.join(extractDir, 'readme.txt'), 'hello');
+
+      const result = await controller._importExtractedSession(extractDir, { query: {} });
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('unsupported-format');
+      expect(result.statusCode).toBe(415);
+
+      await fs.promises.rm(extractDir, { recursive: true, force: true });
     });
   });
 });

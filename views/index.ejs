@@ -414,6 +414,12 @@
       color: #79c0ff;
       text-decoration: underline;
     }
+    .import-formats-hint {
+      font-size: 11px;
+      color: #6e7681;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
     .import-status {
       margin-bottom: 12px;
       padding: 10px 12px;
@@ -524,6 +530,7 @@
             Sessions
           </div>
           <a class="import-link" id="importLink">Import session from zip</a>
+          <span class="import-formats-hint">Supports: GitHub Copilot, Claude, Pi-Mono</span>
         </div>
         <div class="filter-pills">
           <button class="filter-pill active" data-source="copilot">Copilot CLI</button>
@@ -536,7 +543,7 @@
         <input
           type="file"
           id="fileInput"
-          name="sessionZip"
+          name="zipFile"
           accept=".zip"
           style="display: none;"
         >

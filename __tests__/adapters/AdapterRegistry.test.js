@@ -110,5 +110,49 @@ describe('AdapterRegistry', () => {
       expect(registry.size).toBe(2);
     });
   });
+
+  describe('detectImportCandidates()', () => {
+    it('should return sorted structured results from all adapters', async () => {
+      class DetectingAdapter extends BaseSourceAdapter {
+        get type() { return 'copilot'; }
+        get displayName() { return 'Copilot'; }
+        getDefaultDir() { return '/mock/copilot'; }
+        async scanEntries() { return []; }
+        async findById() { return null; }
+        async resolveEventsFile() { return null; }
+        async detectImportCandidate() { return { matched: true, score: 90, reason: 'ok', sessionId: 'abc' }; }
+      }
+      class NonDetectingAdapter extends BaseSourceAdapter {
+        get type() { return 'claude'; }
+        get displayName() { return 'Claude'; }
+        getDefaultDir() { return '/mock/claude'; }
+        async scanEntries() { return []; }
+        async findById() { return null; }
+        async resolveEventsFile() { return null; }
+      }
+
+      registry.register(new DetectingAdapter());
+      registry.register(new NonDetectingAdapter());
+
+      const results = await registry.detectImportCandidates('/tmp/extract');
+      expect(results[0]).toEqual(expect.objectContaining({ source: 'copilot', matched: true, score: 90 }));
+      expect(results[1]).toEqual(expect.objectContaining({ source: 'claude', matched: false, score: 0 }));
+    });
+
+    it('should handle adapter detection errors gracefully', async () => {
+      class ErrorAdapter extends BaseSourceAdapter {
+        get type() { return 'bad'; }
+        get displayName() { return 'Bad'; }
+        getDefaultDir() { return '/mock/bad'; }
+        async scanEntries() { return []; }
+        async findById() { return null; }
+        async resolveEventsFile() { return null; }
+        async detectImportCandidate() { throw new Error('boom'); }
+      }
+      registry.register(new ErrorAdapter());
+      const results = await registry.detectImportCandidates('/tmp/x');
+      expect(results[0]).toEqual(expect.objectContaining({ source: 'bad', matched: false, reason: 'Detection error: boom' }));
+    });
+  });
 });
 

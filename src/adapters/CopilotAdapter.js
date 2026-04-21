@@ -1,6 +1,7 @@
 const path = require('path');
 const os = require('os');
-const fs = require('fs').promises;
+const fsSync = require('fs');
+const fs = fsSync.promises;
 const BaseSourceAdapter = require('./BaseSourceAdapter');
 const Session = require('../models/Session');
 const { fileExists, countLines, parseYAML, getSessionMetadataOptimized, shouldSkipEntry } = require('../utils/fileUtils');
@@ -151,6 +152,33 @@ class CopilotAdapter extends BaseSourceAdapter {
     );
     session.source = 'copilot';
     return session;
+  }
+
+  async detectImportCandidate(extractDir) {
+    const entries = await fs.readdir(extractDir);
+    for (const entry of entries) {
+      const entryPath = path.join(extractDir, entry);
+      const stat = await fs.stat(entryPath);
+      if (stat.isDirectory() && fsSync.existsSync(path.join(entryPath, 'events.jsonl'))) {
+        return { matched: true, score: 100, reason: 'Directory with events.jsonl', sessionId: entry, directoryName: entry };
+      }
+    }
+    return { matched: false, score: 0, reason: 'No directory containing events.jsonl found' };
+  }
+
+  async importDetectedSession(det, ctx) {
+    const { isValidSessionId } = require('../utils/helpers');
+    const { sessionId, directoryName } = det;
+    if (!isValidSessionId(sessionId)) return { success: false, error: 'Invalid session ID', statusCode: 400 };
+    const src = path.join(ctx.extractDir, directoryName);
+    if (!fsSync.existsSync(path.join(src, 'events.jsonl'))) return { success: false, error: 'Invalid session structure (no events.jsonl)', statusCode: 400 };
+    const targetBase = ctx.targetDir || await this.resolveDir();
+    const target = path.join(targetBase, sessionId);
+    if (fsSync.existsSync(target)) return { success: false, error: 'Session already exists', statusCode: 409 };
+    await fs.mkdir(targetBase, { recursive: true });
+    await fs.rename(src, target);
+    await fs.writeFile(path.join(target, '.imported'), '');
+    return { success: true, sessionId, format: this.type };
   }
 }
 

@@ -240,6 +240,15 @@ describe('Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ success: true, sessionId: 'imported-id' });
     });
+
+    it('should accept legacy sessionZip field name without MulterError', async () => {
+      const response = await request(app)
+        .post('/uploads/session/import')
+        .attach('sessionZip', Buffer.from('dummy'), 'test.zip');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ success: true, sessionId: 'imported-id' });
+    });
   });
 
   describe('Route Parameter Validation', () => {

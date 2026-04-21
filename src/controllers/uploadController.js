@@ -7,6 +7,7 @@ const { isValidSessionId } = require('../utils/helpers');
 const { trackEvent, trackException } = require('../telemetry');
 const processManager = require('../utils/processManager');
 const config = require('../config');
+const { registry } = require('../adapters');
 
 class UploadController {
   constructor() {
@@ -103,457 +104,164 @@ class UploadController {
 
       const zipPath = req.file.path;
       const extractDir = path.join(this.uploadDir, `extract-${Date.now()}`);
+      const uploadedFileSize = (await fs.promises.stat(zipPath)).size;
 
       await fs.promises.mkdir(extractDir, { recursive: true });
+      await this._validateZipArchive(zipPath);
 
-      // ZIP bomb protection: Check compressed file size first
-      const MAX_COMPRESSED_SIZE = 50 * 1024 * 1024; // 50MB (already enforced by multer)
-      const MAX_UNCOMPRESSED_SIZE = 200 * 1024 * 1024; // 200MB
-      const MAX_FILE_COUNT = 1000; // Maximum number of files
-      const MAX_DEPTH = 5; // Maximum directory nesting depth
-
-      const stats = await fs.promises.stat(zipPath);
-      if (stats.size > MAX_COMPRESSED_SIZE) {
-        await fs.promises.unlink(zipPath);
-        return res.status(400).json({ error: 'Compressed file too large (max 50MB)' });
-      }
-
-      // First pass: List zip contents without extracting to check for bombs
-      const listProcess = spawn('unzip', ['-l', zipPath]);
-      let listOutput = '';
-      
-      listProcess.stdout.on('data', (data) => {
-        listOutput += data.toString();
-      });
-
-      await new Promise((resolve, reject) => {
-        listProcess.on('close', (code) => {
-          if (code !== 0) {
-            reject(new Error('Failed to list zip contents'));
-          } else {
-            resolve();
-          }
-        });
-        listProcess.on('error', reject);
-      });
-
-      // Parse unzip output to check total size and file count
-      const lines = listOutput.split('\n');
-      let totalUncompressedSize = 0;
-      let fileCount = 0;
-      let maxDepth = 0;
-
-      for (const line of lines) {
-        const match = line.trim().match(/^\s*(\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+(.+)$/);
-        if (match) {
-          const size = parseInt(match[1]);
-          const filename = match[2];
-          totalUncompressedSize += size;
-          fileCount++;
-
-          // Check directory depth
-          const depth = (filename.match(/\//g) || []).length;
-          maxDepth = Math.max(maxDepth, depth);
-        }
-      }
-
-      // Validate against ZIP bomb thresholds
-      if (totalUncompressedSize > MAX_UNCOMPRESSED_SIZE) {
-        await fs.promises.unlink(zipPath);
-        return res.status(400).json({ 
-          error: `Uncompressed size too large (${Math.round(totalUncompressedSize / 1024 / 1024)}MB > ${MAX_UNCOMPRESSED_SIZE / 1024 / 1024}MB)` 
-        });
-      }
-
-      if (fileCount > MAX_FILE_COUNT) {
-        await fs.promises.unlink(zipPath);
-        return res.status(400).json({ 
-          error: `Too many files in archive (${fileCount} > ${MAX_FILE_COUNT})` 
-        });
-      }
-
-      if (maxDepth > MAX_DEPTH) {
-        await fs.promises.unlink(zipPath);
-        return res.status(400).json({ 
-          error: `Directory nesting too deep (${maxDepth} > ${MAX_DEPTH})` 
-        });
-      }
-
-      // If all checks pass, proceed with extraction
       const unzipProcess = spawn('unzip', ['-q', zipPath, '-d', extractDir]);
-
       processManager.register(unzipProcess, { name: 'unzip-import' });
 
       unzipProcess.on('close', async (code) => {
-        let sessionDirName; // Declare here for access in catch block
         try {
-          await fs.promises.unlink(zipPath);
+          await fs.promises.unlink(zipPath).catch(() => {});
 
           if (code !== 0) {
             await fs.promises.rm(extractDir, { recursive: true, force: true });
             return res.status(500).json({ error: 'Failed to extract zip file' });
           }
 
-          const entries = await fs.promises.readdir(extractDir);
-          if (entries.length === 0) {
-            await fs.promises.rm(extractDir, { recursive: true, force: true });
-            return res.status(400).json({ error: 'Empty zip file' });
+          const result = await this._importExtractedSession(extractDir, req);
+          await fs.promises.rm(extractDir, { recursive: true, force: true }).catch(() => {});
+
+          if (!result.success) {
+            const body = { error: result.error };
+            if (result.code) body.code = result.code;
+            if (result.candidates) body.candidates = result.candidates;
+            return res.status(result.statusCode || 500).json(body);
           }
 
-          sessionDirName = entries[0];
-
-          // Validate session directory name to prevent Zip Slip path traversal
-          if (!isValidSessionId(sessionDirName)) {
-            await fs.promises.rm(extractDir, { recursive: true, force: true });
-            return res.status(400).json({ error: 'Invalid session directory name in zip file' });
-          }
-
-          const sessionPath = path.join(extractDir, sessionDirName);
-          const targetPath = path.join(this.SESSION_DIR, sessionDirName);
-
-          const eventsFile = path.join(sessionPath, 'events.jsonl');
-          try {
-            await fs.promises.access(eventsFile);
-          } catch (_err) {
-            await fs.promises.rm(extractDir, { recursive: true, force: true });
-            return res.status(400).json({ error: 'Invalid session structure (no events.jsonl)' });
-          }
-
-          if (fs.existsSync(targetPath)) {
-            await fs.promises.rm(extractDir, { recursive: true, force: true });
-            return res.status(409).json({ error: 'Session already exists' });
-          }
-
-          await fs.promises.rename(sessionPath, targetPath);
-          await fs.promises.rm(extractDir, { recursive: true, force: true });
-
-          // Track SessionImported event
-          const stats = await fs.promises.stat(zipPath).catch(() => ({ size: 0 }));
-          trackEvent('SessionImported', {
-            format: 'copilot',
-            fileSize: stats.size.toString()
-          });
-
-          res.json({ success: true, sessionId: sessionDirName });
+          trackEvent('SessionImported', { format: result.format, fileSize: uploadedFileSize.toString() });
+          const body = { success: true, sessionId: result.sessionId, format: result.format };
+          if (result.project) body.project = result.project;
+          return res.json(body);
         } catch (err) {
           console.error('Error importing session:', err);
-
-          // Track import failure
-          trackException(err, {
-            operation: 'importSession',
-            sessionId: sessionDirName || 'unknown'
-          });
-
+          trackException(err, { operation: 'importSession' });
           await fs.promises.rm(extractDir, { recursive: true, force: true }).catch(() => {});
-          res.status(500).json({ error: 'Error importing session' });
+          return res.status(500).json({ error: 'Error importing session' });
         }
       });
 
       unzipProcess.on('error', async (err) => {
         console.error('Error extracting zip:', err);
-
-        // Track upload/extraction failure
-        trackException(err, {
-          operation: 'importSession_unzip'
-        });
-
+        trackException(err, { operation: 'importSession_unzip' });
         await fs.promises.unlink(zipPath).catch(() => {});
         await fs.promises.rm(extractDir, { recursive: true, force: true }).catch(() => {});
-        res.status(500).json({ error: 'Failed to extract zip file' });
+        return res.status(500).json({ error: 'Failed to extract zip file' });
       });
     } catch (err) {
       console.error('Error processing upload:', err);
-
-      // Track upload processing failure
-      trackException(err, {
-        operation: 'importSession_upload'
-      });
-
-      if (req.file) {
-        await fs.promises.unlink(req.file.path).catch(() => {});
+      trackException(err, { operation: 'importSession_upload' });
+      if (req.file) await fs.promises.unlink(req.file.path).catch(() => {});
+      // Surface known validation errors as 400
+      if (err.message?.match(/Compressed file too large|Uncompressed size too large|Too many files|Directory nesting too deep|Failed to list zip/)) {
+        return res.status(400).json({ error: err.message });
       }
-      res.status(500).json({ error: 'Error processing upload' });
+      return res.status(500).json({ error: 'Error processing upload' });
     }
   }
 
   // Multer middleware accessor
   getUploadMiddleware() {
-    return this.upload.single('zipFile');
+    // Accept both 'zipFile' (canonical) and 'sessionZip' (legacy frontend)
+    const fieldNames = ['zipFile', 'sessionZip'];
+    const middleware = this.upload.fields(fieldNames.map(name => ({ name, maxCount: 1 })));
+    return (req, res, next) => {
+      middleware(req, res, (err) => {
+        if (err) return next(err);
+        req.file = fieldNames.map(n => req.files?.[n]?.[0]).find(Boolean) || null;
+        return next();
+      });
+    };
   }
 
   /**
-   * Detect the format of a session from extracted directory
-   * @param {string} extractDir - Directory containing extracted session files
-   * @returns {Promise<Object|null>} Format information or null if unknown
+   * Detect format via adapter registry. Returns backward-compat shape for _detectFormat,
+   * plus structured result via _detectImportCandidates.
    */
   async _detectFormat(extractDir) {
+    const det = await this._detectImportCandidates(extractDir);
+    if (det.status !== 'matched') return null;
+    return { format: det.match.source, extractDir, ...det.match };
+  }
+
+  async _detectImportCandidates(extractDir) {
     try {
       const entries = await fs.promises.readdir(extractDir);
-
       if (entries.length === 0) {
-        return null;
+        return { status: 'unsupported-format', matches: [], candidates: [], error: 'Empty zip file' };
       }
-
-      // Check for Pi-Mono format: timestamped filename pattern YYYY-MM-DDTHH-MM-SS-SSSZ_sessionId.jsonl
-      const piMonoPattern = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_([a-zA-Z0-9_-]+)\.jsonl$/;
-      for (const entry of entries) {
-        const match = entry.match(piMonoPattern);
-        if (match) {
-          return {
-            format: 'pi-mono',
-            sessionId: match[1],
-            fileName: entry,
-            extractDir
-          };
-        }
+      // Path-traversal guard
+      if (entries.some(e => e.includes('..') || path.isAbsolute(e))) {
+        return { status: 'invalid-structure', matches: [], candidates: [], error: 'Invalid session directory name in zip file' };
       }
-
-      // Check for Copilot format: directory with events.jsonl
-      for (const entry of entries) {
-        const entryPath = path.join(extractDir, entry);
-        const stat = await fs.promises.stat(entryPath);
-        if (stat.isDirectory()) {
-          const eventsFile = path.join(entryPath, 'events.jsonl');
-          if (fs.existsSync(eventsFile)) {
-            return {
-              format: 'copilot',
-              sessionId: entry,
-              directoryName: entry,
-              extractDir
-            };
-          }
-        }
-      }
-
-      // Check for Claude format: uuid.jsonl file
-      const claudePattern = /^([a-zA-Z0-9_-]+)\.jsonl$/;
-      for (const entry of entries) {
-        const entryPath = path.join(extractDir, entry);
-        const stat = await fs.promises.stat(entryPath);
-
-        if (stat.isFile()) {
-          const match = entry.match(claudePattern);
-          if (match) {
-            const sessionId = match[1];
-            // Check if there's an optional directory with the same name
-            const sessionDir = path.join(extractDir, sessionId);
-            const hasDirectory = fs.existsSync(sessionDir);
-
-            return {
-              format: 'claude',
-              sessionId,
-              fileName: entry,
-              hasDirectory,
-              directoryName: hasDirectory ? sessionId : undefined,
-              extractDir
-            };
-          }
-        }
-      }
-
-      return null;
+      const candidates = await registry.detectImportCandidates(extractDir);
+      const matches = candidates.filter(c => c.matched);
+      if (matches.length === 0) return { status: 'unsupported-format', matches: [], candidates, error: 'Unsupported session zip format' };
+      if (matches.length > 1) return { status: 'ambiguous', matches, candidates, error: 'Ambiguous session zip format' };
+      return { status: 'matched', match: matches[0], matches, candidates };
     } catch (err) {
       console.error('Error detecting format:', err);
-      return null;
+      return { status: 'error', matches: [], candidates: [], error: 'Error detecting format' };
     }
   }
 
-  /**
-   * Import Copilot format session
-   * @param {Object} formatInfo - Format detection result
-   * @param {string} extractDir - Extraction directory
-   * @returns {Promise<Object>} Import result
-   */
   async _importCopilotSession(formatInfo, extractDir) {
-    try {
-      const { sessionId, directoryName } = formatInfo;
-
-      // Validate session ID
-      if (!isValidSessionId(sessionId)) {
-        return {
-          success: false,
-          error: 'Invalid session ID',
-          statusCode: 400
-        };
-      }
-
-      const sessionPath = path.join(extractDir, directoryName);
-      const targetPath = path.join(this.SESSION_DIRS.copilot, sessionId);
-
-      // Check for events.jsonl
-      const eventsFile = path.join(sessionPath, 'events.jsonl');
-      if (!fs.existsSync(eventsFile)) {
-        return {
-          success: false,
-          error: 'Invalid session structure (no events.jsonl)',
-          statusCode: 400
-        };
-      }
-
-      // Check if session already exists
-      if (fs.existsSync(targetPath)) {
-        return {
-          success: false,
-          error: 'Session already exists',
-          statusCode: 409
-        };
-      }
-
-      // Move session directory
-      await fs.promises.rename(sessionPath, targetPath);
-
-      // Mark as imported
-      await fs.promises.writeFile(path.join(targetPath, '.imported'), '');
-
-      return {
-        success: true,
-        sessionId,
-        format: 'copilot'
-      };
-    } catch (err) {
-      console.error('Error importing Copilot session:', err);
-      return {
-        success: false,
-        error: `Error importing Copilot session: ${err.message}`,
-        statusCode: 500
-      };
-    }
+    return registry.get('copilot').importDetectedSession(formatInfo, { extractDir, req: { query: {} }, targetDir: this.SESSION_DIRS.copilot });
   }
-
-  /**
-   * Import Claude format session
-   * @param {Object} formatInfo - Format detection result
-   * @param {string} extractDir - Extraction directory
-   * @param {Object} req - Express request object
-   * @returns {Promise<Object>} Import result
-   */
   async _importClaudeSession(formatInfo, extractDir, req) {
-    try {
-      const { sessionId, fileName, hasDirectory, directoryName } = formatInfo;
-
-      // Validate session ID
-      if (!isValidSessionId(sessionId)) {
-        return {
-          success: false,
-          error: 'Invalid session ID',
-          statusCode: 400
-        };
-      }
-
-      // Get project from query or use default
-      const project = req.query.project || 'imported-sessions';
-
-      // Create project directory
-      const projectPath = path.join(this.SESSION_DIRS.claude, project);
-      await fs.promises.mkdir(projectPath, { recursive: true });
-
-      // Move the .jsonl file
-      const sourceFile = path.join(extractDir, fileName);
-      const targetFile = path.join(projectPath, fileName);
-      await fs.promises.rename(sourceFile, targetFile);
-
-      // If there's a directory, move it too
-      if (hasDirectory && directoryName) {
-        const sourceDir = path.join(extractDir, directoryName);
-        const targetDir = path.join(projectPath, directoryName);
-        await fs.promises.rename(sourceDir, targetDir);
-      }
-
-      return {
-        success: true,
-        sessionId,
-        format: 'claude',
-        project
-      };
-    } catch (err) {
-      console.error('Error importing Claude session:', err);
-      return {
-        success: false,
-        error: `Error importing Claude session: ${err.message}`,
-        statusCode: 500
-      };
-    }
+    return registry.get('claude').importDetectedSession(formatInfo, { extractDir, req, targetDir: this.SESSION_DIRS.claude });
   }
-
-  /**
-   * Import Pi-Mono format session
-   * @param {Object} formatInfo - Format detection result
-   * @param {string} extractDir - Extraction directory
-   * @param {Object} req - Express request object
-   * @returns {Promise<Object>} Import result
-   */
   async _importPiMonoSession(formatInfo, extractDir, req) {
-    try {
-      const { sessionId, fileName } = formatInfo;
-
-      // Validate session ID
-      if (!isValidSessionId(sessionId)) {
-        return {
-          success: false,
-          error: 'Invalid session ID',
-          statusCode: 400
-        };
-      }
-
-      // Get project from query or use default
-      const project = req.query.project || 'imported-sessions';
-
-      // Create project directory
-      const projectPath = path.join(this.SESSION_DIRS['pi-mono'], project);
-      await fs.promises.mkdir(projectPath, { recursive: true });
-
-      // Move the .jsonl file
-      const sourceFile = path.join(extractDir, fileName);
-      const targetFile = path.join(projectPath, fileName);
-      await fs.promises.rename(sourceFile, targetFile);
-
-      return {
-        success: true,
-        sessionId,
-        format: 'pi-mono',
-        project
-      };
-    } catch (err) {
-      console.error('Error importing Pi-Mono session:', err);
-      return {
-        success: false,
-        error: `Error importing Pi-Mono session: ${err.message}`,
-        statusCode: 500
-      };
-    }
+    return registry.get('pi-mono').importDetectedSession(formatInfo, { extractDir, req, targetDir: this.SESSION_DIRS['pi-mono'] });
   }
 
-  /**
-   * Import session by detected format
-   * @param {Object} formatInfo - Format detection result
-   * @param {string} extractDir - Extraction directory
-   * @param {Object} req - Express request object
-   * @returns {Promise<Object>} Import result
-   */
   async _importByFormat(formatInfo, extractDir, req) {
-    // Validate session ID
     if (!isValidSessionId(formatInfo.sessionId)) {
-      return {
-        success: false,
-        error: 'Invalid session ID',
-        statusCode: 400
-      };
+      return { success: false, error: 'Invalid session ID', statusCode: 400 };
     }
+    const adapter = registry.get(formatInfo.format || formatInfo.source);
+    if (!adapter) {
+      return { success: false, error: `Unsupported format: ${formatInfo.format || formatInfo.source}`, statusCode: 400, code: 'unsupported-format' };
+    }
+    return adapter.importDetectedSession(formatInfo, { extractDir, req, targetDir: this.SESSION_DIRS[formatInfo.format || formatInfo.source] });
+  }
 
-    switch (formatInfo.format) {
-      case 'copilot':
-        return await this._importCopilotSession(formatInfo, extractDir);
-      case 'claude':
-        return await this._importClaudeSession(formatInfo, extractDir, req);
-      case 'pi-mono':
-        return await this._importPiMonoSession(formatInfo, extractDir, req);
-      default:
-        return {
-          success: false,
-          error: `Unsupported format: ${formatInfo.format}`,
-          statusCode: 400
-        };
+  async _validateZipArchive(zipPath) {
+    const MAX_COMPRESSED = 50 * 1024 * 1024, MAX_UNCOMPRESSED = 200 * 1024 * 1024, MAX_FILES = 1000, MAX_DEPTH = 5;
+    const stats = await fs.promises.stat(zipPath);
+    if (stats.size > MAX_COMPRESSED) throw new Error('Compressed file too large (max 50MB)');
+    const listProc = spawn('unzip', ['-l', zipPath]);
+    let out = '';
+    listProc.stdout.on('data', d => { out += d.toString(); });
+    await new Promise((ok, fail) => {
+      listProc.on('close', c => c !== 0 ? fail(new Error('Failed to list zip contents')) : ok());
+      listProc.on('error', fail);
+    });
+    let totalSize = 0, count = 0, maxD = 0;
+    for (const line of out.split('\n')) {
+      const m = line.trim().match(/^\s*(\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+(.+)$/);
+      if (!m) continue;
+      totalSize += parseInt(m[1], 10); count++;
+      maxD = Math.max(maxD, (m[2].match(/\//g) || []).length);
     }
+    if (totalSize > MAX_UNCOMPRESSED) throw new Error(`Uncompressed size too large (${Math.round(totalSize/1024/1024)}MB > ${MAX_UNCOMPRESSED/1024/1024}MB)`);
+    if (count > MAX_FILES) throw new Error(`Too many files in archive (${count} > ${MAX_FILES})`);
+    if (maxD > MAX_DEPTH) throw new Error(`Directory nesting too deep (${maxD} > ${MAX_DEPTH})`);
+  }
+
+  async _importExtractedSession(extractDir, req) {
+    const det = await this._detectImportCandidates(extractDir);
+    if (det.status === 'error') return { success: false, statusCode: 500, error: 'Error importing session' };
+    if (det.status === 'invalid-structure') return { success: false, statusCode: 400, error: det.error };
+    if (det.status === 'unsupported-format') {
+      return { success: false, statusCode: det.error === 'Empty zip file' ? 400 : 415, error: det.error, code: 'unsupported-format', candidates: det.candidates };
+    }
+    if (det.status === 'ambiguous') {
+      return { success: false, statusCode: 400, error: det.error, code: 'ambiguous-format', candidates: det.matches };
+    }
+    return this._importByFormat(det.match, extractDir, req);
   }
 
   /**
