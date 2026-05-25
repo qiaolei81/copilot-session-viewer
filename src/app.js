@@ -92,6 +92,7 @@ function createApp(options = {}) {
   // API routes (more specific routes first)
   app.get('/api/sessions/load-more', sessionController.loadMoreSessions.bind(sessionController));
   app.get('/api/sessions', sessionController.getSessions.bind(sessionController));
+  app.get('/api/sessions/:id', sessionController.getSessionById.bind(sessionController));
   app.get('/api/sessions/:id/events', sessionController.getSessionEvents.bind(sessionController));
   app.get('/api/sessions/:id/timeline', sessionController.getTimeline.bind(sessionController));
 
