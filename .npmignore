@@ -1,4 +1,5 @@
-# Frontend source files (only ship minified bundles)
+# Frontend source files (only ship built dist/)
+src/client/
 src/frontend/
 
 # Build tooling

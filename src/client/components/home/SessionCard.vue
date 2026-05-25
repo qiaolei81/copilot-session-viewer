@@ -132,7 +132,7 @@ function navigateToSession() {
     <!-- Summary -->
     <div
       v-if="summaryText"
-      class="session-summary mt-3 mb-3 text-[15px] font-medium leading-relaxed text-[#e6edf3] cursor-help"
+      class="mt-3 mb-3 line-clamp-3 break-words text-[15px] font-medium leading-relaxed text-[#e6edf3] cursor-help [overflow-wrap:anywhere]"
       :title="session.summary"
       :data-tooltip-text="session.summary"
     >
@@ -171,13 +171,3 @@ function navigateToSession() {
   </a>
 </template>
 
-<style scoped>
-.session-summary {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-</style>

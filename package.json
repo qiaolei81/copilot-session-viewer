@@ -32,7 +32,7 @@
   },
   "scripts": {
     "build": "vite build --config vite.config.js",
-    "build:watch": "node scripts/build.mjs --watch",
+    "build:client": "vite build --config vite.config.js",
     "start": "cross-env DISABLE_TELEMETRY=true node server.js",
     "dev": "concurrently \"vite --config vite.config.js\" \"cross-env DISABLE_TELEMETRY=true nodemon server.js\"",
     "test": "jest",
@@ -99,13 +99,12 @@
   },
   "files": [
     "bin/",
-    "dist/server.min.js",
-    "views/",
-    "public/css/",
-    "public/js/*.min.js",
+    "dist/",
+    "src/",
+    "!src/client/",
+    "!src/frontend/",
     "public/img/",
     "LICENSE",
-    "README.md",
-    "public/vendor/"
+    "README.md"
   ]
 }

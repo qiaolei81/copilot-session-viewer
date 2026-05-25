@@ -1,10 +1,34 @@
+<script setup>
+import { ref } from 'vue'
+import AppHeader from '../components/common/AppHeader.vue'
+import SessionSearchBar from '../components/home/SessionSearchBar.vue'
+import SourceFilterPills from '../components/home/SourceFilterPills.vue'
+import SessionImport from '../components/home/SessionImport.vue'
+import SessionList from '../components/home/SessionList.vue'
+import SummaryPreview from '../components/home/SummaryPreview.vue'
+
+const activeSource = ref('copilot')
+
+function onFilterChange(source) {
+  activeSource.value = source
+}
+</script>
+
 <template>
-  <div class="home-view">
-    <h1>Session Viewer</h1>
-    <p>Home page - coming soon</p>
+  <div class="min-h-screen bg-[#0d1117] text-[#c9d1d9]">
+    <AppHeader title="Session Viewer" />
+
+    <main class="mx-auto max-w-6xl px-4 py-6">
+      <SessionSearchBar class="mb-6" />
+
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <SourceFilterPills @filter-change="onFilterChange" />
+        <SessionImport />
+      </div>
+
+      <SessionList :source="activeSource" />
+    </main>
+
+    <SummaryPreview />
   </div>
 </template>
-
-<script setup>
-// HomeView stub
-</script>

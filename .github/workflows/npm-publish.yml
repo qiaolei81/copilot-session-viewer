@@ -43,13 +43,12 @@ jobs:
           cd /tmp/verify-tgz
           npm init -y
           npm install "$GITHUB_WORKSPACE/$TARBALL"
-          echo "--- Checking minified files ---"
-          test -f node_modules/@qiaolei81/copilot-session-viewer/public/js/homepage.min.js
-          test -f node_modules/@qiaolei81/copilot-session-viewer/public/js/session-detail.min.js
-          test -f node_modules/@qiaolei81/copilot-session-viewer/public/js/time-analyze.min.js
-          test -f node_modules/@qiaolei81/copilot-session-viewer/public/js/telemetry-browser.min.js
+          echo "--- Checking Vite build output ---"
+          test -d node_modules/@qiaolei81/copilot-session-viewer/dist/client
+          test -f node_modules/@qiaolei81/copilot-session-viewer/dist/client/index.html
           echo "--- Checking NO source files ---"
           test ! -d node_modules/@qiaolei81/copilot-session-viewer/src/frontend
+          test ! -d node_modules/@qiaolei81/copilot-session-viewer/src/client
           echo "--- Smoke test: server starts ---"
           export DISABLE_TELEMETRY=true
           export PORT=3839
