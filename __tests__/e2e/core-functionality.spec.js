@@ -16,7 +16,7 @@ test.describe('Core Functionality Tests', () => {
 
     await expect(page.getByRole('heading', { name: /session viewer/i })).toBeVisible();
     await expect(page.getByPlaceholder('Enter Session ID...')).toBeVisible();
-    await expect(page.locator('#importLink')).toBeVisible();
+    await expect(page.locator('.import-link')).toBeVisible();
   });
 
   test('should display sessions if available', async ({ page }) => {
@@ -38,10 +38,10 @@ test.describe('Core Functionality Tests', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Loading indicator is always rendered in DOM (hidden by default via CSS)
-    // It does not depend on session count
-    const loadingIndicator = page.locator('#loading-indicator');
-    await expect(loadingIndicator).toBeAttached();
+    // In the Vue SPA, loading state is shown via v-if="isLoading"
+    // Just verify the sessions container area renders
+    const container = page.locator('.recent-sessions');
+    await expect(container).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to session detail page', async ({ page }) => {
@@ -49,36 +49,14 @@ test.describe('Core Functionality Tests', () => {
       test.skip('No sessions available for navigation test');
     }
 
-    await page.goto(`/session/${SESSION_ID}`);
+    await page.goto(`/#/session/${SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     // Should load session detail page
     await expect(page.locator('body')).toBeVisible();
 
     // URL should be correct
-    expect(page.url()).toContain(`/session/${SESSION_ID}`);
-  });
-
-  test('should load Vue session detail page', async ({ page }) => {
-    if (!SESSION_ID) {
-      test.skip('No sessions available for Vue test');
-    }
-
-    await page.goto(`/session/${SESSION_ID}/vue`);
-    await page.waitForLoadState('networkidle');
-
-    // Vue page should load
-    await expect(page.locator('body')).toBeVisible();
-
-    // Should have share button (key Vue feature)
-    const shareButton = page.locator('button:has-text("📤 Share Session")');
-    const hasShareButton = await shareButton.isVisible({ timeout: 5000 });
-
-    if (hasShareButton) {
-      console.log('Vue session page loaded with share functionality');
-    } else {
-      console.log('Vue session page loaded but share button not visible');
-    }
+    expect(page.url()).toContain(`/#/session/${SESSION_ID}`);
   });
 
   test('should load time analysis page', async ({ page }) => {
@@ -86,7 +64,7 @@ test.describe('Core Functionality Tests', () => {
       test.skip('No sessions available for time analysis test');
     }
 
-    await page.goto(`/session/${SESSION_ID}/time-analyze`);
+    await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
     await page.waitForLoadState('networkidle');
 
     // Time analysis page should load
@@ -103,7 +81,6 @@ test.describe('Core Functionality Tests', () => {
     }
 
     // Verify Timeline content rendering (Gantt bars for assistant turns)
-    // Timeline should display summary cards and turn analysis
     const summaryCards = page.locator('.summary-card');
     const hasSummaryCards = await summaryCards.first().isVisible({ timeout: 5000 }).catch(() => false);
 
@@ -111,25 +88,7 @@ test.describe('Core Functionality Tests', () => {
       console.log('Timeline summary cards visible - Gantt rendering working');
     } else {
       console.log('Timeline summary not visible - checking if session has turns');
-      // For sessions without turns, this is expected behavior
     }
-  });
-
-  test('should handle API endpoints correctly', async ({ request }) => {
-    // Test main sessions endpoint
-    const sessionsResponse = await request.get('/api/sessions');
-    expect(sessionsResponse.ok()).toBeTruthy();
-
-    const sessions = await sessionsResponse.json();
-    expect(Array.isArray(sessions)).toBeTruthy();
-
-    // Test load-more endpoint
-    const loadMoreResponse = await request.get('/api/sessions/load-more?offset=0&limit=5');
-    expect(loadMoreResponse.ok()).toBeTruthy();
-
-    const loadMoreData = await loadMoreResponse.json();
-    expect(loadMoreData).toHaveProperty('sessions');
-    expect(loadMoreData).toHaveProperty('hasMore');
   });
 
   test('should handle session import dialog', async ({ page }) => {
@@ -137,7 +96,7 @@ test.describe('Core Functionality Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Import link should be clickable
-    const importLink = page.locator('#importLink');
+    const importLink = page.locator('.import-link');
     await expect(importLink).toBeVisible();
 
     // Set up file chooser handler

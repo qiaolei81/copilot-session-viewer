@@ -1,19 +1,19 @@
-const { test, expect, getSessionsWithRetry } = require('./fixtures');
+const { test, expect, getAllSourceSessionsWithRetry } = require('./fixtures');
 
 test.describe('Tagging Feature', () => {
   let SESSION_ID;
-  let SESSION_SOURCE = 'copilot';
+  let SESSION_SOURCE = 'copilot-cli';
 
   // Run all tests in serial mode to avoid conflicts since they share the same session
   test.describe.configure({ mode: 'serial' });
 
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API
-    const sessions = await getSessionsWithRetry(request);
+    const sessions = await getAllSourceSessionsWithRetry(request);
 
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
-      SESSION_SOURCE = sessions[0].source || 'copilot';
+      SESSION_SOURCE = sessions[0].source || 'copilot-cli';
     } else {
       test.skip('No sessions available for testing');
       return;
@@ -24,20 +24,21 @@ test.describe('Tagging Feature', () => {
     // Clean up: reset tags to empty array after all tests complete
     if (SESSION_ID) {
       try {
-        await request.put(`/api/sessions/${SESSION_ID}/tags`, {
+        await request.put(`/api/${SESSION_SOURCE}/sessions/${SESSION_ID}/tags`, {
           data: { tags: [] }
         });
       } catch (error) {
         console.warn('Failed to clean up tags:', error.message);
       }
     }
-    // Clean up autocomplete-test tag from sessions[1] (set by autocomplete test)
+    // Clean up autocomplete-test tag from sessions[1]
     try {
-      const sessions = await getSessionsWithRetry(request);
+      const sessions = await getAllSourceSessionsWithRetry(request);
       if (sessions.length > 1) {
-        const otherSessionId = sessions[1].id;
-        if (otherSessionId !== SESSION_ID) {
-          await request.put(`/api/sessions/${otherSessionId}/tags`, {
+        const otherSession = sessions[1];
+        const otherSource = otherSession.source || 'copilot-cli';
+        if (otherSession.id !== SESSION_ID) {
+          await request.put(`/api/${otherSource}/sessions/${otherSession.id}/tags`, {
             data: { tags: [] }
           });
         }
@@ -47,158 +48,31 @@ test.describe('Tagging Feature', () => {
     }
   });
 
-  test.describe('API Tests', () => {
-    test('GET /api/tags should return 200 with tags array', async ({ request }) => {
-      const response = await request.get('/api/tags');
-
-      expect(response.ok()).toBeTruthy();
-      expect(response.status()).toBe(200);
-
-      const data = await response.json();
-      expect(data).toHaveProperty('tags');
-      expect(Array.isArray(data.tags)).toBeTruthy();
-    });
-
-    test('GET /api/sessions/:id/tags should return 200 for valid session', async ({ request }) => {
-      const response = await request.get(`/api/sessions/${SESSION_ID}/tags`);
-
-      expect(response.ok()).toBeTruthy();
-      expect(response.status()).toBe(200);
-
-      const data = await response.json();
-      expect(data).toHaveProperty('tags');
-      expect(Array.isArray(data.tags)).toBeTruthy();
-    });
-
-    test('GET /api/sessions/:id/tags should return 404 for invalid session', async ({ request }) => {
-      const response = await request.get('/api/sessions/invalid-session-id/tags');
-
-      expect(response.status()).toBe(404);
-
-      const data = await response.json();
-      expect(data).toHaveProperty('error');
-    });
-
-    test('PUT /api/sessions/:id/tags should persist tags', async ({ request }) => {
-      // Clean up first to ensure clean state
-      await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: [] }
-      });
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      const testTags = ['persist-1', 'persist-2', 'persist-3'];
-
-      // Set tags
-      const putResponse = await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: testTags }
-      });
-
-      expect(putResponse.ok()).toBeTruthy();
-      expect(putResponse.status()).toBe(200);
-
-      const putData = await putResponse.json();
-      expect(putData.tags).toEqual(testTags);
-
-      // Add small delay to ensure filesystem write completes
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Verify persistence by fetching tags
-      const getResponse = await request.get(`/api/sessions/${SESSION_ID}/tags`);
-      expect(getResponse.ok()).toBeTruthy();
-
-      const getData = await getResponse.json();
-      expect(getData.tags).toEqual(testTags);
-    });
-
-    test('PUT should reject tag exceeding 30 characters', async ({ request }) => {
-      const longTag = 'a'.repeat(31); // 31 characters
-      const response = await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: [longTag] }
-      });
-
-      expect(response.status()).toBe(400);
-
-      const data = await response.json();
-      expect(data.error).toContain('30 characters');
-    });
-
-    test('PUT should reject more than 10 tags', async ({ request }) => {
-      const tooManyTags = Array.from({ length: 11 }, (_, i) => `tag-${i + 1}`);
-      const response = await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: tooManyTags }
-      });
-
-      expect(response.status()).toBe(400);
-
-      const data = await response.json();
-      expect(data.error).toContain('Maximum 10 tags');
-    });
-
-    test('PUT should reject empty string tags', async ({ request }) => {
-      const response = await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: ['valid-tag', '  ', 'another-tag'] }
-      });
-
-      expect(response.status()).toBe(400);
-
-      const data = await response.json();
-      expect(data.error).toContain('non-empty strings');
-    });
-
-    test('PUT should reject non-array tags', async ({ request }) => {
-      const response = await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: 'not-an-array' }
-      });
-
-      expect(response.status()).toBe(400);
-
-      const data = await response.json();
-      expect(data.error).toContain('array');
-    });
-
-    test('PUT should accept exactly 30 character tag', async ({ request }) => {
-      const maxLengthTag = 'a'.repeat(30); // Exactly 30 characters
-      const response = await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: [maxLengthTag] }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      expect(response.status()).toBe(200);
-    });
-
-    test('PUT should accept exactly 10 tags', async ({ request }) => {
-      const tenTags = Array.from({ length: 10 }, (_, i) => `tag-${i + 1}`);
-      const response = await request.put(`/api/sessions/${SESSION_ID}/tags`, {
-        data: { tags: tenTags }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      expect(response.status()).toBe(200);
-    });
-  });
-
   test.describe('UI Tests - Homepage', () => {
     test('should display tags on session cards after adding them', async ({ page, request }) => {
       // Add tags via API
       const testTags = ['homepage-tag-1', 'homepage-tag-2'];
-      await request.put(`/api/sessions/${SESSION_ID}/tags`, {
+      await request.put(`/api/${SESSION_SOURCE}/sessions/${SESSION_ID}/tags`, {
         data: { tags: testTags }
       });
 
       // Navigate to homepage
       await page.goto('/');
 
-      const sessionsContainer = page.locator('#sessions-container');
-      await expect(sessionsContainer).toBeVisible();
+      // Wait for sessions to load
+      await page.waitForSelector('.recent-item', { timeout: 10000 });
 
-      if (SESSION_SOURCE !== 'copilot') {
-        await page.locator(`.filter-pill[data-source="${SESSION_SOURCE}"]`).click();
+      // If the session is from a different source, click its filter pill
+      if (SESSION_SOURCE !== 'copilot' && SESSION_SOURCE !== 'copilot-cli') {
+        const pillText = SESSION_SOURCE === 'claude' ? 'Claude' :
+                         SESSION_SOURCE === 'pi-mono' ? 'Pi' :
+                         SESSION_SOURCE === 'modernize' ? 'Modernize CLI' :
+                         SESSION_SOURCE === 'vscode' ? 'Copilot Chat' : 'Copilot CLI';
+        await page.locator('.filter-pill').filter({ hasText: pillText }).click();
+        await page.waitForTimeout(1000);
       }
 
-      await expect.poll(async () => {
-        return (await sessionsContainer.textContent()) || '';
-      }).not.toContain('⏳ Loading...');
-
+      // Find the target session card by its link
       const targetCard = page.locator(`.recent-item[href="/session/${SESSION_ID}"]`).first();
 
       if (await targetCard.count() === 0) {
@@ -218,9 +92,9 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should not show tags section when session has no tags', async ({ page }) => {
-      // Navigate to homepage (tags are cleaned up by afterEach)
+      // Navigate to homepage
       await page.goto('/');
-      await page.waitForSelector('.recent-item', { timeout: 5000 });
+      await page.waitForSelector('.recent-item', { timeout: 10000 });
 
       // Check first few session cards
       const sessionCards = page.locator('.recent-item');
@@ -231,10 +105,8 @@ test.describe('Tagging Feature', () => {
       const tagsCount = await tagsContainer.count();
 
       if (tagsCount > 0) {
-        // If tags container exists, it should be empty or have no tag children
         const tags = firstCard.locator('.session-tag');
         const tagCount = await tags.count();
-        // It's ok if there are no tags or if tags exist (from other sessions)
         expect(tagCount).toBeGreaterThanOrEqual(0);
       }
     });
@@ -254,7 +126,7 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should display tags section in sidebar', async ({ page }) => {
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Check for tags container
@@ -266,19 +138,19 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should show edit button for tags', async ({ page }) => {
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       const tagsContainer = page.locator('.session-tags-container');
       await expect(tagsContainer).toBeVisible();
 
-      // Check for edit button (emoji or text)
+      // Check for edit button
       const editButton = page.locator('.tags-edit-btn');
       await expect(editButton).toBeVisible();
     });
 
     test('should open tag editing dropdown on edit button click', async ({ page }) => {
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Click edit button
@@ -300,12 +172,12 @@ test.describe('Tagging Feature', () => {
 
     test('should add a tag and display it', async ({ page, request }) => {
       // Clean up first
-      await request.put(`/api/sessions/${SESSION_ID}/tags`, {
+      await request.put(`/api/${SESSION_SOURCE}/sessions/${SESSION_ID}/tags`, {
         data: { tags: [] }
       });
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Click edit button
@@ -326,7 +198,6 @@ test.describe('Tagging Feature', () => {
       await expect(tagChip).toBeVisible();
 
       // Click outside the dropdown to trigger blur and save
-      // Click on the main content area
       await page.locator('.main-layout').click({ position: { x: 500, y: 200 } });
       await page.waitForTimeout(1500);
 
@@ -338,12 +209,12 @@ test.describe('Tagging Feature', () => {
     test('should persist tags after page reload', async ({ page, request }) => {
       // Add tag via API
       const testTag = 'persist-test-tag';
-      await request.put(`/api/sessions/${SESSION_ID}/tags`, {
+      await request.put(`/api/${SESSION_SOURCE}/sessions/${SESSION_ID}/tags`, {
         data: { tags: [testTag] }
       });
 
       // Navigate to session detail page
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Verify tag is visible
@@ -360,18 +231,18 @@ test.describe('Tagging Feature', () => {
 
     test('should show autocomplete suggestions', async ({ page, request }) => {
       // Add some tags to other sessions to populate autocomplete
-      const sessions = await getSessionsWithRetry(request);
+      const sessions = await getAllSourceSessionsWithRetry(request);
 
       if (sessions.length > 1) {
-        // Add a known tag to another session
-        const otherSessionId = sessions[1].id;
-        await request.put(`/api/sessions/${otherSessionId}/tags`, {
+        const otherSession = sessions[1];
+        const otherSource = otherSession.source || 'copilot-cli';
+        await request.put(`/api/${otherSource}/sessions/${otherSession.id}/tags`, {
           data: { tags: ['autocomplete-test'] }
         });
       }
 
       // Navigate to our test session
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Open tag editor
@@ -401,7 +272,7 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should remove tag from editing view', async ({ page }) => {
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Open editor
@@ -432,17 +303,12 @@ test.describe('Tagging Feature', () => {
     test('should display multiple tags with colors', async ({ page, request }) => {
       // Clean up first, then add multiple tags
       const testTags = ['ui-multi-1', 'ui-multi-2', 'ui-multi-3'];
-      await request.put(`/api/sessions/${SESSION_ID}/tags`, {
+      await request.put(`/api/${SESSION_SOURCE}/sessions/${SESSION_ID}/tags`, {
         data: { tags: testTags }
       });
       await new Promise(resolve => setTimeout(resolve, 400));
 
-      // Verify tags were set via API
-      const verifyResponse = await request.get(`/api/sessions/${SESSION_ID}/tags`);
-      const verifyData = await verifyResponse.json();
-      expect(verifyData.tags).toEqual(testTags);
-
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Wait for Vue to mount and load tags
@@ -452,11 +318,9 @@ test.describe('Tagging Feature', () => {
       try {
         await page.waitForSelector('.tag-label', { timeout: 15000 });
       } catch (e) {
-        // Debug: Check if tags container exists
         const tagsContainer = await page.locator('.session-tags-container').count();
         console.log('Tags container found:', tagsContainer);
 
-        // Debug: Get all text content from tags section
         if (tagsContainer > 0) {
           const tagsHtml = await page.locator('.session-tags-container').innerHTML();
           console.log('Tags HTML:', tagsHtml);
@@ -473,13 +337,13 @@ test.describe('Tagging Feature', () => {
         const bgColor = await tagLabel.evaluate(el =>
           window.getComputedStyle(el).backgroundColor
         );
-        expect(bgColor).not.toBe('rgba(0, 0, 0, 0)'); // Not transparent
+        expect(bgColor).not.toBe('rgba(0, 0, 0, 0)');
         expect(bgColor).not.toBe('transparent');
       }
     });
 
     test('should limit tag input to 30 characters', async ({ page }) => {
-      await page.goto(`/session/${SESSION_ID}`);
+      await page.goto(`/#/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Open editor

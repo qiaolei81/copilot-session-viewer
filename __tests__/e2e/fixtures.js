@@ -42,11 +42,12 @@ async function getJsonWithRetry(request, url, options = {}) {
 }
 
 async function getSessionsWithRetry(request, options = {}) {
-  return getJsonWithRetry(request, '/api/sessions', {
+  const source = options.source || 'copilot-cli';
+  return getJsonWithRetry(request, `/api/${source}/sessions`, {
     ...options,
     validate(data) {
       if (!Array.isArray(data)) {
-        throw new Error('/api/sessions did not return an array of sessions');
+        throw new Error(`/api/${source}/sessions did not return an array of sessions`);
       }
 
       if (typeof options.validate === 'function') {
@@ -56,9 +57,23 @@ async function getSessionsWithRetry(request, options = {}) {
   });
 }
 
+/**
+ * Fetch sessions from all sources and return a merged array.
+ */
+async function getAllSourceSessionsWithRetry(request, options = {}) {
+  const sources = ['copilot-cli', 'claude', 'copilot-chat', 'pi-mono', 'modernize'];
+  const results = await Promise.allSettled(
+    sources.map(source =>
+      getSessionsWithRetry(request, { ...options, source }).catch(() => [])
+    )
+  );
+  return results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+}
+
 module.exports = {
   test,
   expect: playwright.expect,
   getJsonWithRetry,
-  getSessionsWithRetry
+  getSessionsWithRetry,
+  getAllSourceSessionsWithRetry
 };

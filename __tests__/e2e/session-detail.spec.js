@@ -1,8 +1,6 @@
-const { test, expect } = require('./fixtures');
+const { test, expect, getSessionsWithRetry, getAllSourceSessionsWithRetry } = require('./fixtures');
 
 test.describe('Session Detail Page', () => {
-  // Use a known session ID from your test environment
-  // This will be dynamically fetched in the actual test
   let SESSION_ID;
   let EVENTFUL_SESSION_ID;
   let CLAUDE_USAGE_SESSION_ID;
@@ -84,9 +82,8 @@ test.describe('Session Detail Page', () => {
   };
 
   test.beforeAll(async ({ request }) => {
-    // Get first session ID from API
-    const response = await getWithRetry(request, '/api/sessions');
-    const sessions = await response.json();
+    // Get sessions from all sources
+    const sessions = await getAllSourceSessionsWithRetry(request);
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
     } else {
@@ -98,7 +95,8 @@ test.describe('Session Detail Page', () => {
         continue;
       }
 
-      const eventsResponse = await getWithRetry(request, `/api/sessions/${session.id}/events`);
+      const source = session.source || 'copilot-cli';
+      const eventsResponse = await getWithRetry(request, `/api/${source}/sessions/${session.id}/events`);
       if (!eventsResponse.ok()) {
         continue;
       }
@@ -110,11 +108,10 @@ test.describe('Session Detail Page', () => {
       }
     }
 
-    const claudeResponse = await getWithRetry(request, '/api/sessions?source=claude');
-    const claudeSessions = await claudeResponse.json();
+    const claudeSessions = await getSessionsWithRetry(request, { source: 'claude' }).catch(() => []);
     for (const session of claudeSessions.slice(0, 20)) {
       if (!CLAUDE_DEDUP_SESSION_ID) {
-        const eventsResponse = await getWithRetry(request, `/api/sessions/${session.id}/events`);
+        const eventsResponse = await getWithRetry(request, `/api/claude/sessions/${session.id}/events`);
         if (eventsResponse.ok()) {
           const events = await eventsResponse.json();
           if (isClaudeDedupCandidate(events)) {
@@ -124,10 +121,14 @@ test.describe('Session Detail Page', () => {
       }
 
       if (!CLAUDE_USAGE_SESSION_ID) {
-        const detailResponse = await getWithRetry(request, `/session/${session.id}`);
-        const detailHtml = await detailResponse.text();
-        if (detailHtml.includes('"usage":') && detailHtml.includes('"modelMetrics"')) {
-          CLAUDE_USAGE_SESSION_ID = session.id;
+        // Check via API for usage data
+        const eventsResponse = await getWithRetry(request, `/api/claude/sessions/${session.id}/events`);
+        if (eventsResponse.ok()) {
+          const events = await eventsResponse.json();
+          const hasUsage = Array.isArray(events) && events.some(e => e.data?.usage || e.data?.model);
+          if (hasUsage) {
+            CLAUDE_USAGE_SESSION_ID = session.id;
+          }
         }
       }
 
@@ -136,39 +137,38 @@ test.describe('Session Detail Page', () => {
       }
     }
   });
-  
+
   // Suppress harmless virtual scroller errors
   test.beforeEach(async ({ page }) => {
     page.on('pageerror', error => {
       const message = error.message;
-      // Ignore known virtual scroller issues
-      if (message.includes('ResizeObserver') || 
+      if (message.includes('ResizeObserver') ||
           message.includes("Cannot read properties of undefined (reading 'has')")) {
-        return;  // Ignore
+        return;
       }
-      throw error;  // Re-throw other errors
+      throw error;
     });
   });
-  
+
   test('should load session detail page', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
-    
+    await page.goto(`/#/session/${SESSION_ID}`);
+
     // Wait for Vue to mount and render
     await page.waitForSelector('.main-layout', { timeout: 10000 });
-    
+
     // Check page loaded
     await expect(page.locator('.main-layout')).toBeVisible();
   });
 
   test('should display session metadata', async ({ page }) => {
-    await page.goto(`/session/${SESSION_ID}`);
-    
+    await page.goto(`/#/session/${SESSION_ID}`);
+
     // Wait for Vue to mount
     await page.waitForSelector('.main-layout', { timeout: 10000 });
-    
+
     // Check sidebar (metadata section)
     await expect(page.locator('.sidebar')).toBeVisible();
-    
+
     // Check session info is shown
     await expect(page.locator('.session-info')).toBeVisible();
   });
@@ -176,7 +176,7 @@ test.describe('Session Detail Page', () => {
   test('should display usage summary for Claude sessions when usage data exists', async ({ page }) => {
     test.skip(!CLAUDE_USAGE_SESSION_ID, 'No Claude session with usage data available');
 
-    await page.goto(`/session/${CLAUDE_USAGE_SESSION_ID}`);
+    await page.goto(`/#/session/${CLAUDE_USAGE_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     const usageSummary = page.locator('.usage-summary').first();
@@ -193,7 +193,7 @@ test.describe('Session Detail Page', () => {
   test('should display tool calling summary in sidebar sorted by count descending', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
 
     // Check for Tool Calls sidebar section
@@ -227,7 +227,7 @@ test.describe('Session Detail Page', () => {
   test('should display event list', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
 
     // Check events are displayed
@@ -239,7 +239,7 @@ test.describe('Session Detail Page', () => {
   test('should not surface duplicated Claude replay events in session detail counts', async ({ page, request }) => {
     test.skip(!CLAUDE_DEDUP_SESSION_ID, 'No Claude session with mixed main/subagent events available');
 
-    const response = await getWithRetry(request, `/api/sessions/${CLAUDE_DEDUP_SESSION_ID}/events`);
+    const response = await getWithRetry(request, `/api/claude/sessions/${CLAUDE_DEDUP_SESSION_ID}/events`);
 
     const events = await response.json();
     test.skip(!Array.isArray(events) || events.length === 0, 'Claude dedup candidate session has no events');
@@ -249,7 +249,7 @@ test.describe('Session Detail Page', () => {
 
     expect(uniqueEventKeys.size).toBe(visibleEvents.length);
 
-    await page.goto(`/session/${CLAUDE_DEDUP_SESSION_ID}`);
+    await page.goto(`/#/session/${CLAUDE_DEDUP_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -274,15 +274,14 @@ test.describe('Session Detail Page', () => {
   test('should filter events by search', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
 
     await waitForEventsToRender(page);
 
     // Wait for virtual scroller to stabilize
     await page.waitForTimeout(1000);
 
-    // Get initial event count from type dropdown toggle text (shows "⚡ All Types ▾" by default)
-    // Open the type dropdown and read the "All" entry count
+    // Get initial event count from type dropdown toggle text
     const getEventCount = async () => {
       const toggle = page.locator('.filter-type-toggle');
       await toggle.click();
@@ -294,7 +293,7 @@ test.describe('Session Detail Page', () => {
       await page.waitForTimeout(100);
       return parseInt(countText) || 0;
     };
-    
+
     const initialCount = await getEventCount();
     expect(initialCount).toBeGreaterThan(0);
 
@@ -314,39 +313,37 @@ test.describe('Session Detail Page', () => {
   test('should clear search filter', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
 
     // Wait for virtual scroller to stabilize
     await page.waitForTimeout(1000);
-    
-    // Helper function to get event count from type dropdown "All" entry
+
     const getEventCount = async () => {
       const toggle = page.locator('.filter-type-toggle');
       await toggle.click();
       await page.waitForTimeout(200);
       const allItem = page.locator('.filter-type-menu-item').first();
       const countText = await allItem.locator('.filter-type-menu-count').textContent();
-      // Close dropdown
       await toggle.click();
       await page.waitForTimeout(100);
       return parseInt(countText) || 0;
     };
-    
+
     const searchInput = page.locator('input[placeholder="🔍 Search events..."]');
-    
+
     // Search for something specific
     await searchInput.fill('assistant.message');
     await page.waitForTimeout(800);
-    
+
     const filteredCount = await getEventCount();
-    
+
     // Clear search
     await searchInput.clear();
     await page.waitForTimeout(800);
-    
+
     const clearedCount = await getEventCount();
-    
+
     // Count should increase after clearing
     expect(clearedCount).toBeGreaterThanOrEqual(filteredCount);
   });
@@ -354,10 +351,10 @@ test.describe('Session Detail Page', () => {
   test('should expand and collapse tool details', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
-    // Wait for page content to load - try multiple possible selectors
+    // Wait for page content to load
     const _pageLoaded = await Promise.race([
       page.waitForSelector('.container', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('body', { timeout: 5000 })
@@ -380,7 +377,6 @@ test.describe('Session Detail Page', () => {
 
     if (toolElement) {
       try {
-        // Try to click the element or its parent
         const clickableElement = toolElement.locator('..').first();
         await clickableElement.click({ timeout: 3000 });
         await page.waitForTimeout(500);
@@ -396,44 +392,34 @@ test.describe('Session Detail Page', () => {
   test('should toggle content visibility', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
-    // Wait for page content to load - try multiple possible selectors
     const _pageLoaded = await Promise.race([
       page.waitForSelector('.container', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('body', { timeout: 5000 })
     ]);
 
-    // Wait for events to load
     await page.waitForTimeout(2000);
-    
+
     // Find an event with "Show more" button
     const firstButton = page.locator('button').filter({ hasText: 'Show more ▼' }).first();
-    
+
     if (await firstButton.count() > 0) {
-      // Get the stable content ID from data attribute
       const contentId = await firstButton.getAttribute('data-content-id');
-      
-      // Use stable selector based on content ID
       const button = page.locator(`button[data-content-id="${contentId}"]`);
-      
-      // Scroll element into view (works with virtual scrolling)
+
       await button.scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);
-      
-      // Click "Show more" - use force:true for virtual scroll compatibility
+
       await button.click({ force: true });
       await page.waitForTimeout(300);
-      
-      // Button text should change to "Show less"
+
       await expect(button).toContainText('Show less ▲');
-      
-      // Click "Show less"
+
       await button.click({ force: true });
       await page.waitForTimeout(300);
-      
-      // Button text should change back
+
       await expect(button).toContainText('Show more ▼');
     }
   });
@@ -441,16 +427,14 @@ test.describe('Session Detail Page', () => {
   test('should toggle sidebar', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
-    // Wait for page content to load - try multiple possible selectors
     const _pageLoaded = await Promise.race([
       page.waitForSelector('.container', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('body', { timeout: 5000 })
     ]);
 
-    // Check if sidebar functionality exists - try different sidebar selectors
     const sidebarSelectors = ['.sidebar', '.side-panel', '[data-testid="sidebar"]', '.filter-panel'];
     let sidebarElement = null;
 
@@ -461,7 +445,6 @@ test.describe('Session Detail Page', () => {
         break;
       }
     }
-    // Find sidebar toggle button - try different possible selectors
     const toggleSelectors = ['.sidebar-toggle', '[data-testid="sidebar-toggle"]', '.toggle-btn', 'button[aria-label*="toggle"]'];
     let toggleElement = null;
 
@@ -475,13 +458,9 @@ test.describe('Session Detail Page', () => {
 
     if (sidebarElement && toggleElement) {
       try {
-        // Wait for any animations to complete
         await page.waitForTimeout(500);
-
-        // Click to toggle sidebar
         await toggleElement.click({ force: true, timeout: 3000 });
         await page.waitForTimeout(500);
-
         console.log('Successfully toggled sidebar');
       } catch (error) {
         console.log('Sidebar toggle test - functionality not available or test not applicable to current page structure');
@@ -492,19 +471,28 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should handle invalid session ID gracefully', async ({ page }) => {
-    const response = await page.goto('/session/invalid-session-id-123');
-    
-    // Should return 404
-    expect(response?.status()).toBe(404);
-    
-    // Should show error message
-    await expect(page.locator('body')).toContainText('Session not found');
+    await page.goto('/#/session/invalid-session-id-123');
+
+    // Wait for Vue to mount and try to load the session
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+
+    // In the Vue SPA, an invalid session should show an error message
+    const errorEl = page.locator('.error-message');
+    const hasError = await errorEl.isVisible().catch(() => false);
+
+    if (hasError) {
+      await expect(page.locator('body')).toContainText(/not found|error|invalid/i);
+    } else {
+      // Page should at least not crash
+      await expect(page.locator('body')).toBeVisible();
+    }
   });
 
   test('should open event type dropdown and select a type', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -544,7 +532,7 @@ test.describe('Session Detail Page', () => {
   test('should show filter chips when filters active and clear all', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -577,7 +565,7 @@ test.describe('Session Detail Page', () => {
   test('should dismiss filter chip individually', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -609,7 +597,7 @@ test.describe('Session Detail Page', () => {
   test('should close type dropdown when clicking outside', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 

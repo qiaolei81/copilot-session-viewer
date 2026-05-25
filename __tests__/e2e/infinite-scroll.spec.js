@@ -3,27 +3,22 @@ const { test, expect } = require('./fixtures');
 test.describe('Infinite Scroll', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-
-    // Wait for page to load (sessions may not exist in CI)
     await page.waitForLoadState('networkidle');
   });
 
-  test('should display Load More Sessions button when there are more sessions', async ({ page }) => {
-    // Note: This app now uses pure infinite scroll without a load-more button
-    // The #load-more-btn and #load-more-section elements have been removed
-    // This test now just verifies that sessions exist (if any)
+  test('should display sessions with infinite scroll', async ({ page }) => {
     const sessionCount = await page.locator('.recent-item').count();
 
-    // Just verify loading indicator exists in DOM
-    const loadingIndicator = page.locator('#loading-indicator');
-    await expect(loadingIndicator).toBeAttached();
+    // Verify the sessions container area is present
+    const container = page.locator('.recent-sessions');
+    if (sessionCount > 0) {
+      await expect(container).toBeVisible();
+    }
 
     console.log(`Found ${sessionCount} sessions (infinite scroll mode)`);
   });
 
-  test('should load additional sessions when Load More button is clicked', async ({ page }) => {
-    // Note: Load More button has been removed - this is now pure infinite scroll
-    // This test now verifies infinite scroll behavior by scrolling
+  test('should load additional sessions when scrolling', async ({ page }) => {
     const initialSessionCount = await page.locator('.recent-item').count();
 
     if (initialSessionCount === 0) {
@@ -47,8 +42,7 @@ test.describe('Infinite Scroll', () => {
     console.log(`Initial: ${initialSessionCount}, After scroll: ${newSessionCount}`);
   });
 
-  test('should show loading state when Load More button is clicked', async ({ page }) => {
-    // Note: Load More button removed - test now checks infinite scroll loading
+  test('should show loading state during scroll loading', async ({ page }) => {
     const sessionCount = await page.locator('.recent-item').count();
 
     if (sessionCount === 0) {
@@ -62,8 +56,8 @@ test.describe('Infinite Scroll', () => {
     });
 
     // Check for loading indicator (may appear briefly)
-    const loadingIndicator = page.locator('#loading-indicator');
-    const hasLoadingState = await loadingIndicator.isVisible({ timeout: 2000 }).catch(() => false);
+    const loadingSpinner = page.locator('.loading-spinner');
+    const hasLoadingState = await loadingSpinner.isVisible({ timeout: 2000 }).catch(() => false);
 
     console.log('Loading state visible during scroll:', hasLoadingState);
 
@@ -72,7 +66,6 @@ test.describe('Infinite Scroll', () => {
   });
 
   test('should trigger infinite scroll when scrolling near bottom', async ({ page }) => {
-    // Count initial sessions
     const initialSessionCount = await page.locator('.recent-item').count();
 
     // Scroll to bottom of page
@@ -86,15 +79,12 @@ test.describe('Infinite Scroll', () => {
     // Check if more sessions were loaded
     const newSessionCount = await page.locator('.recent-item').count();
 
-    // If there are more sessions available, they should load
     if (initialSessionCount >= 20) {
       expect(newSessionCount).toBeGreaterThanOrEqual(initialSessionCount);
     }
   });
 
-  test('should hide Load More button when no more sessions available', async ({ page }) => {
-    // Note: Load More button has been removed in favor of infinite scroll
-    // This test now just verifies infinite scroll stops when no more sessions
+  test('should stop loading when no more sessions available', async ({ page }) => {
     let currentCount = await page.locator('.recent-item').count();
 
     if (currentCount === 0) {
@@ -116,7 +106,6 @@ test.describe('Infinite Scroll', () => {
       await page.waitForTimeout(2000);
       currentCount = await page.locator('.recent-item').count();
 
-      // If no new sessions loaded, we've reached the end
       if (currentCount === previousCount) {
         console.log('No more sessions to load - infinite scroll stopped');
         break;
@@ -130,7 +119,7 @@ test.describe('Infinite Scroll', () => {
 
   test('should handle API errors gracefully during infinite scroll', async ({ page }) => {
     // Intercept the load-more API to return an error
-    await page.route('**/api/sessions/load-more*', route => {
+    await page.route('**/api/*/sessions*', route => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -145,7 +134,7 @@ test.describe('Infinite Scroll', () => {
       return;
     }
 
-    // Scroll to trigger infinite scroll (which should fail due to our mock)
+    // Scroll to trigger infinite scroll
     await page.evaluate(() => {
       window.scrollTo(0, document.body.scrollHeight - 400);
     });
@@ -153,10 +142,9 @@ test.describe('Infinite Scroll', () => {
     // Wait for potential error handling
     await page.waitForTimeout(2000);
 
-    // Check that page is still functional despite error
+    // Check that page is still functional
     await expect(page.locator('h1')).toContainText('Session Viewer');
 
-    // Page should still be usable
     const sessionInput = page.locator('input[placeholder*="Session ID"]');
     await expect(sessionInput).toBeVisible();
 
@@ -183,18 +171,18 @@ test.describe('Infinite Scroll', () => {
     const firstSession = page.locator('.recent-item').first();
     await firstSession.click();
 
-    // Wait for navigation
-    await page.waitForURL(/\/session\/.+/);
+    // Wait for navigation (hash router)
+    await page.waitForURL(/#\/session\/.+/);
 
     // Go back to homepage
     await page.goBack();
-    await page.waitForURL('/');
+    await page.waitForTimeout(2000);
 
-    // Check if sessions are still loaded (should maintain state)
+    // Check if sessions are still loaded
     await page.waitForSelector('.recent-item', { timeout: 5000 });
     const newSessionCount = await page.locator('.recent-item').count();
 
-    // Should show at least initial batch, ideally maintain the loaded state
+    // Should show at least initial batch
     expect(newSessionCount).toBeGreaterThanOrEqual(Math.min(sessionsAfterScroll, 20));
     console.log(`Before nav: ${sessionsAfterScroll}, After nav: ${newSessionCount}`);
   });
