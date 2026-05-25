@@ -128,62 +128,6 @@ describe('Routes', () => {
     });
   });
 
-  describe('Page Routes (pages.js)', () => {
-    let mockController;
-
-    beforeEach(() => {
-      // Create mock controller instance
-      mockController = {
-        getHomepage: jest.fn((req, res) => {
-          res.send('<html>Homepage</html>');
-        }),
-        getSessionDetail: jest.fn((req, res) => {
-          res.send('<html>Session Detail</html>');
-        }),
-        getTimeAnalysis: jest.fn((req, res) => {
-          res.send('<html>Time Analysis</html>');
-        })
-      };
-
-      // Mock SessionController constructor to return our mock instance
-      SessionController.mockImplementation(() => mockController);
-
-      const pagesRouter = require('../src/routes/pages');
-      app.use('/', pagesRouter);
-    });
-
-    it('should handle GET / (homepage)', async () => {
-      const response = await request(app)
-        .get('/')
-        .expect(200);
-
-      expect(response.text).toContain('Homepage');
-    });
-
-    it('should handle GET /session/:id (session detail)', async () => {
-      const response = await request(app)
-        .get('/session/test-session-id')
-        .expect(200);
-
-      expect(response.text).toContain('Session Detail');
-    });
-
-    it('should handle GET /session/:id/time-analyze', async () => {
-      const response = await request(app)
-        .get('/session/test-session-id/time-analyze')
-        .expect(200);
-
-      expect(response.text).toContain('Time Analysis');
-    });
-
-    it('should call controller methods with correct bindings', async () => {
-      // Verify route works correctly
-      const response = await request(app).get('/');
-      expect(response.status).toBe(200);
-      expect(response.text).toContain('Homepage');
-    });
-  });
-
   describe('Upload Routes (uploads.js)', () => {
     let mockController;
 
@@ -248,66 +192,6 @@ describe('Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ success: true, sessionId: 'imported-id' });
-    });
-  });
-
-  describe('Route Parameter Validation', () => {
-    it('should accept valid session IDs', async () => {
-      const mockController = {
-        getHomepage: jest.fn((req, res) => res.send('home')),
-        getSessionDetail: jest.fn((req, res) => {
-          res.json({ sessionId: req.params.id });
-        }),
-        getTimeAnalysis: jest.fn((req, res) => res.send('time'))
-      };
-
-      // Set mock implementation BEFORE requiring the router
-      SessionController.mockImplementation(() => mockController);
-      
-      // Clear the cache to force re-require with new mock
-      const pagesRouter = require('../src/routes/pages');
-      
-      const testApp = express();
-      testApp.use(express.json());
-      testApp.use('/', pagesRouter);
-
-      const validIds = [
-        'abc123',
-        'session-123',
-        'test_session',
-        'ABC-123_test'
-      ];
-
-      for (const id of validIds) {
-        const response = await request(testApp)
-          .get(`/session/${id}`)
-          .expect(200);
-
-        // Verify the session ID was correctly extracted and passed
-        expect(response.body.sessionId).toBe(id);
-      }
-    });
-
-    it('should handle special characters in URLs', async () => {
-      const mockController = {
-        getHomepage: jest.fn((req, res) => res.send('home')),
-        getSessionDetail: jest.fn((req, res) => {
-          res.json({ sessionId: req.params.id });
-        }),
-        getTimeAnalysis: jest.fn((req, res) => res.send('time'))
-      };
-
-      SessionController.mockImplementation(() => mockController);
-
-      const pagesRouter = require('../src/routes/pages');
-      const testApp = express();
-      testApp.use(express.json());
-      testApp.use('/', pagesRouter);
-
-      // URL encoding should be handled by Express
-      await request(testApp)
-        .get('/session/test-id-123')
-        .expect(200);
     });
   });
 

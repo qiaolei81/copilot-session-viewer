@@ -83,16 +83,15 @@ function createApp(options = {}) {
   // Static files
   app.use('/public', express.static(path.join(__dirname, '../public')));
 
-  // View engine
-  app.set('view engine', 'ejs');
-  app.set('views', path.join(__dirname, '../views'));
+  // SPA static assets (Vite build output)
+  const spaIndexPath = path.join(__dirname, '../dist/client/index.html');
+  if (fs.existsSync(spaIndexPath)) {
+    app.use(express.static(path.join(__dirname, '../dist/client')));
+  }
 
   // Routes with controllers
 
-  // Page routes
-  app.get('/', sessionController.getHomepage.bind(sessionController));
-  app.get('/session/:id', sessionController.getSessionDetail.bind(sessionController));
-  app.get('/session/:id/time-analyze', sessionController.getTimeAnalysis.bind(sessionController));
+  // Export route (non-SPA, returns file download)
   app.get('/session/:id/export', sessionController.exportSession.bind(sessionController));
 
   // API routes (more specific routes first)
@@ -121,16 +120,13 @@ function createApp(options = {}) {
   // Upload rate limiting - DISABLED
   // app.use('/session/import', uploadLimiter);
 
-  // SPA fallback: serve Vite build output for non-API routes (production only)
-  const spaIndexPath = path.join(__dirname, '../dist/client/index.html');
+  // SPA fallback: serve index.html for frontend routes
   if (fs.existsSync(spaIndexPath)) {
-    app.use(express.static(path.join(__dirname, '../dist/client')));
     app.get('*', (req, res, next) => {
-      // Only serve SPA for known frontend routes
       const spaRoutes = [
-        /^\/$/,                           // homepage
-        /^\/session\/[a-zA-Z0-9._-]+$/,    // session detail (safe ID chars only)
-        /^\/session\/[a-zA-Z0-9._-]+\/time-analyze$/,  // time analysis
+        /^\/$/,
+        /^\/session\/[a-zA-Z0-9._-]+$/,
+        /^\/session\/[a-zA-Z0-9._-]+\/time-analyze$/,
       ];
       if (spaRoutes.some(r => r.test(req.path))) {
         return res.sendFile(spaIndexPath);
