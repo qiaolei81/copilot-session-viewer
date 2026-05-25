@@ -1091,29 +1091,20 @@ export function useSessionData() {
 
     marked.setOptions({ breaks: true, gfm: true });
 
-    // Load metadata
+    // Load metadata (from store cache or API)
+    const sessionStore = (await import('../../stores/sessionStore.js')).useSessionStore();
     try {
-      const metaResponse = await fetch(`/api/sessions/${sessionId.value}`);
-      if (metaResponse.ok) {
-        const metaData = await metaResponse.json();
+      const metaData = await sessionStore.fetchMetadata(sessionId.value);
+      if (metaData) {
         metadata.value = metaData;
       }
     } catch (err) {
       console.error('Error loading metadata:', err);
     }
 
-    // Load events
+    // Load events (from store cache or API)
     try {
-      const response = await fetch(`/api/sessions/${sessionId.value}/events`);
-      if (!response.ok) throw new Error(`Failed to load events: ${response.statusText}`);
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        loadedEvents.value = data;
-      } else if (data.events && Array.isArray(data.events)) {
-        loadedEvents.value = data.events;
-      } else {
-        throw new Error('Invalid response format');
-      }
+      loadedEvents.value = await sessionStore.fetchEvents(sessionId.value);
 
       // Update 'Updated' time from last event timestamp
       if (loadedEvents.value.length > 0) {

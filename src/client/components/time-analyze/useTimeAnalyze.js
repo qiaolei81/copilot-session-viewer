@@ -1182,9 +1182,8 @@ export function useTimeAnalyze(sessionId, metadata) {
   // ── Load events ──
   onMounted(async () => {
     try {
-      const resp = await fetch('/api/sessions/' + sessionId.value + '/events');
-      if (!resp.ok) throw new Error('Failed to load events: ' + resp.statusText);
-      const data = await resp.json();
+      const sessionStore = (await import('../../stores/sessionStore.js')).useSessionStore();
+      const data = await sessionStore.fetchEvents(sessionId.value);
       events.value = data.sort((a, b) => {
         const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;

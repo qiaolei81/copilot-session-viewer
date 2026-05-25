@@ -66,6 +66,7 @@
     "js-yaml": "^4.1.1",
     "marked": "^18.0.4",
     "multer": "^2.0.2",
+    "pinia": "^3.0.4",
     "vue": "^3.5.34",
     "vue-router": "^5.0.7",
     "vue-virtual-scroller": "^2.0.0-beta.8",
