@@ -78,19 +78,15 @@ function createApp(options = {}) {
   // Rate limiting - DISABLED for local development
   // app.use(globalLimiter);
 
-  // Static files
+  // Static files (legacy public folder)
   app.use('/public', express.static(path.join(__dirname, '../public')));
 
-  // View engine
-  app.set('view engine', 'ejs');
-  app.set('views', path.join(__dirname, '../views'));
+  // Serve Vue SPA static assets from dist/client
+  app.use(express.static(path.join(__dirname, '../dist/client')));
 
   // Routes with controllers
 
-  // Page routes
-  app.get('/', sessionController.getHomepage.bind(sessionController));
-  app.get('/session/:id', sessionController.getSessionDetail.bind(sessionController));
-  app.get('/session/:id/time-analyze', sessionController.getTimeAnalysis.bind(sessionController));
+  // Non-page routes that remain server-side
   app.get('/session/:id/export', sessionController.exportSession.bind(sessionController));
 
   // API routes (more specific routes first)
@@ -119,7 +115,12 @@ function createApp(options = {}) {
   // Upload rate limiting - DISABLED
   // app.use('/session/import', uploadLimiter);
 
-  // Error handling
+  // SPA fallback — serve index.html for any non-API GET request not matched above
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/client/index.html'));
+  });
+
+  // Error handling (for non-GET or API errors)
   app.use(notFoundHandler);
   app.use(errorHandler);
 
