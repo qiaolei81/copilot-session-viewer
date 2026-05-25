@@ -53,6 +53,7 @@
     "build:prod": "node scripts/build.mjs --prod",
     "dev:client": "vite",
     "build:client": "vite build",
+    "generate:api": "openapi-typescript openapi.yaml -o src/client/api/schema.d.ts",
     "prepublishOnly": "npm run build:prod"
   },
   "dependencies": {
@@ -89,6 +90,8 @@
     "jest": "^30.2.0",
     "jsdom": "^28.1.0",
     "nodemon": "^3.0.1",
+    "openapi-fetch": "^0.17.0",
+    "openapi-typescript": "^7.13.0",
     "supertest": "^7.2.2",
     "vite": "^8.0.14"
   },

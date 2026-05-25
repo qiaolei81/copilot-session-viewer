@@ -1,0 +1,503 @@
+openapi: 3.1.0
+info:
+  title: Copilot Session Viewer API
+  description: API for viewing and analyzing AI coding assistant sessions from multiple sources (Copilot CLI, Copilot Chat, Claude Code, etc.)
+  version: 2.0.0
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3838
+    description: Local development
+
+paths:
+  /api/sources:
+    get:
+      operationId: listSources
+      summary: List available session sources
+      description: Returns all configured session sources and their metadata
+      tags: [sources]
+      responses:
+        '200':
+          description: List of sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Source'
+
+  /api/{source}/sessions:
+    get:
+      operationId: listSessions
+      summary: List sessions for a source
+      description: Returns paginated session list with lightweight metadata. No full event data.
+      tags: [sessions]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paginated session list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/{source}/sessions/{sessionId}:
+    get:
+      operationId: getSession
+      summary: Get session metadata
+      description: Returns session metadata without events
+      tags: [sessions]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Session metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/{source}/sessions/{sessionId}/events:
+    get:
+      operationId: getSessionEvents
+      summary: Get session events
+      description: Returns normalized events for a session. Supports optional pagination.
+      tags: [sessions]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: Session events
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - description: Unpaginated — plain array
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  - description: Paginated response
+                    $ref: '#/components/schemas/PaginatedEvents'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/{source}/sessions/{sessionId}/timeline:
+    get:
+      operationId: getTimeline
+      summary: Get timeline data for time analysis
+      tags: [sessions]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Timeline data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timeline'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/{source}/sessions/{sessionId}/export:
+    get:
+      operationId: exportSession
+      summary: Export session as zip
+      tags: [sessions]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Zip file download
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/{source}/sessions/{sessionId}/tags:
+    get:
+      operationId: getSessionTags
+      summary: Get tags for a session
+      tags: [tags]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Session tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+    put:
+      operationId: setSessionTags
+      summary: Set tags for a session
+      tags: [tags]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tags]
+              properties:
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Tags updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tags:
+                    type: array
+                    items:
+                      type: string
+
+  /api/{source}/sessions/{sessionId}/insight:
+    get:
+      operationId: getInsight
+      summary: Get agent review status/result
+      tags: [insight]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Insight data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Insight'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: generateInsight
+      summary: Generate agent review
+      tags: [insight]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '202':
+          description: Insight generation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [generating]
+        '409':
+          description: Insight already exists or is generating
+    delete:
+      operationId: deleteInsight
+      summary: Delete agent review
+      tags: [insight]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Insight deleted
+
+  /api/tags:
+    get:
+      operationId: listAllTags
+      summary: List all known tags across all sources
+      tags: [tags]
+      responses:
+        '200':
+          description: All tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /api/import:
+    post:
+      operationId: importSession
+      summary: Import a session from zip
+      tags: [sessions]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Session imported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  sessionId:
+                    type: string
+                  source:
+                    type: string
+
+  /api/{source}/sessions/{sessionId}/share:
+    get:
+      operationId: shareSession
+      summary: Get shareable link for a session
+      tags: [sessions]
+      parameters:
+        - $ref: '#/components/parameters/source'
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Share URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+components:
+  parameters:
+    source:
+      name: source
+      in: path
+      required: true
+      description: 'Session source identifier'
+      schema:
+        type: string
+        enum: [copilot-cli, copilot-chat, claude, modernize, pi-mono]
+    sessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]+$'
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    Source:
+      type: object
+      required: [id, label]
+      properties:
+        id:
+          type: string
+          description: Source identifier used in URL path
+        label:
+          type: string
+          description: Human-readable display name
+        sessionCount:
+          type: integer
+          description: Total number of sessions for this source
+
+    SessionSummary:
+      type: object
+      required: [id, source]
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        title:
+          type: string
+        sessionStatus:
+          type: string
+          enum: [completed, wip, error]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        eventCount:
+          type: integer
+        duration:
+          type: number
+          description: Duration in milliseconds
+        model:
+          type: string
+        producer:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    Session:
+      allOf:
+        - $ref: '#/components/schemas/SessionSummary'
+        - type: object
+          properties:
+            usage:
+              type: object
+              properties:
+                modelMetrics:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    properties:
+                      usage:
+                        type: object
+                        properties:
+                          inputTokens:
+                            type: integer
+                          outputTokens:
+                            type: integer
+                          cacheReadTokens:
+                            type: integer
+                          cacheWriteTokens:
+                            type: integer
+                      requests:
+                        type: object
+                        properties:
+                          count:
+                            type: integer
+
+    SessionList:
+      type: object
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionSummary'
+        hasMore:
+          type: boolean
+        totalSessions:
+          type: integer
+
+    Event:
+      type: object
+      required: [type, timestamp]
+      properties:
+        stableId:
+          type: string
+        type:
+          type: string
+          description: 'Event type (e.g. user.message, assistant.message, tool.call, tool.result, subagent.started, subagent.completed)'
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          description: Event-specific payload (varies by type)
+
+    PaginatedEvents:
+      type: object
+      required: [events, pagination]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        pagination:
+          type: object
+          required: [total, limit, offset, hasMore]
+          properties:
+            total:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+            hasMore:
+              type: boolean
+
+    Timeline:
+      type: object
+      description: Structured timeline data for time analysis visualization
+
+    Insight:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [not_started, generating, completed, timeout]
+        content:
+          type: string
+          description: Markdown content of the agent review
+        generatedAt:
+          type: string
+          format: date-time
