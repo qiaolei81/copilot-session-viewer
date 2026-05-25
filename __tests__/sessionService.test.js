@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const SessionService = require('../src/services/sessionService');
+const SessionService = require('../src/server/services/sessionService');
 
 describe('SessionService', () => {
   let tmpDir;

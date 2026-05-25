@@ -1,21 +1,21 @@
-const SessionRepository = require('../src/services/sessionRepository');
-const Session = require('../src/models/Session');
+const SessionRepository = require('../src/server/services/sessionRepository');
+const Session = require('../src/server/models/Session');
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
 // Mock fileUtils and ParserFactory
-jest.mock('../src/utils/fileUtils');
+jest.mock('../src/server/utils/fileUtils');
 jest.mock('../lib/parsers');
-const fileUtils = require('../src/utils/fileUtils');
+const fileUtils = require('../src/server/utils/fileUtils');
 const { ParserFactory } = require('../lib/parsers');
 
 // Import adapters for direct testing
-const ClaudeAdapter = require('../src/adapters/ClaudeAdapter');
-const PiMonoAdapter = require('../src/adapters/PiMonoAdapter');
-const CopilotAdapter = require('../src/adapters/CopilotAdapter');
-const VsCodeAdapter = require('../src/adapters/VsCodeAdapter');
-const { readFirstLine, computeSessionStatus } = require('../src/adapters/adapterUtils');
+const ClaudeAdapter = require('../src/server/adapters/ClaudeAdapter');
+const PiMonoAdapter = require('../src/server/adapters/PiMonoAdapter');
+const CopilotAdapter = require('../src/server/adapters/CopilotAdapter');
+const VsCodeAdapter = require('../src/server/adapters/VsCodeAdapter');
+const { readFirstLine, computeSessionStatus } = require('../src/server/adapters/adapterUtils');
 
 describe('SessionRepository - Additional Coverage', () => {
   let repository;

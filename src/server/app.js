@@ -79,10 +79,10 @@ function createApp(options = {}) {
   // app.use(globalLimiter);
 
   // Static files (legacy public folder)
-  app.use('/public', express.static(path.join(__dirname, '../public')));
+  app.use('/public', express.static(path.join(__dirname, '../../public')));
 
   // Serve Vue SPA static assets from dist/client
-  app.use(express.static(path.join(__dirname, '../dist/client')));
+  app.use(express.static(path.join(__dirname, '../../dist/client')));
 
   // Routes with controllers
 

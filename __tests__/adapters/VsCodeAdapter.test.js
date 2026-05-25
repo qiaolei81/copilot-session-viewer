@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const VsCodeAdapter = require('../../src/adapters/VsCodeAdapter');
+const VsCodeAdapter = require('../../src/server/adapters/VsCodeAdapter');
 
 describe('VsCodeAdapter', () => {
   let adapter;

@@ -3,9 +3,9 @@ const request = require('supertest');
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
-const TagController = require('../src/controllers/tagController');
-const TagService = require('../src/services/tagService');
-const SessionRepository = require('../src/services/sessionRepository');
+const TagController = require('../src/server/controllers/tagController');
+const TagService = require('../src/server/services/tagService');
+const SessionRepository = require('../src/server/services/sessionRepository');
 
 describe('TagController API', () => {
   let app;

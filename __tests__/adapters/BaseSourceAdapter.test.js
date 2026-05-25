@@ -1,4 +1,4 @@
-const BaseSourceAdapter = require('../../src/adapters/BaseSourceAdapter');
+const BaseSourceAdapter = require('../../src/server/adapters/BaseSourceAdapter');
 
 describe('BaseSourceAdapter', () => {
   let adapter;

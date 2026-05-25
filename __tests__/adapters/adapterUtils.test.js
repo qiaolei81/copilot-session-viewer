@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { readFirstLine, computeSessionStatus } = require('../../src/adapters/adapterUtils');
+const { readFirstLine, computeSessionStatus } = require('../../src/server/adapters/adapterUtils');
 
 describe('adapterUtils', () => {
   let tmpDir;

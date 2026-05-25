@@ -1,4 +1,4 @@
-const { buildMetadata, isValidSessionId } = require('../src/utils/helpers');
+const { buildMetadata, isValidSessionId } = require('../src/server/utils/helpers');
 
 describe('helpers', () => {
   describe('buildMetadata', () => {

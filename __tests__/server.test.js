@@ -1,5 +1,5 @@
 const request = require('supertest');
-const createApp = require('../src/app');
+const createApp = require('../src/server/app');
 
 describe('Server API Endpoints', () => {
   let app;

@@ -1,4 +1,4 @@
-const SessionController = require('../src/controllers/sessionController');
+const SessionController = require('../src/server/controllers/sessionController');
 
 describe('SessionController - Additional Coverage', () => {
   let controller;

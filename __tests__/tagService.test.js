@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
-const TagService = require('../src/services/tagService');
+const TagService = require('../src/server/services/tagService');
 
 describe('TagService', () => {
   let tmpDir;

@@ -2,12 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
-const UploadController = require('../src/controllers/uploadController');
-const processManager = require('../src/utils/processManager');
+const UploadController = require('../src/server/controllers/uploadController');
+const processManager = require('../src/server/utils/processManager');
 
 // Mock child_process and processManager
 jest.mock('child_process');
-jest.mock('../src/utils/processManager');
+jest.mock('../src/server/utils/processManager');
 
 // Helper: Create res object with Promise wrapper for async testing
 function createAsyncRes() {

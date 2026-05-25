@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const ModernizeAdapter = require('../../src/adapters/ModernizeAdapter');
+const ModernizeAdapter = require('../../src/server/adapters/ModernizeAdapter');
 
 describe('ModernizeAdapter', () => {
   let adapter;

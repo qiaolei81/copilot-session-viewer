@@ -43,6 +43,7 @@ function getAppVersion() {
   try {
     // Try multiple paths (source vs bundled)
     const candidates = [
+      path.join(__dirname, '../..', 'package.json'),
       path.join(__dirname, '..', 'package.json'),
       path.join(__dirname, 'package.json'),
     ];

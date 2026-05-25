@@ -1,10 +1,10 @@
-const SessionRepository = require('../src/services/sessionRepository');
-const Session = require('../src/models/Session');
+const SessionRepository = require('../src/server/services/sessionRepository');
+const Session = require('../src/server/models/Session');
 const fs = require('fs').promises;
 
 // Mock the fileUtils module
-jest.mock('../src/utils/fileUtils');
-const fileUtils = require('../src/utils/fileUtils');
+jest.mock('../src/server/utils/fileUtils');
+const fileUtils = require('../src/server/utils/fileUtils');
 
 describe('SessionRepository', () => {
   let sessionRepository;

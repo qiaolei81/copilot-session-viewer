@@ -1,9 +1,9 @@
 // IMPORTANT: Initialize telemetry FIRST, before any other requires (especially Express)
-require('./src/telemetry');
+require('./src/server/telemetry');
 
-const createApp = require('./src/app');
-const config = require('./src/config');
-const processManager = require('./src/utils/processManager');
+const createApp = require('./src/server/app');
+const config = require('./src/server/config');
+const processManager = require('./src/server/utils/processManager');
 
 // Create the Express app
 const app = createApp();

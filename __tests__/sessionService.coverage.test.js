@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const SessionService = require('../src/services/sessionService');
-const SessionRepository = require('../src/services/sessionRepository');
+const SessionService = require('../src/server/services/sessionService');
+const SessionRepository = require('../src/server/services/sessionRepository');
 
 // Mock dependencies
-jest.mock('../src/services/sessionRepository');
+jest.mock('../src/server/services/sessionRepository');
 
 describe('SessionService - Coverage Enhancement', () => {
   let service;

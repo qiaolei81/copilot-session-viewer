@@ -25,7 +25,7 @@ describe('ProcessManager', () => {
     });
 
     // Require fresh instance after mocking
-    processManager = require('../src/utils/processManager');
+    processManager = require('../src/server/utils/processManager');
   });
 
   afterEach(() => {
@@ -278,7 +278,7 @@ describe('ProcessManager', () => {
     it('should handle SIGTERM signal', () => {
       // Reset and get fresh instance to capture listeners
       jest.resetModules();
-      const freshProcessManager = require('../src/utils/processManager');
+      const freshProcessManager = require('../src/server/utils/processManager');
 
       const mockProcess = { kill: jest.fn(), killed: false, pid: 123 };
       freshProcessManager.activeProcesses.add({
@@ -299,7 +299,7 @@ describe('ProcessManager', () => {
 
     it('should not run cleanup twice on subsequent SIGTERM', () => {
       jest.resetModules();
-      const freshProcessManager = require('../src/utils/processManager');
+      const freshProcessManager = require('../src/server/utils/processManager');
 
       freshProcessManager.isShuttingDown = false;
 
@@ -321,7 +321,7 @@ describe('ProcessManager', () => {
   describe('_setupCleanupHandlers - SIGINT', () => {
     it('should handle SIGINT signal (Ctrl+C)', () => {
       jest.resetModules();
-      const freshProcessManager = require('../src/utils/processManager');
+      const freshProcessManager = require('../src/server/utils/processManager');
 
       const mockProcess = { kill: jest.fn(), killed: false, pid: 456 };
       freshProcessManager.activeProcesses.add({
@@ -344,7 +344,7 @@ describe('ProcessManager', () => {
   describe('_setupCleanupHandlers - uncaughtException', () => {
     it('should handle uncaught exceptions', () => {
       jest.resetModules();
-      const freshProcessManager = require('../src/utils/processManager');
+      const freshProcessManager = require('../src/server/utils/processManager');
 
       const mockProcess = { kill: jest.fn(), killed: false, pid: 789 };
       freshProcessManager.activeProcesses.add({
@@ -371,7 +371,7 @@ describe('ProcessManager', () => {
 
     it('should exit with code 1 on uncaught exception', () => {
       jest.resetModules();
-      require('../src/utils/processManager');
+      require('../src/server/utils/processManager');
 
       process.emit('uncaughtException', new Error('Fatal error'));
 
@@ -385,7 +385,7 @@ describe('ProcessManager', () => {
       const realSetTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(() => {});
 
       jest.resetModules();
-      require('../src/utils/processManager');
+      require('../src/server/utils/processManager');
 
       process.emit('SIGTERM');
 

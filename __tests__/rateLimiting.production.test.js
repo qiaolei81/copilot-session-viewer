@@ -33,7 +33,7 @@ describe('Rate Limiting - Production Mode', () => {
     jest.doMock('express-rate-limit', () => mockRateLimit);
 
     // Now require the module
-    rateLimiting = require('../src/middleware/rateLimiting');
+    rateLimiting = require('../src/server/middleware/rateLimiting');
   });
 
   afterAll(() => {

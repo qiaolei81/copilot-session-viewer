@@ -4,14 +4,14 @@ const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
 const { EventEmitter } = require('events');
-const InsightService = require('../src/services/insightService');
-const processManager = require('../src/utils/processManager');
-const config = require('../src/config');
+const InsightService = require('../src/server/services/insightService');
+const processManager = require('../src/server/utils/processManager');
+const config = require('../src/server/config');
 
 // Mock child_process spawn
 jest.mock('child_process');
-jest.mock('../src/utils/processManager');
-jest.mock('../src/config', () => ({
+jest.mock('../src/server/utils/processManager');
+jest.mock('../src/server/config', () => ({
   INSIGHT_TIMEOUT_MS: 5 * 60 * 1000
 }));
 

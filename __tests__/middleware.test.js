@@ -1,5 +1,5 @@
-const { requestTimeout, developmentCors, errorHandler, notFoundHandler } = require('../src/middleware/common');
-const config = require('../src/config');
+const { requestTimeout, developmentCors, errorHandler, notFoundHandler } = require('../src/server/middleware/common');
+const config = require('../src/server/config');
 
 describe('Middleware - common.js', () => {
   describe('requestTimeout', () => {

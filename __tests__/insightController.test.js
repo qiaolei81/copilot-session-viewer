@@ -1,4 +1,4 @@
-const InsightController = require('../src/controllers/insightController');
+const InsightController = require('../src/server/controllers/insightController');
 
 describe('InsightController - Additional Coverage', () => {
   let controller;

@@ -5,7 +5,7 @@ const fs = fsSync.promises;
 const BaseSourceAdapter = require('./BaseSourceAdapter');
 const Session = require('../models/Session');
 const { countLines, shouldSkipEntry } = require('../utils/fileUtils');
-const { ParserFactory } = require('../../lib/parsers');
+const { ParserFactory } = require('../../../lib/parsers');
 
 /**
  * Claude Code Source Adapter

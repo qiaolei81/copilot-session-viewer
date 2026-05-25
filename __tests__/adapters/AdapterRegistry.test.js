@@ -1,5 +1,5 @@
-const AdapterRegistry = require('../../src/adapters/AdapterRegistry');
-const BaseSourceAdapter = require('../../src/adapters/BaseSourceAdapter');
+const AdapterRegistry = require('../../src/server/adapters/AdapterRegistry');
+const BaseSourceAdapter = require('../../src/server/adapters/BaseSourceAdapter');
 
 // Helper: create a minimal concrete adapter
 function createAdapter(type, displayName = type) {
