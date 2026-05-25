@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3838',
+      '/session': 'http://localhost:3838',
     },
   },
 });
