@@ -126,15 +126,16 @@ function createApp(options = {}) {
   if (fs.existsSync(spaIndexPath)) {
     app.use(express.static(path.join(__dirname, '../dist/client')));
     app.get('*', (req, res, next) => {
-      // Skip API routes, session action routes, and insight routes
-      if (req.path.startsWith('/api/') ||
-          req.path.startsWith('/public/') ||
-          req.path.match(/^\/session\/[^/]+\/export$/) ||
-          req.path.match(/^\/session\/[^/]+\/share$/) ||
-          req.path.match(/^\/session\/[^/]+\/insight$/)) {
-        return next();
+      // Only serve SPA for known frontend routes
+      const spaRoutes = [
+        /^\/$/,                           // homepage
+        /^\/session\/[a-zA-Z0-9._-]+$/,    // session detail (safe ID chars only)
+        /^\/session\/[a-zA-Z0-9._-]+\/time-analyze$/,  // time analysis
+      ];
+      if (spaRoutes.some(r => r.test(req.path))) {
+        return res.sendFile(spaIndexPath);
       }
-      res.sendFile(spaIndexPath);
+      next();
     });
   }
 
