@@ -34,8 +34,9 @@ ESLINT.md
 # Session data (if any test sessions)
 sessions/
 *.jsonl
-
-# Local notes
+!__tests__/fixtures/**/*.jsonl
+# CI test sessions
+.test-sessions/
 NOTES*.md
 TODO*.md
 
