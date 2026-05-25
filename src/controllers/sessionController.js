@@ -86,6 +86,23 @@ class SessionController {
   }
 
   // API: Get session events
+  async getSession(req, res) {
+    try {
+      const sessionId = req.params.id;
+      if (!isValidSessionId(sessionId)) {
+        return res.status(400).json({ error: 'Invalid session ID' });
+      }
+      const session = await this.sessionService.sessionRepository.findById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      res.json(session.toJSON());
+    } catch (err) {
+      console.error('Error loading session:', err);
+      res.status(500).json({ error: 'Error loading session' });
+    }
+  }
+
   async getSessionEvents(req, res) {
     try {
       const sessionId = req.params.id;

@@ -1,6 +1,6 @@
 
 
-const EVENT_MARKER_CATEGORIES = {
+export const EVENT_MARKER_CATEGORIES = {
   'tool.execution_start':        { color: '#d29922', shape: 'diamond', label: 'Tool Start' },
   'tool.execution_complete':     { color: '#e3b341', shape: 'diamond', label: 'Tool Complete' },
   'assistant.message':           { color: '#8b949e', shape: 'circle',  label: 'Message' },
@@ -15,7 +15,7 @@ const EVENT_MARKER_CATEGORIES = {
   'abort':                       { color: '#ff7b72', shape: 'triangle', label: 'Abort' },
 };
 
-const TRACKABLE_EVENT_TYPES = new Set(Object.keys(EVENT_MARKER_CATEGORIES));
+export const TRACKABLE_EVENT_TYPES = new Set(Object.keys(EVENT_MARKER_CATEGORIES));
 
 const HIGH_PRIORITY_TYPES = new Set([
   'session.start', 'session.resume', 'session.error',
