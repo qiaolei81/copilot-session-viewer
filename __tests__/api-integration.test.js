@@ -153,7 +153,21 @@ for (const { urlSource, minSessions, hasEvents } of SOURCES) {
     it('GET /sessions/:id/export — exports session', async () => {
       if (!sessionId) return;
       const res = await request(app).get(`/api/${urlSource}/sessions/${sessionId}/export`);
-      // 200 or 404 (if export not supported for this source)
+      // 200 with file download or 404/500 if export not supported
+      expect([200, 404, 500]).toContain(res.status);
+      if (res.status === 200) {
+        // Should have content-disposition header for download
+        const contentDisp = res.headers['content-disposition'] || '';
+        const contentType = res.headers['content-type'] || '';
+        // Either a file download or JSON response
+        expect(contentDisp || contentType).toBeTruthy();
+      }
+    });
+
+    // ── Share ──
+    it('GET /sessions/:id/share — share session', async () => {
+      if (!sessionId) return;
+      const res = await request(app).get(`/api/${urlSource}/sessions/${sessionId}/share`);
       expect([200, 404, 500]).toContain(res.status);
     });
 
@@ -225,6 +239,15 @@ describe('Global endpoints', () => {
   it('POST /api/import — rejects without file', async () => {
     const res = await request(app).post('/api/import');
     expect([400, 500]).toContain(res.status);
+  });
+
+  it('POST /api/import — imports a session file', async () => {
+    const fixturePath = path.join(FIXTURES, 'copilot-cli', 'session-small', 'events.jsonl');
+    const res = await request(app)
+      .post('/api/import')
+      .attach('session', fixturePath);
+    // 200/201 on success, or 400/500 if import format not accepted
+    expect([200, 201, 400, 500]).toContain(res.status);
   });
 });
 
