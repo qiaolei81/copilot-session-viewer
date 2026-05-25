@@ -37,81 +37,12 @@ describe('Server API Endpoints', () => {
   });
 
   describe('GET /', () => {
-    it('should render homepage with sessions', async () => {
-      const mockPaginationData = {
-        sessions: [
-          { id: 'session1', summary: 'Test session 1' },
-          { id: 'session2', summary: 'Test session 2' }
-        ],
-        totalSessions: 2,
-        currentPage: 1,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPrevPage: false
-      };
-
-      mockSessionService.getPaginatedSessions.mockResolvedValue(mockPaginationData);
-
+    it('should return SPA index.html', async () => {
       const response = await request(app)
         .get('/')
         .expect(200);
 
-      expect(response.text).toContain('Session Viewer');
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 20, 'copilot');
-    });
-
-    it('should render homepage with initial sessions (infinite scroll)', async () => {
-      const mockPaginationData = {
-        sessions: Array.from({ length: 10 }, (_, i) => ({
-          id: `session${i + 10}`,
-          summary: `Test session ${i + 10}`
-        })),
-        totalSessions: 50,
-        currentPage: 1,
-        totalPages: 5,
-        hasNextPage: true,
-        hasPrevPage: false
-      };
-
-      mockSessionService.getPaginatedSessions.mockResolvedValue(mockPaginationData);
-
-      const response = await request(app)
-        .get('/')
-        .expect(200);
-
-      expect(response.text).toContain('Sessions');
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 20, 'copilot');
-    });
-
-    it('should ignore legacy pagination parameters', async () => {
-      const mockPaginationData = {
-        sessions: [
-          { id: 'session1', summary: 'Test session 1' },
-          { id: 'session2', summary: 'Test session 2' }
-        ],
-        totalSessions: 2,
-        currentPage: 1,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPrevPage: false
-      };
-
-      mockSessionService.getPaginatedSessions.mockResolvedValue(mockPaginationData);
-
-      await request(app)
-        .get('/?page=2&limit=10')
-        .expect(200);
-
-      // Should still load initial batch, ignoring pagination params
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(1, 20, 'copilot');
-    });
-
-    it('should handle session loading errors', async () => {
-      mockSessionService.getPaginatedSessions.mockRejectedValue(new Error('Database error'));
-
-      await request(app)
-        .get('/')
-        .expect(500);
+      expect(response.text).toContain('<div id="app">');
     });
   });
 
@@ -216,22 +147,12 @@ describe('Server API Endpoints', () => {
   });
 
   describe('GET /session/:id', () => {
-    it('should reject invalid session IDs', async () => {
-      await request(app)
-        .get('/session/invalid..id')
-        .expect(400);
+    it('should return SPA index.html for valid session route', async () => {
+      const response = await request(app)
+        .get('/session/valid-session-id')
+        .expect(200);
 
-      await request(app)
-        .get('/session/invalid@id')
-        .expect(400);
-    });
-
-    it('should return 404 for non-existent sessions', async () => {
-      mockSessionService.sessionRepository.findById.mockResolvedValue(null);
-
-      await request(app)
-        .get('/session/nonexistent')
-        .expect(404);
+      expect(response.text).toContain('<div id="app">');
     });
   });
 

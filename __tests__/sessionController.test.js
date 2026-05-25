@@ -41,56 +41,6 @@ describe('SessionController - Additional Coverage', () => {
     };
   });
 
-  describe('getHomepage', () => {
-    it('should handle error when loading sessions fails', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockSessionService.getPaginatedSessions.mockRejectedValue(new Error('Database error'));
-
-      await controller.getHomepage(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.send).toHaveBeenCalledWith('Error loading sessions');
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error loading sessions:',
-        expect.any(Error)
-      );
-
-      consoleErrorSpy.mockRestore();
-    });
-  });
-
-  describe('getSessionDetail', () => {
-    it('should handle error when loading session fails', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockReq.params.id = 'valid-session-id';
-      // Mock findById to reject - this is what the actual implementation calls
-      mockSessionService.sessionRepository.findById.mockRejectedValue(new Error('Read error'));
-
-      await controller.getSessionDetail(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Error loading session' });
-
-      consoleErrorSpy.mockRestore();
-    });
-  });
-
-  describe('getTimeAnalysis', () => {
-    it('should handle error when loading time analysis fails', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockReq.params.id = 'valid-session-id';
-      // Mock findById to reject - this is what the actual implementation calls
-      mockSessionService.sessionRepository.findById.mockRejectedValue(new Error('Analysis error'));
-
-      await controller.getTimeAnalysis(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Error loading analysis' });
-
-      consoleErrorSpy.mockRestore();
-    });
-  });
-
   describe('getSessions - with pagination', () => {
     it('should return error for page < 1 (with negative page)', async () => {
       mockReq.query.page = '-1';
