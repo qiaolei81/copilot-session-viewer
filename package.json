@@ -31,7 +31,7 @@
     "copilot-session-viewer": "./bin/copilot-session-viewer"
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "vite build && node scripts/build.mjs",
     "build:watch": "node scripts/build.mjs --watch",
     "start": "cross-env DISABLE_TELEMETRY=true node server.js",
     "dev": "cross-env DISABLE_TELEMETRY=true nodemon server.js",
