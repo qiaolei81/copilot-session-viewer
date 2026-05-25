@@ -116,12 +116,7 @@ function createApp(options = {}) {
   // Upload rate limiting - DISABLED
   // app.use('/session/import', uploadLimiter);
 
-  // SPA fallback — serve index.html for any non-API GET request not matched above
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/client/index.html'));
-  });
-
-  // Error handling (for non-GET or API errors)
+  // Error handling
   app.use(notFoundHandler);
   app.use(errorHandler);
 

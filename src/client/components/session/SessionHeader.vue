@@ -5,7 +5,7 @@
       <span v-if="metadata.sessionStatus === 'wip'" style="font-size: 12px; padding: 2px 8px; border-radius: 3px; background: rgba(210, 153, 34, 0.2); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.4); vertical-align: middle; margin-left: 8px;">🔄 WIP</span>
     </h1>
     <div style="display: flex; gap: 10px;">
-      <router-link :to="'/time-analyze/' + sessionId" class="time-analyze-btn">⏱ Analysis</router-link>
+      <router-link :to="'/session/' + sessionId + '/time-analyze'" class="time-analyze-btn">⏱ Analysis</router-link>
       <button @click="$emit('export')" class="export-btn" :disabled="exporting" v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)">
         {{ exporting ? '⏳ Sharing...' : '📤 Share Session' }}
       </button>

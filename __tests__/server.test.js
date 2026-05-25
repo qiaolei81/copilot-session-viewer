@@ -147,12 +147,10 @@ describe('Server API Endpoints', () => {
   });
 
   describe('GET /session/:id', () => {
-    it('should return SPA index.html for valid session route', async () => {
-      const response = await request(app)
+    it('should return 404 for non-API session routes (hash router handles client-side)', async () => {
+      await request(app)
         .get('/session/valid-session-id')
-        .expect(200);
-
-      expect(response.text).toContain('<div id="app">');
+        .expect(404);
     });
   });
 
