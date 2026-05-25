@@ -3,6 +3,8 @@ const path = require('path');
 const compression = require('compression');
 const helmet = require('helmet');
 
+const fs = require('fs');
+
 // Configuration
 const config = require('./config');
 
@@ -118,6 +120,23 @@ function createApp(options = {}) {
 
   // Upload rate limiting - DISABLED
   // app.use('/session/import', uploadLimiter);
+
+  // SPA fallback: serve Vite build output for non-API routes (production only)
+  const spaIndexPath = path.join(__dirname, '../dist/client/index.html');
+  if (fs.existsSync(spaIndexPath)) {
+    app.use(express.static(path.join(__dirname, '../dist/client')));
+    app.get('*', (req, res, next) => {
+      // Skip API routes, session action routes, and insight routes
+      if (req.path.startsWith('/api/') ||
+          req.path.startsWith('/public/') ||
+          req.path.match(/^\/session\/[^/]+\/export$/) ||
+          req.path.match(/^\/session\/[^/]+\/share$/) ||
+          req.path.match(/^\/session\/[^/]+\/insight$/)) {
+        return next();
+      }
+      res.sendFile(spaIndexPath);
+    });
+  }
 
   // Error handling
   app.use(notFoundHandler);
