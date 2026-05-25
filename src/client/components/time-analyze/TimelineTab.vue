@@ -84,8 +84,8 @@
           <!-- Sub-Agent row -->
           <div v-else-if="item.rowType === 'subagent'" :class="['gantt-row', 'indented']">
             <div class="gantt-label" :title="item.name">
-              <a
-                :href="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(item.name) + '&eventTimestamp=' + encodeURIComponent(item.startTime || '')"
+              <router-link
+                :to="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(item.name) + '&eventTimestamp=' + encodeURIComponent(item.startTime || '')"
                 class="subagent-link"
                 :title="'View events from here'"
               >
@@ -93,7 +93,7 @@
                   {{ item.status === 'completed' ? '✓' : item.status === 'failed' ? '✗' : '⏳' }}
                 </span>
                 {{ item.name }}
-              </a>
+              </router-link>
             </div>
             <div class="gantt-bar-area">
               <div

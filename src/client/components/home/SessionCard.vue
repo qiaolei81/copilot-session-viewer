@@ -1,5 +1,5 @@
 <template>
-  <a :href="`/session/${session.id}`" :class="['recent-item', { 'recent-item-wip': session.sessionStatus === 'wip' }]">
+  <router-link :to="`/session/${session.id}`" :class="['recent-item', { 'recent-item-wip': session.sessionStatus === 'wip' }]">
     <div class="session-id">
       <span class="session-id-text" :title="session.id">{{ session.id }}</span>
     </div>
@@ -39,7 +39,7 @@
         <span class="session-info-value">{{ session.eventCount || 0 }} events</span>
       </div>
     </div>
-  </a>
+  </router-link>
 </template>
 
 <script setup>

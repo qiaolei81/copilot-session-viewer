@@ -158,7 +158,7 @@ function formatDateHeader(dateStr) {
 function viewSession() {
   const id = sessionInput.value.trim();
   if (id) {
-    window.location.href = `/session/${id}`;
+    router.push(`/session/${id}`);
   }
 }
 
