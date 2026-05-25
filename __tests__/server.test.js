@@ -101,8 +101,8 @@ describe('Server API Endpoints', () => {
     });
   });
 
-  describe('GET /api/sessions/load-more', () => {
-    it('should load more sessions with offset', async () => {
+  describe('GET /api/:source/sessions (offset/limit pagination)', () => {
+    it('should load sessions with offset for a source', async () => {
       const mockPaginationData = {
         sessions: Array.from({ length: 20 }, (_, i) => ({
           id: `session${i + 20}`
@@ -117,32 +117,38 @@ describe('Server API Endpoints', () => {
       mockSessionService.getPaginatedSessions.mockResolvedValue(mockPaginationData);
 
       const response = await request(app)
-        .get('/api/sessions/load-more?offset=20&limit=20')
+        .get('/api/copilot-cli/sessions?offset=20&limit=20')
         .expect(200)
         .expect('Content-Type', /json/);
 
       expect(response.body.sessions).toHaveLength(20);
       expect(response.body.hasMore).toBe(true);
       expect(response.body.totalSessions).toBe(50);
-      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(2, 20, null);
+      expect(mockSessionService.getPaginatedSessions).toHaveBeenCalledWith(2, 20, 'copilot');
     });
 
     it('should reject invalid offset/limit parameters', async () => {
       await request(app)
-        .get('/api/sessions/load-more?offset=-1')
+        .get('/api/copilot-cli/sessions?offset=-1&limit=20')
         .expect(400);
 
       await request(app)
-        .get('/api/sessions/load-more?limit=51')
+        .get('/api/copilot-cli/sessions?offset=0&limit=101')
         .expect(400);
     });
 
-    it('should handle load more errors', async () => {
+    it('should handle errors', async () => {
       mockSessionService.getPaginatedSessions.mockRejectedValue(new Error('Database error'));
 
       await request(app)
-        .get('/api/sessions/load-more?offset=20')
+        .get('/api/copilot-cli/sessions?offset=20&limit=20')
         .expect(500);
+    });
+
+    it('should return 404 for unknown source', async () => {
+      await request(app)
+        .get('/api/unknown-source/sessions?offset=0&limit=20')
+        .expect(404);
     });
   });
 

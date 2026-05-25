@@ -11,11 +11,23 @@ const config = require('./config');
 // const { globalLimiter, insightGenerationLimiter, insightAccessLimiter, uploadLimiter } = require('./middleware/rateLimiting');
 const { requestTimeout, developmentCors, errorHandler, notFoundHandler, telemetryLocals } = require('./middleware/common');
 
+// Source mapping
+const { isValidSource, getAllSources } = require('./utils/sourceMapping');
+
 // Controllers
 const SessionController = require('./controllers/sessionController');
 const InsightController = require('./controllers/insightController');
 const UploadController = require('./controllers/uploadController');
 const TagController = require('./controllers/tagController');
+
+// Source validation middleware
+function validateSource(req, res, next) {
+  const { source } = req.params;
+  if (!isValidSource(source)) {
+    return res.status(404).json({ error: `Unknown source: ${source}` });
+  }
+  next();
+}
 
 function createApp(options = {}) {
   const app = express();
@@ -43,7 +55,7 @@ function createApp(options = {}) {
     );
     next();
   });
-  
+
   // Other helmet protections (without CSP and HSTS)
   app.use(helmet({
     contentSecurityPolicy: false,
@@ -84,34 +96,64 @@ function createApp(options = {}) {
   // Serve Vue SPA static assets from dist/client
   app.use(express.static(path.join(__dirname, '../../dist/client')));
 
-  // Routes with controllers
+  // ── API routes ──
 
-  // Non-page routes that remain server-side
-  app.get('/session/:id/export', sessionController.exportSession.bind(sessionController));
+  // Sources endpoint
+  app.get('/api/sources', (req, res) => {
+    res.json(getAllSources());
+  });
 
-  // API routes (more specific routes first)
-  app.get('/api/sessions/load-more', sessionController.loadMoreSessions.bind(sessionController));
-  app.get('/api/sessions', sessionController.getSessions.bind(sessionController));
-  app.get('/api/sessions/:id', sessionController.getSessionById.bind(sessionController));
-  app.get('/api/sessions/:id/events', sessionController.getSessionEvents.bind(sessionController));
-  app.get('/api/sessions/:id/timeline', sessionController.getTimeline.bind(sessionController));
-
-  // Tag routes
+  // Global tags (no source needed)
   app.get('/api/tags', tagController.getAllTags.bind(tagController));
-  app.get('/api/sessions/:id/tags', tagController.getSessionTags.bind(tagController));
-  app.put('/api/sessions/:id/tags', tagController.setSessionTags.bind(tagController));
 
-  // Upload routes
-  app.get('/session/:id/share', uploadController.shareSession.bind(uploadController));
-  app.post('/session/import',
+  // Import (no source needed — auto-detected)
+  app.post('/api/import',
     (req, res, next) => uploadController.getUploadMiddleware()(req, res, next),
     uploadController.importSession.bind(uploadController)
   );
 
-  // Insight routes (rate limiting disabled)
-  app.post('/session/:id/insight', insightController.generateInsight.bind(insightController));
-  app.get('/session/:id/insight', insightController.getInsightStatus.bind(insightController));
-  app.delete('/session/:id/insight', insightController.deleteInsight.bind(insightController));
+  // ── Source-scoped routes ── (all use :source param with validation)
+
+  // Session list
+  app.get('/api/:source/sessions', validateSource, sessionController.getSessions.bind(sessionController));
+
+  // Session detail
+  app.get('/api/:source/sessions/:sessionId', validateSource, sessionController.getSessionById.bind(sessionController));
+
+  // Session events
+  app.get('/api/:source/sessions/:sessionId/events', validateSource, sessionController.getSessionEvents.bind(sessionController));
+
+  // Session timeline
+  app.get('/api/:source/sessions/:sessionId/timeline', validateSource, sessionController.getTimeline.bind(sessionController));
+
+  // Session export
+  app.get('/api/:source/sessions/:sessionId/export', validateSource, sessionController.exportSession.bind(sessionController));
+
+  // Session tags
+  app.get('/api/:source/sessions/:sessionId/tags', validateSource, tagController.getSessionTags.bind(tagController));
+  app.put('/api/:source/sessions/:sessionId/tags', validateSource, tagController.setSessionTags.bind(tagController));
+
+  // Session share
+  app.get('/api/:source/sessions/:sessionId/share', validateSource, uploadController.shareSession.bind(uploadController));
+
+  // Insight routes
+  app.post('/api/:source/sessions/:sessionId/insight', validateSource, insightController.generateInsight.bind(insightController));
+  app.get('/api/:source/sessions/:sessionId/insight', validateSource, insightController.getInsightStatus.bind(insightController));
+  app.delete('/api/:source/sessions/:sessionId/insight', validateSource, insightController.deleteInsight.bind(insightController));
+
+  // ── Legacy routes (backward compatibility) ──
+  // Keep old routes working during migration, delegating to same controllers
+  app.get('/api/sessions', sessionController.getSessions.bind(sessionController));
+  app.get('/api/sessions/:id', sessionController.getSessionByIdLegacy.bind(sessionController));
+  app.get('/api/sessions/:id/events', sessionController.getSessionEventsLegacy.bind(sessionController));
+  app.get('/api/sessions/:id/timeline', sessionController.getTimelineLegacy.bind(sessionController));
+  app.get('/api/sessions/:id/tags', tagController.getSessionTagsLegacy.bind(tagController));
+  app.put('/api/sessions/:id/tags', tagController.setSessionTagsLegacy.bind(tagController));
+  app.get('/session/:id/export', sessionController.exportSessionLegacy.bind(sessionController));
+  app.get('/session/:id/share', uploadController.shareSessionLegacy.bind(uploadController));
+  app.post('/session/:id/insight', insightController.generateInsightLegacy.bind(insightController));
+  app.get('/session/:id/insight', insightController.getInsightStatusLegacy.bind(insightController));
+  app.delete('/session/:id/insight', insightController.deleteInsightLegacy.bind(insightController));
 
   // Upload rate limiting - DISABLED
   // app.use('/session/import', uploadLimiter);

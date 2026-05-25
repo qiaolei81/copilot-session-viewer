@@ -9,6 +9,11 @@ class TagController {
     this.sessionRepository = sessionRepository || new SessionRepository();
   }
 
+  // Helper to get sessionId from either new or legacy param
+  _getSessionId(req) {
+    return req.params.sessionId || req.params.id;
+  }
+
   /**
    * GET /api/tags
    * Get all unique tags across all sessions (for autocomplete)
@@ -24,18 +29,17 @@ class TagController {
   }
 
   /**
-   * GET /api/sessions/:id/tags
+   * GET /api/:source/sessions/:sessionId/tags
    * Get tags for a specific session
    */
   async getSessionTags(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
 
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      // Find session by ID
       const session = await this.sessionRepository.findById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
@@ -49,14 +53,19 @@ class TagController {
     }
   }
 
+  // Legacy alias
+  async getSessionTagsLegacy(req, res) {
+    return this.getSessionTags(req, res);
+  }
+
   /**
-   * PUT /api/sessions/:id/tags
+   * PUT /api/:source/sessions/:sessionId/tags
    * Set tags for a specific session
    * Body: { tags: ["tag1", "tag2"] }
    */
   async setSessionTags(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
       const { tags } = req.body;
 
       if (!isValidSessionId(sessionId)) {
@@ -67,12 +76,10 @@ class TagController {
         return res.status(400).json({ error: 'Tags must be an array' });
       }
 
-      // Validate tag count
       if (tags.length > 10) {
         return res.status(400).json({ error: 'Maximum 10 tags per session' });
       }
 
-      // Validate tag length
       for (const tag of tags) {
         if (typeof tag !== 'string' || tag.trim().length === 0) {
           return res.status(400).json({ error: 'Tags must be non-empty strings' });
@@ -82,7 +89,6 @@ class TagController {
         }
       }
 
-      // Find session by ID
       const session = await this.sessionRepository.findById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
@@ -90,7 +96,6 @@ class TagController {
 
       const savedTags = await this.tagService.setSessionTags(session, tags);
 
-      // Track TagUpdated event
       trackEvent('TagUpdated', {
         sessionId,
         tagCount: savedTags.length.toString()
@@ -107,6 +112,11 @@ class TagController {
       }
       res.status(500).json({ error: 'Error saving session tags' });
     }
+  }
+
+  // Legacy alias
+  async setSessionTagsLegacy(req, res) {
+    return this.setSessionTags(req, res);
   }
 }
 

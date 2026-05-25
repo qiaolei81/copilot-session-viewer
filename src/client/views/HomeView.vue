@@ -79,6 +79,7 @@ import { useRouter } from 'vue-router';
 import SessionCard from '../components/home/SessionCard.vue';
 import SummaryTooltip from '../components/home/SummaryTooltip.vue';
 import BottomSheet from '../components/home/BottomSheet.vue';
+import { toUrlSource } from '../utils/sourceMapping.js';
 
 // Load marked for markdown rendering
 if (typeof window !== 'undefined' && !window.marked) {
@@ -199,7 +200,7 @@ async function fetchSource(source) {
   if (state.offset > 0 || isLoading.value) return; // already loaded
   isLoading.value = true;
   try {
-    const resp = await fetch(`/api/sessions/load-more?offset=0&limit=20&source=${encodeURIComponent(source)}`);
+    const resp = await fetch(`/api/${encodeURIComponent(toUrlSource(source))}/sessions?offset=0&limit=20`);
     if (resp.ok) {
       const data = await resp.json();
       const existingIds = new Set(allSessions.value.map(s => s.id));
@@ -227,7 +228,7 @@ async function loadMore() {
   if (isLoading.value || !state.hasMore) return;
   isLoading.value = true;
   try {
-    const resp = await fetch(`/api/sessions/load-more?offset=${state.offset}&limit=20&source=${encodeURIComponent(source)}`);
+    const resp = await fetch(`/api/${encodeURIComponent(toUrlSource(source))}/sessions?offset=${state.offset}&limit=20`);
     if (!resp.ok) throw new Error('Failed to load more sessions');
     const data = await resp.json();
     const existingIds = new Set(allSessions.value.map(s => s.id));
@@ -290,7 +291,7 @@ async function handleFileChange(e) {
   try {
     const formData = new FormData();
     formData.append('zipFile', file);
-    const response = await fetch('/session/import', { method: 'POST', body: formData });
+    const response = await fetch('/api/import', { method: 'POST', body: formData });
     const result = await response.json();
     if (response.ok) {
       importStatusType.value = 'success';
@@ -353,7 +354,7 @@ function onTouchEnd() { clearTimeout(lpTimer); }
 // Load source hints
 async function loadSourceHints() {
   try {
-    const resp = await fetch('/api/sessions/load-more?offset=0&limit=1&source=copilot');
+    const resp = await fetch('/api/copilot-cli/sessions?offset=0&limit=1');
     // sourceHints come from the initial page data; for the SPA we fetch separately
   } catch (_e) { /* ignore */ }
 }

@@ -47,7 +47,7 @@ class UploadController {
   // Share session (export as zip)
   async shareSession(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = req.params.sessionId || req.params.id;
 
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
@@ -350,6 +350,11 @@ class UploadController {
       console.error('Error finding session location:', err);
       return null;
     }
+  }
+
+  // Legacy alias
+  async shareSessionLegacy(req, res) {
+    return this.shareSession(req, res);
   }
 }
 

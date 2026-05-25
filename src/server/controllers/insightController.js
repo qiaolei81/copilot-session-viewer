@@ -7,17 +7,20 @@ class InsightController {
     if (insightService) {
       this.insightService = insightService;
     } else {
-      // Use default multi-source configuration
       this.insightService = new InsightService();
     }
-    
-    // SessionService for getting session metadata (source)
+
     if (sessionService) {
       this.sessionService = sessionService;
     } else {
       const SessionService = require('../services/sessionService');
       this.sessionService = new SessionService();
     }
+  }
+
+  // Helper to get sessionId from either new or legacy param
+  _getSessionId(req) {
+    return req.params.sessionId || req.params.id;
   }
 
   _getGenerateInsightErrorResponse(err) {
@@ -41,14 +44,13 @@ class InsightController {
   // Generate or get insight
   async generateInsight(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
       const forceRegenerate = req.body?.force === true;
 
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      // Get session to determine source and directory
       const session = await this.sessionService.getSessionById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
@@ -62,23 +64,20 @@ class InsightController {
       const result = await this.insightService.generateInsight(session.id, session.directory, session.source, forceRegenerate);
       const durationMs = Date.now() - startTime;
 
-      // Track InsightGenerated event
       trackEvent('InsightGenerated', {
         sessionId,
         source: session.source || 'unknown',
         durationMs: durationMs.toString()
       });
 
-      // Track InsightGenerationTime metric
       trackMetric('InsightGenerationTime', durationMs, { sessionId, source: session.source || 'unknown' });
 
       res.json(result);
     } catch (err) {
       console.error('Error generating insight:', err);
 
-      // Track insight generation failure
       trackException(err, {
-        sessionId: req.params.id,
+        sessionId: this._getSessionId(req),
         operation: 'generateInsight'
       });
 
@@ -87,16 +86,20 @@ class InsightController {
     }
   }
 
+  // Legacy alias
+  async generateInsightLegacy(req, res) {
+    return this.generateInsight(req, res);
+  }
+
   // Get insight status
   async getInsightStatus(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
 
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      // Get session to determine directory
       const session = await this.sessionService.getSessionById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
@@ -108,7 +111,6 @@ class InsightController {
 
       const result = await this.insightService.getInsightStatus(session.id, session.directory, session.source);
 
-      // Track InsightViewed event if insight is ready
       if (result.status === 'ready' && result.report) {
         trackEvent('InsightViewed', { sessionId });
       }
@@ -120,16 +122,20 @@ class InsightController {
     }
   }
 
+  // Legacy alias
+  async getInsightStatusLegacy(req, res) {
+    return this.getInsightStatus(req, res);
+  }
+
   // Delete insight
   async deleteInsight(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
 
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      // Get session to determine directory
       const session = await this.sessionService.getSessionById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
@@ -141,7 +147,6 @@ class InsightController {
 
       const result = await this.insightService.deleteInsight(session.id, session.directory, session.source);
 
-      // Track InsightDeleted event
       trackEvent('InsightDeleted', { sessionId });
 
       res.json(result);
@@ -149,6 +154,11 @@ class InsightController {
       console.error('Error deleting insight:', err);
       res.status(500).json({ error: 'Error deleting insight' });
     }
+  }
+
+  // Legacy alias
+  async deleteInsightLegacy(req, res) {
+    return this.deleteInsight(req, res);
   }
 }
 

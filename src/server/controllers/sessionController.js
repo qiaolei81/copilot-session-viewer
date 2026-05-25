@@ -1,5 +1,6 @@
 const SessionService = require('../services/sessionService');
 const { isValidSessionId } = require('../utils/helpers');
+const { resolveSource } = require('../utils/sourceMapping');
 const { trackEvent, trackMetric } = require('../telemetry');
 const AdmZip = require('adm-zip');
 const path = require('path');
@@ -10,21 +11,51 @@ class SessionController {
     this.sessionService = sessionService || new SessionService();
   }
 
+  // ── Helper to get sessionId from either new or legacy param ──
+  _getSessionId(req) {
+    return req.params.sessionId || req.params.id;
+  }
+
   // API: Get sessions with optional pagination
   async getSessions(req, res) {
     try {
-      const page = req.query.page ? parseInt(req.query.page) : null;
-      const limit = req.query.limit ? parseInt(req.query.limit) : null;
-      const sourceFilter = req.query.source || null;
+      // New route: source from path param; legacy: source from query
+      const sourceParam = req.params.source || null;
+      const sourceFilter = sourceParam
+        ? resolveSource(sourceParam)
+        : (req.query.source || null);
 
-      if (page && limit) {
-        // Return paginated response
+      const offset = req.query.offset !== undefined ? parseInt(req.query.offset) : null;
+      const limit = req.query.limit ? parseInt(req.query.limit) : null;
+      const page = req.query.page ? parseInt(req.query.page) : null;
+
+      // offset+limit pagination (new API)
+      if (offset !== null && limit) {
+        if (offset < 0 || limit < 1 || limit > 100) {
+          return res.status(400).json({ error: 'Invalid pagination parameters' });
+        }
+        const pageNum = Math.floor(offset / limit) + 1;
+        const paginationData = await this.sessionService.getPaginatedSessions(pageNum, limit, sourceFilter);
+
+        trackEvent('SessionListLoaded', {
+          offset: offset.toString(),
+          limit: limit.toString(),
+          totalSessions: paginationData.totalSessions.toString()
+        });
+
+        res.set({ 'Cache-Control': 'public, max-age=60' });
+        res.json({
+          sessions: paginationData.sessions,
+          hasMore: paginationData.hasNextPage ?? (offset + limit < paginationData.totalSessions),
+          totalSessions: paginationData.totalSessions
+        });
+      } else if (page && limit) {
+        // Legacy page+limit pagination
         if (page < 1 || limit < 1 || limit > 100) {
           return res.status(400).json({ error: 'Invalid pagination parameters' });
         }
         const paginationData = await this.sessionService.getPaginatedSessions(page, limit, sourceFilter);
 
-        // Track SessionListLoaded event for API pagination
         trackEvent('SessionListLoaded', {
           page: page.toString(),
           limit: limit.toString(),
@@ -51,44 +82,10 @@ class SessionController {
     }
   }
 
-    // API: Load more sessions for infinite scroll
-  async loadMoreSessions(req, res) {
-    try {
-      const offset = parseInt(req.query.offset) || 0;
-      const limit = parseInt(req.query.limit) || 20;
-      const sourceFilter = req.query.source || null;
-
-      // Validate parameters
-      if (offset < 0 || limit < 1 || limit > 50) {
-        return res.status(400).json({ error: 'Invalid parameters' });
-      }
-
-      // Calculate page number from offset
-      const page = Math.floor(offset / limit) + 1;
-      const paginationData = await this.sessionService.getPaginatedSessions(page, limit, sourceFilter);
-
-      // Track SessionListLoaded event
-      trackEvent('SessionListLoaded', {
-        page: page.toString(),
-        limit: limit.toString(),
-        totalSessions: paginationData.totalSessions.toString()
-      });
-
-      res.json({
-        sessions: paginationData.sessions,
-        hasMore: paginationData.hasNextPage,
-        totalSessions: paginationData.totalSessions
-      });
-    } catch (err) {
-      console.error('Error loading more sessions:', err);
-      res.status(500).json({ error: 'Error loading more sessions' });
-    }
-  }
-
-  // API: Get session events
+  // API: Get session metadata
   async getSessionById(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
@@ -103,26 +100,27 @@ class SessionController {
     }
   }
 
+  // Legacy alias
+  async getSessionByIdLegacy(req, res) {
+    return this.getSessionById(req, res);
+  }
+
   async getSessionEvents(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
 
-      // Validate session ID format
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      // Check if pagination is requested
       const isPaginationRequested = req.query.limit !== undefined || req.query.offset !== undefined;
 
-      // Parse pagination parameters (only if requested)
       let limit, offset, result;
-      
+
       if (isPaginationRequested) {
-        limit = parseInt(req.query.limit) || 100; // Default 100 events per page
+        limit = parseInt(req.query.limit) || 100;
         offset = parseInt(req.query.offset) || 0;
 
-        // Validate pagination parameters
         if (limit < 1 || limit > 1000) {
           return res.status(400).json({ error: 'Limit must be between 1 and 1000' });
         }
@@ -131,28 +129,23 @@ class SessionController {
         }
       }
 
-      // Get session (needed for findById, no caching)
       const session = await this.sessionService.sessionRepository.findById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
 
-      // Load events (with or without pagination)
       if (isPaginationRequested) {
         result = await this.sessionService.getSessionEvents(sessionId, { limit, offset });
       } else {
-        // Load all events (backward compatibility)
         const events = await this.sessionService.getSessionEvents(sessionId);
-        result = events; // Direct array
+        result = events;
       }
 
-      // No caching for events - session files are live/active
       res.set({
         'Cache-Control': 'no-store',
         'Vary': 'Accept-Encoding'
       });
 
-      // Return response (paginated or plain array)
       if (isPaginationRequested) {
         res.json({
           events: result.events,
@@ -164,7 +157,7 @@ class SessionController {
           }
         });
       } else {
-        res.json(result); // Plain array for backward compatibility
+        res.json(result);
       }
     } catch (err) {
       console.error('Error loading events:', err);
@@ -172,12 +165,16 @@ class SessionController {
     }
   }
 
+  // Legacy alias
+  async getSessionEventsLegacy(req, res) {
+    return this.getSessionEvents(req, res);
+  }
+
   // API: Get timeline data (source-agnostic)
   async getTimeline(req, res) {
     try {
-      const sessionId = req.params.id;
+      const sessionId = this._getSessionId(req);
 
-      // Validate session ID format
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
@@ -187,10 +184,8 @@ class SessionController {
         return res.status(404).json({ error: 'Session not found' });
       }
 
-      // Generate unified timeline structure
       const timeline = await this.sessionService.getTimeline(sessionId);
 
-      // Set caching headers
       const crypto = require('crypto');
       const etagBase = `${sessionId}-timeline-${session.updatedAt || session.createdAt}`;
       const etag = crypto.createHash('md5').update(etagBase).digest('hex');
@@ -208,27 +203,29 @@ class SessionController {
     }
   }
 
+  // Legacy alias
+  async getTimelineLegacy(req, res) {
+    return this.getTimeline(req, res);
+  }
+
   // Export session as zip
   async exportSession(req, res) {
-    const sessionId = req.params.id;
+    const sessionId = this._getSessionId(req);
 
     if (!isValidSessionId(sessionId)) {
       return res.status(400).json({ error: 'Invalid session ID' });
     }
 
     try {
-      // Get session to verify it exists and get its source
       const session = await this.sessionService.sessionRepository.findById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
 
-      // Find session file/directory path based on source
       let sessionPath;
       let isDirectory = false;
 
       if (session.directory) {
-        // Try session directory first (copilot dirs, vscode dirs)
         try {
           const stats = await fs.promises.stat(session.directory);
           if (stats.isDirectory()) {
@@ -241,7 +238,6 @@ class SessionController {
       }
 
       if (!sessionPath && session.filePath) {
-        // File-based sessions (claude .jsonl, pi-mono .jsonl, copilot .jsonl)
         try {
           await fs.promises.access(session.filePath);
           sessionPath = session.filePath;
@@ -299,25 +295,20 @@ class SessionController {
         return res.status(404).json({ error: 'Session file not found' });
       }
 
-      // Verify path exists
       try {
         await fs.promises.access(sessionPath);
       } catch {
         return res.status(404).json({ error: 'Session file not accessible' });
       }
 
-      // Create zip
       const zip = new AdmZip();
 
       if (isDirectory) {
-        // Add entire directory (includes tags.json if present)
         zip.addLocalFolder(sessionPath, sessionId);
       } else {
-        // Add session file
         const fileName = path.basename(sessionPath);
         zip.addLocalFile(sessionPath, '', fileName);
 
-        // Also include tags file if it exists
         const TagService = require('../services/tagService');
         const tagService = new TagService();
         const tagsFilePath = tagService.getSessionTagsFilePath(session);
@@ -329,12 +320,10 @@ class SessionController {
         }
       }
 
-      // Send zip file
       const zipBuffer = zip.toBuffer();
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="session-${sessionId}.zip"`);
 
-      // Track SessionExported event
       trackEvent('SessionExported', { sessionId });
 
       res.send(zipBuffer);
@@ -342,6 +331,11 @@ class SessionController {
       console.error('Error exporting session:', err);
       res.status(500).json({ error: 'Error exporting session' });
     }
+  }
+
+  // Legacy alias
+  async exportSessionLegacy(req, res) {
+    return this.exportSession(req, res);
   }
 }
 

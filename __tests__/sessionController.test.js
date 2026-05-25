@@ -117,47 +117,47 @@ describe('SessionController - Additional Coverage', () => {
     });
   });
 
-  describe('loadMoreSessions', () => {
+  describe('getSessions - offset/limit pagination', () => {
     it('should return error for offset < 0', async () => {
       mockReq.query.offset = '-1';
       mockReq.query.limit = '20';
 
-      await controller.loadMoreSessions(mockReq, mockRes);
+      await controller.getSessions(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid parameters' });
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid pagination parameters' });
     });
 
     it('should return error for limit < 1 (with negative limit)', async () => {
       mockReq.query.offset = '0';
       mockReq.query.limit = '-1';
 
-      await controller.loadMoreSessions(mockReq, mockRes);
+      await controller.getSessions(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid parameters' });
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid pagination parameters' });
     });
 
-    it('should return error for limit > 50', async () => {
+    it('should return error for limit > 100', async () => {
       mockReq.query.offset = '0';
-      mockReq.query.limit = '51';
+      mockReq.query.limit = '101';
 
-      await controller.loadMoreSessions(mockReq, mockRes);
+      await controller.getSessions(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid parameters' });
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid pagination parameters' });
     });
 
-    it('should handle error when loading more sessions', async () => {
+    it('should handle error when loading sessions with offset/limit', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockReq.query.offset = '20';
       mockReq.query.limit = '20';
       mockSessionService.getPaginatedSessions.mockRejectedValue(new Error('Load error'));
 
-      await controller.loadMoreSessions(mockReq, mockRes);
+      await controller.getSessions(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Error loading more sessions' });
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Error loading sessions' });
 
       consoleErrorSpy.mockRestore();
     });
