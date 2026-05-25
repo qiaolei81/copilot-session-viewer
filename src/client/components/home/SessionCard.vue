@@ -82,6 +82,7 @@ function navigateToSession() {
 
 <template>
   <a
+    :href="`/session/${session.id}`"
     class="block cursor-pointer rounded-lg border bg-[#161b22] p-3 px-4 text-[#c9d1d9] no-underline transition-all hover:-translate-y-0.5 hover:border-[#58a6ff] hover:bg-[#1c2128] hover:shadow-[0_4px_12px_rgba(88,166,255,0.2)]"
     :class="session.sessionStatus === 'wip' ? 'border-[#d29922] border-l-[3px] hover:border-[#e8b634]' : 'border-[#30363d]'"
     @click.prevent="navigateToSession"

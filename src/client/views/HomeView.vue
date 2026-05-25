@@ -19,7 +19,7 @@ function onFilterChange(source) {
     <AppHeader title="Session Viewer" />
 
     <main class="px-4 py-6 sm:px-6 lg:px-8">
-      <SessionSearchBar class="mb-6 max-w-xl" />
+      <SessionSearchBar class="mb-6 max-w-xl mx-auto" />
 
       <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
         <SourceFilterPills @filter-change="onFilterChange" />
