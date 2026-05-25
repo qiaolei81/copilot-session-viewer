@@ -52,27 +52,27 @@ test.describe('Core Functionality Tests', () => {
     await page.goto(`/session/${SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
-    // Should load session detail page
-    await expect(page.locator('body')).toBeVisible();
+    // Should load Vue SPA session detail page
+    await expect(page.locator('#app')).toBeVisible();
 
     // URL should be correct
     expect(page.url()).toContain(`/session/${SESSION_ID}`);
   });
 
-  test('should load Vue session detail page', async ({ page }) => {
+  test('should load session detail page with Vue SPA', async ({ page }) => {
     if (!SESSION_ID) {
       test.skip('No sessions available for Vue test');
     }
 
-    await page.goto(`/session/${SESSION_ID}/vue`);
+    await page.goto(`/session/${SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
-    // Vue page should load
-    await expect(page.locator('body')).toBeVisible();
+    // Vue SPA should load and render
+    await expect(page.locator('#app')).toBeVisible();
 
     // Should have share button (key Vue feature)
     const shareButton = page.locator('button:has-text("📤 Share Session")');
-    const hasShareButton = await shareButton.isVisible({ timeout: 5000 });
+    const hasShareButton = await shareButton.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (hasShareButton) {
       console.log('Vue session page loaded with share functionality');
