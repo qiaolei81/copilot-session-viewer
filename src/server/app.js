@@ -141,20 +141,6 @@ function createApp(options = {}) {
   app.get('/api/:source/sessions/:sessionId/insight', validateSource, insightController.getInsightStatus.bind(insightController));
   app.delete('/api/:source/sessions/:sessionId/insight', validateSource, insightController.deleteInsight.bind(insightController));
 
-  // ── Legacy routes (backward compatibility) ──
-  // Keep old routes working during migration, delegating to same controllers
-  app.get('/api/sessions', sessionController.getSessions.bind(sessionController));
-  app.get('/api/sessions/:id', sessionController.getSessionByIdLegacy.bind(sessionController));
-  app.get('/api/sessions/:id/events', sessionController.getSessionEventsLegacy.bind(sessionController));
-  app.get('/api/sessions/:id/timeline', sessionController.getTimelineLegacy.bind(sessionController));
-  app.get('/api/sessions/:id/tags', tagController.getSessionTagsLegacy.bind(tagController));
-  app.put('/api/sessions/:id/tags', tagController.setSessionTagsLegacy.bind(tagController));
-  app.get('/session/:id/export', sessionController.exportSessionLegacy.bind(sessionController));
-  app.get('/session/:id/share', uploadController.shareSessionLegacy.bind(uploadController));
-  app.post('/session/:id/insight', insightController.generateInsightLegacy.bind(insightController));
-  app.get('/session/:id/insight', insightController.getInsightStatusLegacy.bind(insightController));
-  app.delete('/session/:id/insight', insightController.deleteInsightLegacy.bind(insightController));
-
   // Upload rate limiting - DISABLED
   // app.use('/session/import', uploadLimiter);
 

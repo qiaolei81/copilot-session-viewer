@@ -352,10 +352,6 @@ class UploadController {
     }
   }
 
-  // Legacy alias
-  async shareSessionLegacy(req, res) {
-    return this.shareSession(req, res);
-  }
 }
 
 module.exports = UploadController;

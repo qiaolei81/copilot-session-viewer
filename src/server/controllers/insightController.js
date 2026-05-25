@@ -86,11 +86,6 @@ class InsightController {
     }
   }
 
-  // Legacy alias
-  async generateInsightLegacy(req, res) {
-    return this.generateInsight(req, res);
-  }
-
   // Get insight status
   async getInsightStatus(req, res) {
     try {
@@ -122,11 +117,6 @@ class InsightController {
     }
   }
 
-  // Legacy alias
-  async getInsightStatusLegacy(req, res) {
-    return this.getInsightStatus(req, res);
-  }
-
   // Delete insight
   async deleteInsight(req, res) {
     try {
@@ -156,10 +146,6 @@ class InsightController {
     }
   }
 
-  // Legacy alias
-  async deleteInsightLegacy(req, res) {
-    return this.deleteInsight(req, res);
-  }
 }
 
 module.exports = InsightController;

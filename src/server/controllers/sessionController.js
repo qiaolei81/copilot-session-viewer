@@ -100,11 +100,6 @@ class SessionController {
     }
   }
 
-  // Legacy alias
-  async getSessionByIdLegacy(req, res) {
-    return this.getSessionById(req, res);
-  }
-
   async getSessionEvents(req, res) {
     try {
       const sessionId = this._getSessionId(req);
@@ -165,11 +160,6 @@ class SessionController {
     }
   }
 
-  // Legacy alias
-  async getSessionEventsLegacy(req, res) {
-    return this.getSessionEvents(req, res);
-  }
-
   // API: Get timeline data (source-agnostic)
   async getTimeline(req, res) {
     try {
@@ -201,11 +191,6 @@ class SessionController {
       console.error('Error loading timeline:', err);
       res.status(500).json({ error: 'Error loading timeline' });
     }
-  }
-
-  // Legacy alias
-  async getTimelineLegacy(req, res) {
-    return this.getTimeline(req, res);
   }
 
   // Export session as zip
@@ -333,10 +318,6 @@ class SessionController {
     }
   }
 
-  // Legacy alias
-  async exportSessionLegacy(req, res) {
-    return this.exportSession(req, res);
-  }
 }
 
 module.exports = SessionController;

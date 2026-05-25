@@ -53,11 +53,6 @@ class TagController {
     }
   }
 
-  // Legacy alias
-  async getSessionTagsLegacy(req, res) {
-    return this.getSessionTags(req, res);
-  }
-
   /**
    * PUT /api/:source/sessions/:sessionId/tags
    * Set tags for a specific session
@@ -114,10 +109,6 @@ class TagController {
     }
   }
 
-  // Legacy alias
-  async setSessionTagsLegacy(req, res) {
-    return this.setSessionTags(req, res);
-  }
 }
 
 module.exports = TagController;
