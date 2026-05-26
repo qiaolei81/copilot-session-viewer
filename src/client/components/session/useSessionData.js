@@ -664,27 +664,27 @@ export function useSessionData() {
       return { label: item.data.badgeLabel, style: badgeClassToStyle(item.data.badgeClass) };
     }
     if (type === 'message' && item?.data?.role === 'toolResult') {
-      return { label: 'TOOL RESULT', style: { backgroundColor: '#9e6a03', color: '#fff' } };
+      return { label: 'TOOL RESULT', style: { backgroundColor: 'var(--color-badge-tool)', color: '#fff' } };
     }
-    if (type === 'session.model_change') return { label: 'MODEL CHANGE', style: { backgroundColor: 'var(--color-text-faint)', color: '#fff' } };
-    if (type === 'session.truncation') return { label: 'TRUNCATION', style: { backgroundColor: '#e5534b', color: '#fff' } };
-    if (type === 'session.compaction_start' || type === 'session.compaction_complete') return { label: 'COMPACTION', style: { backgroundColor: '#c2442d', color: '#fff' } };
-    if (type === 'system.notification') return { label: 'SYSTEM', style: { backgroundColor: 'var(--color-surface-overlay)', color: '#adbac7', fontStyle: 'italic' } };
+    if (type === 'session.model_change') return { label: 'MODEL CHANGE', style: { backgroundColor: 'var(--color-badge-session)', color: '#fff' } };
+    if (type === 'session.truncation') return { label: 'TRUNCATION', style: { backgroundColor: 'var(--color-badge-truncation)', color: '#fff' } };
+    if (type === 'session.compaction_start' || type === 'session.compaction_complete') return { label: 'COMPACTION', style: { backgroundColor: 'var(--color-badge-compaction)', color: '#fff' } };
+    if (type === 'system.notification') return { label: 'SYSTEM', style: { backgroundColor: 'var(--color-badge-system)', color: '#adbac7', fontStyle: 'italic' } };
     const parts = (type || '').split('.');
     const category = parts[0] || 'unknown';
     const badges = {
-      user: { label: 'USER', style: { backgroundColor: 'var(--color-accent-emphasis)', color: '#fff' } },
-      assistant: { label: 'ASSISTANT', style: { backgroundColor: 'var(--color-success-emphasis)', color: '#fff' } },
-      reasoning: { label: 'REASONING', style: { backgroundColor: 'var(--color-purple-light)', color: '#fff' } },
-      turn: { label: 'TURN', style: { backgroundColor: 'var(--color-success-emphasis)', color: '#fff' } },
-      tool: { label: 'TOOL', style: { backgroundColor: '#9e6a03', color: '#fff' } },
-      subagent: { label: 'SUBAGENT', style: { backgroundColor: '#8957e5', color: '#fff' } },
-      skill: { label: 'SKILL', style: { backgroundColor: 'var(--color-pink)', color: '#fff' } },
-      session: { label: 'SESSION', style: { backgroundColor: 'var(--color-text-faint)', color: '#fff' } },
-      error: { label: 'ERROR', style: { backgroundColor: 'var(--color-danger)', color: '#fff' } },
-      abort: { label: 'ABORT', style: { backgroundColor: 'var(--color-danger)', color: '#fff' } }
+      user: { label: 'USER', style: { backgroundColor: 'var(--color-badge-user)', color: '#fff' } },
+      assistant: { label: 'ASSISTANT', style: { backgroundColor: 'var(--color-badge-assistant)', color: '#fff' } },
+      reasoning: { label: 'REASONING', style: { backgroundColor: 'var(--color-badge-reasoning)', color: '#fff' } },
+      turn: { label: 'TURN', style: { backgroundColor: 'var(--color-badge-turn)', color: '#fff' } },
+      tool: { label: 'TOOL', style: { backgroundColor: 'var(--color-badge-tool)', color: '#fff' } },
+      subagent: { label: 'SUBAGENT', style: { backgroundColor: 'var(--color-badge-subagent)', color: '#fff' } },
+      skill: { label: 'SKILL', style: { backgroundColor: 'var(--color-badge-skill)', color: '#fff' } },
+      session: { label: 'SESSION', style: { backgroundColor: 'var(--color-badge-session)', color: '#fff' } },
+      error: { label: 'ERROR', style: { backgroundColor: 'var(--color-badge-error)', color: '#fff' } },
+      abort: { label: 'ABORT', style: { backgroundColor: 'var(--color-badge-abort)', color: '#fff' } }
     };
-    return badges[category] || { label: category.toUpperCase(), style: { backgroundColor: 'var(--color-accent)', color: '#fff' } };
+    return badges[category] || { label: category.toUpperCase(), style: { backgroundColor: 'var(--color-badge-default)', color: '#fff' } };
   };
 
   // Helper: convert legacy badgeClass string to inline style
@@ -694,21 +694,21 @@ export function useSessionData() {
     if (bgMatch) {
       style.backgroundColor = bgMatch[1];
     } else if (cls.includes('bg-accent-emphasis')) {
-      style.backgroundColor = 'var(--color-accent-emphasis)';
+      style.backgroundColor = 'var(--color-badge-user)';
     } else if (cls.includes('bg-success-emphasis')) {
-      style.backgroundColor = 'var(--color-success-emphasis)';
+      style.backgroundColor = 'var(--color-badge-assistant)';
     } else if (cls.includes('bg-purple-light')) {
-      style.backgroundColor = 'var(--color-purple-light)';
+      style.backgroundColor = 'var(--color-badge-reasoning)';
     } else if (cls.includes('bg-text-faint')) {
-      style.backgroundColor = 'var(--color-text-faint)';
+      style.backgroundColor = 'var(--color-badge-session)';
     } else if (cls.includes('bg-danger')) {
-      style.backgroundColor = 'var(--color-danger)';
+      style.backgroundColor = 'var(--color-badge-error)';
     } else if (cls.includes('bg-surface-overlay')) {
-      style.backgroundColor = 'var(--color-surface-overlay)';
+      style.backgroundColor = 'var(--color-badge-system)';
     } else if (cls.includes('bg-pink')) {
-      style.backgroundColor = 'var(--color-pink)';
+      style.backgroundColor = 'var(--color-badge-skill)';
     } else if (cls.includes('bg-accent')) {
-      style.backgroundColor = 'var(--color-accent)';
+      style.backgroundColor = 'var(--color-badge-default)';
     }
     if (cls.includes('italic')) style.fontStyle = 'italic';
     return style;

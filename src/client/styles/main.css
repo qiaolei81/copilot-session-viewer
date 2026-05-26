@@ -50,6 +50,22 @@
   --color-error-text: #ff7b72;
   --color-link: #79c0ff;
 
+  /* Badge colors */
+  --color-badge-user: #388bfd;
+  --color-badge-assistant: #238636;
+  --color-badge-reasoning: #a371f7;
+  --color-badge-turn: #238636;
+  --color-badge-tool: #9e6a03;
+  --color-badge-subagent: #8957e5;
+  --color-badge-skill: #bf3989;
+  --color-badge-session: #6e7681;
+  --color-badge-error: #da3633;
+  --color-badge-abort: #da3633;
+  --color-badge-truncation: #e5534b;
+  --color-badge-compaction: #c2442d;
+  --color-badge-system: #2d333b;
+  --color-badge-default: #58a6ff;
+
   /* Font sizes */
   --text-2xs: 0.6875rem;
   --text-xs: 0.75rem;
