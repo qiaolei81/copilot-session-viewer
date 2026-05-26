@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Scan JS composables for dynamic Tailwind classes (badge colors, etc.) */
+@source "../components/session/useSessionData.js";
+@source "../components/time-analyze/useTimeAnalyze.js";
+
 @theme {
   /* Colors - Canvas & Surfaces */
   --color-canvas: #0d1117;
