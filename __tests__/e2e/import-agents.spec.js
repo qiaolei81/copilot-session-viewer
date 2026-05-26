@@ -17,14 +17,11 @@ test.describe('Session Import - UI', () => {
     expect(fileChooser).toBeTruthy();
   });
 
-  test('supported formats hint visible on homepage', async ({ page }) => {
+  test('import and add-dir buttons visible on homepage', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const hint = page.locator('[data-testid="import-formats-hint"]');
-    await expect(hint).toBeVisible();
-    await expect(hint).toContainText('Copilot');
-    await expect(hint).toContainText('Claude');
-    await expect(hint).toContainText('Pi-Mono');
+    await expect(page.locator('[data-testid="import-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="add-dir-btn"]')).toBeVisible();
   });
 });

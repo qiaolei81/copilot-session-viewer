@@ -28,9 +28,6 @@ View
         <div class="text-text-secondary text-sm mb-3 uppercase tracking-wider">
 Sessions
 </div>
-        <button data-testid="add-dir-btn" class="text-accent text-sm cursor-pointer hover:text-link bg-transparent border-none p-0" title="Add custom directory" @click="addCustomDirectory">📁</button>
-        <button data-testid="import-btn" class="text-accent text-sm cursor-pointer hover:text-link bg-transparent border-none p-0" title="Import session from zip" :style="importLinkStyle" @click="triggerImport">📤</button>
-        <span data-testid="import-formats-hint" class="text-2xs text-text-faint ml-1.5 align-middle">Supports: GitHub Copilot, Claude, Pi-Mono</span>
       </div>
       <div class="flex gap-2 mb-4 flex-wrap">
         <button
@@ -49,7 +46,11 @@ Sessions
       </div>
       <!-- Directory info -->
       <div v-if="currentSourceHintDir || currentCustomDirs.length > 0" class="mb-4 text-sm">
-        <div v-if="currentSourceHintDir" class="text-text-faint text-xs mb-1">📂 {{ currentSourceHintDir }}</div>
+        <div v-if="currentSourceHintDir" class="flex items-center gap-2 text-text-faint text-xs mb-1">
+          <span>📂 {{ currentSourceHintDir }}</span>
+          <button data-testid="add-dir-btn" class="text-accent cursor-pointer hover:text-link bg-transparent border-none p-0 text-xs" title="Add custom directory" @click="addCustomDirectory">📁<sup>+</sup></button>
+          <button data-testid="import-btn" class="text-accent cursor-pointer hover:text-link bg-transparent border-none p-0 text-xs" title="Import session from zip" :style="importLinkStyle" @click="triggerImport">📤</button>
+        </div>
         <div v-for="cd in currentCustomDirs" :key="cd.dir" class="flex items-center gap-2 text-xs text-text-secondary mb-1">
           <span class="inline-block w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: cd.color }"></span>
           <span class="font-mono">{{ cd.dir }}</span>
