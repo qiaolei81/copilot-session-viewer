@@ -99,7 +99,18 @@ class CopilotAdapter extends BaseSourceAdapter {
   }
 
   async resolveEventsFile(session, dir) {
-    const sessionId = session.id;
+    // Use session's stored directory path if available (handles nested/recursive dirs)
+    if (session.directory) {
+      const eventsPath = path.join(session.directory, 'events.jsonl');
+      try {
+        await fs.access(eventsPath);
+        return eventsPath;
+      } catch {
+        // fall through to dir-based resolution
+      }
+    }
+
+    const sessionId = session.id || session;
     const sessionPath = path.join(dir, sessionId);
     try {
       const stats = await fs.stat(sessionPath);
@@ -109,6 +120,8 @@ class CopilotAdapter extends BaseSourceAdapter {
         return path.join(dir, `${sessionId}.jsonl`);
       }
     } catch (_err) {
+      // For file-based sessions
+      if (session.filePath) return session.filePath;
       return path.join(dir, `${sessionId}.jsonl`);
     }
   }
