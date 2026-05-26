@@ -1,4 +1,6 @@
 const fs = require('fs');
+const fsPromises = fs.promises;
+const path = require('path');
 const readline = require('readline');
 
 /**
@@ -86,6 +88,63 @@ class BaseSourceAdapter {
    */
   async scanEntries(_dir) {
     throw new Error('BaseSourceAdapter: scanEntries() must be implemented');
+  }
+
+  /**
+   * Recursively scan a directory tree for session entries.
+   * Calls `matchEntry(fullPath, entry, stats)` on each entry.
+   * - If it returns a Session or Session[], those are collected.
+   * - If it returns null and the entry is a directory, recurse into it.
+   * - If it returns false, skip (don't recurse).
+   * @param {string} dir - Directory to scan
+   * @param {function} matchEntry - async (fullPath, entry, stats) => Session|Session[]|null|false
+   * @param {number} [maxDepth=5] - Maximum recursion depth
+   * @param {number} [_depth=0] - Current depth (internal)
+   * @returns {Promise<import('../models/Session')[]>}
+   */
+  async recursiveScan(dir, matchEntry, maxDepth = 5, _depth = 0) {
+    if (_depth > maxDepth) return [];
+
+    let entries;
+    try {
+      entries = await fsPromises.readdir(dir);
+    } catch {
+      return [];
+    }
+
+    const tasks = entries
+      .filter(entry => !shouldSkipEntry(entry))
+      .map(async (entry) => {
+        const fullPath = path.join(dir, entry);
+        let stats;
+        try {
+          stats = await fsPromises.stat(fullPath);
+        } catch {
+          return [];
+        }
+
+        const result = await matchEntry(fullPath, entry, stats);
+
+        if (result === false) {
+          // Explicitly skip
+          return [];
+        }
+        if (result !== null && result !== undefined) {
+          // Got session(s)
+          return Array.isArray(result) ? result : [result];
+        }
+        // null => not a session entry, recurse if directory
+        if (stats.isDirectory()) {
+          return this.recursiveScan(path.join(dir, entry), matchEntry, maxDepth, _depth + 1);
+        }
+        return [];
+      });
+
+    const results = await Promise.allSettled(tasks);
+    return results
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value)
+      .filter(s => s !== null && s !== undefined);
   }
 
   /**

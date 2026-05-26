@@ -24,36 +24,20 @@ class CopilotAdapter extends BaseSourceAdapter {
            path.join(os.homedir(), '.copilot', 'session-state');
   }
 
-  async scanEntries(dir, _depth = 0) {
-    const MAX_DEPTH = 5;
-    if (_depth > MAX_DEPTH) return [];
-
-    const entries = await fs.readdir(dir);
-    const tasks = entries
-      .filter(entry => !shouldSkipEntry(entry))
-      .map(async (entry) => {
-        const fullPath = path.join(dir, entry);
-        const stats = await fs.stat(fullPath);
-        if (stats.isDirectory()) {
-          // Check if this looks like a session dir (has events.jsonl or workspace.yaml)
-          const hasEvents = await fileExists(path.join(fullPath, 'events.jsonl'));
-          const hasWorkspace = await fileExists(path.join(fullPath, 'workspace.yaml'));
-          if (hasEvents || hasWorkspace) {
-            return [await this._createDirectorySession(entry, fullPath, stats)];
-          }
-          // Otherwise recurse into it
-          return this.scanEntries(fullPath, _depth + 1);
-        } else if (entry.endsWith('.jsonl')) {
-          return [await this._createFileSession(entry, fullPath, stats)];
+  async scanEntries(dir) {
+    return this.recursiveScan(dir, async (fullPath, entry, stats) => {
+      if (stats.isDirectory()) {
+        const hasEvents = await fileExists(path.join(fullPath, 'events.jsonl'));
+        const hasWorkspace = await fileExists(path.join(fullPath, 'workspace.yaml'));
+        if (hasEvents || hasWorkspace) {
+          return this._createDirectorySession(entry, fullPath, stats);
         }
-        return [];
-      });
-
-    const results = await Promise.allSettled(tasks);
-    return results
-      .filter(r => r.status === 'fulfilled')
-      .flatMap(r => r.value)
-      .filter(s => s !== null && s !== undefined);
+        return null; // recurse
+      } else if (entry.endsWith('.jsonl')) {
+        return this._createFileSession(entry, fullPath, stats);
+      }
+      return false; // skip non-jsonl files
+    });
   }
 
   async findById(sessionId, dir) {
