@@ -5,6 +5,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { getDisplayInputTokens } from '../../utils/formatting.js';
 
 // ── Subagent utils (inlined from src/frontend/subagent-utils.js) ──
 
@@ -191,14 +192,6 @@ function filterBySubagent(events, selectedSubagent, ownerMap) {
 
 // ── Usage utils (inlined from src/frontend/usage-utils.js) ──
 
-function getDisplayInputTokens(usage) {
-  if (!usage || typeof usage !== 'object') return 0;
-  const inputTokens = Number.isFinite(usage.inputTokens) ? usage.inputTokens : 0;
-  const cacheReadTokens = Number.isFinite(usage.cacheReadTokens) ? usage.cacheReadTokens : 0;
-  const cacheWriteTokens = Number.isFinite(usage.cacheWriteTokens) ? usage.cacheWriteTokens : 0;
-  return Math.max(inputTokens - cacheReadTokens - cacheWriteTokens, 0);
-}
-
 function getUsageCacheHitRatio(usage) {
   if (!usage || typeof usage !== 'object') return null;
   const cacheReadTokens = Number.isFinite(usage.cacheReadTokens) ? usage.cacheReadTokens : 0;
@@ -224,8 +217,8 @@ const TAG_COLORS = [
 export function useSessionData() {
   const route = useRoute();
   const _router = useRouter();
-  const sessionId = ref(route.params.id);
-  const source = ref(route.params.source);
+  const sessionId = computed(() => route.params.id);
+  const source = computed(() => route.params.source);
   const metadata = ref({});
   const exporting = ref(false);
 

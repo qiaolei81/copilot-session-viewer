@@ -37,7 +37,7 @@ class InsightService {
       claude: {
         name: 'Claude Code',
         cli: 'claude',
-        args: (_tmpDir, prompt) => ['-p', prompt, '--dangerously-skip-permissions'],
+        args: (_tmpDir, prompt) => ['-p', prompt, '--allowedTools', 'Read', '--max-turns', '10'],
         cwd: sessionPath
       },
       'pi-mono': {

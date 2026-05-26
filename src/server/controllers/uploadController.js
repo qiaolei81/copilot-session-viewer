@@ -61,7 +61,11 @@ class UploadController {
       const unzipProcess = spawn('unzip', ['-q', zipPath, '-d', extractDir]);
       processManager.register(unzipProcess, { name: 'unzip-import' });
 
+      let responded = false;
+
       unzipProcess.on('close', async (code) => {
+        if (responded) return;
+        responded = true;
         try {
           await fs.promises.unlink(zipPath).catch(() => {});
 
@@ -93,6 +97,8 @@ class UploadController {
       });
 
       unzipProcess.on('error', async (err) => {
+        if (responded) return;
+        responded = true;
         console.error('Error extracting zip:', err);
         trackException(err, { operation: 'importSession_unzip' });
         await fs.promises.unlink(zipPath).catch(() => {});

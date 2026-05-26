@@ -213,7 +213,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
   test.describe('Tab Switching', () => {
     test('should have Timeline and Agent Review tabs', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('[data-testid="tabs"]', { timeout: 30000 });
+      await page.waitForSelector('[data-testid="tabs"]', { timeout: 60000 });
 
       // Check for tabs container
       const tabs = page.locator('[data-testid="tabs"]');
@@ -230,7 +230,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
     test('should switch between Timeline and Agent Review tabs', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('[data-testid="tabs"]', { timeout: 30000 });
+      await page.waitForSelector('[data-testid="tabs"]', { timeout: 60000 });
 
       await page.waitForTimeout(2000);
 

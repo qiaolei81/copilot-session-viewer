@@ -2,8 +2,21 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export const useSessionStore = defineStore('session', () => {
+  const MAX_CACHE_SIZE = 50;
   // Cache: sessionId -> { metadata, events, timestamp }
   const cache = ref({});
+
+  function _evictOldest() {
+    const keys = Object.keys(cache.value);
+    if (keys.length <= MAX_CACHE_SIZE) return;
+    const sorted = keys.sort((a, b) => (cache.value[a].timestamp || 0) - (cache.value[b].timestamp || 0));
+    const toRemove = sorted.slice(0, keys.length - MAX_CACHE_SIZE);
+    for (const k of toRemove) delete cache.value[k];
+  }
+
+  function _touch(sessionId) {
+    if (cache.value[sessionId]) cache.value[sessionId].timestamp = Date.now();
+  }
 
   function getCached(sessionId) {
     return cache.value[sessionId] || null;
@@ -21,6 +34,7 @@ export const useSessionStore = defineStore('session', () => {
       cache.value[sessionId] = { timestamp: Date.now() };
     }
     cache.value[sessionId].metadata = data;
+    _evictOldest();
     return data;
   }
 
@@ -37,6 +51,7 @@ export const useSessionStore = defineStore('session', () => {
       cache.value[sessionId] = { timestamp: Date.now() };
     }
     cache.value[sessionId].events = events;
+    _evictOldest();
     return events;
   }
 

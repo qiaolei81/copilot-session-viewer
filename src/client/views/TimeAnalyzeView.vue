@@ -110,8 +110,8 @@ import InsightTab from '../components/time-analyze/InsightTab.vue';
 import { useTimeAnalyze } from '../components/time-analyze/useTimeAnalyze.js';
 
 const route = useRoute();
-const sessionId = ref(route.params.id);
-const source = ref(route.params.source);
+const sessionId = computed(() => route.params.id);
+const source = computed(() => route.params.source);
 const metadata = ref({});
 
 // Fetch metadata

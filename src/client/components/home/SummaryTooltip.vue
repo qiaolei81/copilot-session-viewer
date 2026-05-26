@@ -12,6 +12,8 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 
 const tooltipEl = ref(null);
 const isVisible = ref(false);
@@ -22,10 +24,8 @@ let pendingEvent = null;
 
 const renderedHtml = computed(() => {
   const md = text.value;
-  if (typeof window !== 'undefined' && window.marked) {
-    return window.marked.parse(md, { breaks: true });
-  }
-  return md.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+  const html = marked.parse(md, { breaks: true });
+  return DOMPurify.sanitize(html);
 });
 
 function scheduleShow(el, e) {

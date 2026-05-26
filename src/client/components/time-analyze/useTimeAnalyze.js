@@ -4,16 +4,11 @@
  * Contains ALL computation logic for the time-analyze page.
  */
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
+import { getDisplayInputTokens } from '../../utils/formatting.js';
 
 // ── Usage utils (inlined from src/frontend/usage-utils.js) ──
-function getDisplayInputTokens(usage) {
-  if (!usage || typeof usage !== 'object') return 0;
-  const inputTokens = Number.isFinite(usage.inputTokens) ? usage.inputTokens : 0;
-  const cacheReadTokens = Number.isFinite(usage.cacheReadTokens) ? usage.cacheReadTokens : 0;
-  const cacheWriteTokens = Number.isFinite(usage.cacheWriteTokens) ? usage.cacheWriteTokens : 0;
-  return Math.max(inputTokens - cacheReadTokens - cacheWriteTokens, 0);
-}
-
 function getUsageCacheHitRatio(usage) {
   if (!usage || typeof usage !== 'object') return null;
   const cacheReadTokens = Number.isFinite(usage.cacheReadTokens) ? usage.cacheReadTokens : 0;
@@ -1224,10 +1219,8 @@ export function useTimeAnalyze(sessionId, metadata, _source) {
 
   const renderedInsight = computed(() => {
     if (!insightReport.value) return '';
-    if (typeof window !== 'undefined' && window.marked) {
-      return window.marked.parse(insightReport.value);
-    }
-    return insightReport.value;
+    const html = marked.parse(insightReport.value);
+    return DOMPurify.sanitize(html);
   });
 
   const checkExistingInsight = async () => {

@@ -18,6 +18,8 @@
 
 <script setup>
 import { ref, computed, nextTick } from 'vue';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 
 const isOpen = ref(false);
 const sheetVisible = ref(false);
@@ -25,10 +27,8 @@ const text = ref('');
 
 const renderedHtml = computed(() => {
   const md = text.value;
-  if (typeof window !== 'undefined' && window.marked) {
-    return window.marked.parse(md, { breaks: true });
-  }
-  return md.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+  const html = marked.parse(md, { breaks: true });
+  return DOMPurify.sanitize(html);
 });
 
 function open(md) {

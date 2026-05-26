@@ -8,7 +8,7 @@ const config = require('./config');
 
 // Middleware
 // Rate limiting disabled for local development
-// const { globalLimiter, insightGenerationLimiter, insightAccessLimiter, uploadLimiter } = require('./middleware/rateLimiting');
+const { globalLimiter, insightGenerationLimiter, insightAccessLimiter, uploadLimiter } = require('./middleware/rateLimiting');
 const { requestTimeout, developmentCors, errorHandler, notFoundHandler, telemetryLocals } = require('./middleware/common');
 
 // Source mapping
@@ -47,11 +47,11 @@ function createApp(options = {}) {
     res.setHeader(
       'Content-Security-Policy',
       "default-src 'self'; " +
-      "style-src 'self' 'unsafe-inline' https: http:; " +
-      "font-src 'self' https: http:; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; " +
-      "img-src 'self' data: https: http:; " +
-      "connect-src 'self' https: http:"
+      "style-src 'self' 'unsafe-inline'; " +
+      "font-src 'self'; " +
+      "script-src 'self'; " +
+      "img-src 'self' data:; " +
+      "connect-src 'self'"
     );
     next();
   });
@@ -88,7 +88,7 @@ function createApp(options = {}) {
   }
 
   // Rate limiting - DISABLED for local development
-  // app.use(globalLimiter);
+  app.use(globalLimiter);
 
   // Static files (legacy public folder)
   app.use('/public', express.static(path.join(__dirname, '../../public')));
@@ -105,11 +105,11 @@ function createApp(options = {}) {
 
   // Source hints (directory paths per source type)
   app.get('/api/source-hints', (req, res) => {
-    const hints = {};
     const sources = sessionController.sessionService.sessionRepository.sources;
+    const hints = {};
     if (sources) {
       for (const src of sources) {
-        hints[src.type] = src.dir;
+        hints[src.type] = { configured: true };
       }
     }
     res.json(hints);
@@ -153,7 +153,16 @@ function createApp(options = {}) {
   app.delete('/api/:source/sessions/:sessionId/insight', validateSource, insightController.deleteInsight.bind(insightController));
 
   // Upload rate limiting - DISABLED
-  // app.use('/session/import', uploadLimiter);
+  app.use('/session/import', uploadLimiter);
+
+  // SPA fallback: serve index.html for all non-API routes
+  app.get('*', (req, res, next) => {
+    // Skip API routes and static files
+    if (req.path.startsWith('/api/') || req.path.startsWith('/public/')) {
+      return next();
+    }
+    res.sendFile(path.join(__dirname, '../../dist/client/index.html'));
+  });
 
   // Error handling
   app.use(notFoundHandler);

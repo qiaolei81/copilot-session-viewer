@@ -302,6 +302,14 @@ class SessionController {
         return res.status(404).json({ error: 'Session file not accessible' });
       }
 
+      // Resolve symlinks and verify path is within expected source directories
+      const resolvedPath = await fs.promises.realpath(sessionPath);
+      const sourceDirs = this.sessionService.sessionRepository.sources.map(s => s.dir);
+      const isWithinSource = sourceDirs.some(dir => resolvedPath.startsWith(dir));
+      if (!isWithinSource) {
+        return res.status(403).json({ error: 'Access denied: path outside source directories' });
+      }
+
       const zip = new AdmZip();
 
       if (isDirectory) {

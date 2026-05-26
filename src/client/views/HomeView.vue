@@ -46,8 +46,8 @@ Sessions
 {{ pill.label }}
 </button>
       </div>
-      <p v-if="currentSourceHint" class="hint mt-5 text-text-secondary text-sm">
-        Sessions from <span class="inline-block bg-surface py-1 px-2 rounded font-mono text-sm text-accent">{{ currentSourceHint }}</span>
+      <p v-if="currentSourceFilter" class="hint mt-5 text-text-secondary text-sm">
+        Showing <span class="inline-block bg-surface py-1 px-2 rounded font-mono text-sm text-accent">{{ currentSourceFilter }}</span> sessions
       </p>
       <input
         ref="fileInputRef"
@@ -108,13 +108,6 @@ import SessionCard from '../components/home/SessionCard.vue';
 import SummaryTooltip from '../components/home/SummaryTooltip.vue';
 import BottomSheet from '../components/home/BottomSheet.vue';
 import { toUrlSource } from '../utils/sourceMapping.js';
-
-// Load marked for markdown rendering
-if (typeof window !== 'undefined' && !window.marked) {
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/marked@9/marked.min.js';
-  document.head.appendChild(script);
-}
 
 const router = useRouter();
 const sessionInput = ref('');
