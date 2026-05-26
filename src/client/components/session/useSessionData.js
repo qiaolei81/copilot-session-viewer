@@ -664,36 +664,36 @@ export function useSessionData() {
       return { label: item.data.badgeLabel, class: item.data.badgeClass };
     }
     if (type === 'message' && item?.data?.role === 'toolResult') {
-      return { label: 'TOOL RESULT', class: 'badge-tool' };
+      return { label: 'TOOL RESULT', class: 'bg-[#9e6a03] text-white' };
     }
-    if (type === 'session.model_change') return { label: 'MODEL CHANGE', class: 'badge-session' };
-    if (type === 'session.truncation') return { label: 'TRUNCATION', class: 'badge-truncation' };
-    if (type === 'session.compaction_start' || type === 'session.compaction_complete') return { label: 'COMPACTION', class: 'badge-compaction' };
-    if (type === 'system.notification') return { label: 'SYSTEM', class: 'badge-system' };
+    if (type === 'session.model_change') return { label: 'MODEL CHANGE', class: 'bg-[#6e7681] text-white' };
+    if (type === 'session.truncation') return { label: 'TRUNCATION', class: 'bg-[#e5534b] text-white' };
+    if (type === 'session.compaction_start' || type === 'session.compaction_complete') return { label: 'COMPACTION', class: 'bg-[#c2442d] text-white' };
+    if (type === 'system.notification') return { label: 'SYSTEM', class: 'bg-[#444c56] text-[#adbac7] italic' };
     const parts = (type || '').split('.');
     const category = parts[0] || 'unknown';
     const badges = {
-      user: { label: 'USER', class: 'badge-user' },
-      assistant: { label: 'ASSISTANT', class: 'badge-assistant' },
-      reasoning: { label: 'REASONING', class: 'badge-reasoning' },
-      turn: { label: 'TURN', class: 'badge-turn' },
-      tool: { label: 'TOOL', class: 'badge-tool' },
-      subagent: { label: 'SUBAGENT', class: 'badge-subagent' },
-      skill: { label: 'SKILL', class: 'badge-skill' },
-      session: { label: 'SESSION', class: 'badge-session' },
-      error: { label: 'ERROR', class: 'badge-error' },
-      abort: { label: 'ABORT', class: 'badge-error' }
+      user: { label: 'USER', class: 'bg-[#1f6feb] text-white' },
+      assistant: { label: 'ASSISTANT', class: 'bg-[#238636] text-white' },
+      reasoning: { label: 'REASONING', class: 'bg-[#a371f7] text-white' },
+      turn: { label: 'TURN', class: 'bg-[#238636] text-white' },
+      tool: { label: 'TOOL', class: 'bg-[#9e6a03] text-white' },
+      subagent: { label: 'SUBAGENT', class: 'bg-[#8957e5] text-white' },
+      skill: { label: 'SKILL', class: 'bg-[#bf3989] text-white' },
+      session: { label: 'SESSION', class: 'bg-[#6e7681] text-white' },
+      error: { label: 'ERROR', class: 'bg-[#da3633] text-white' },
+      abort: { label: 'ABORT', class: 'bg-[#da3633] text-white' }
     };
-    return badges[category] || { label: category.toUpperCase(), class: 'badge-info' };
+    return badges[category] || { label: category.toUpperCase(), class: 'bg-[#58a6ff] text-white' };
   };
 
   // ── Tool helpers ──
 
   const getToolStatus = (group) => {
-    if (!group.complete) return { icon: '⏳', color: 'tool-status-running', text: '' };
+    if (!group.complete) return { icon: '⏳', color: 'text-[#d29922]', text: '' };
     const completeData = group.complete.data || {};
-    if (completeData.error || completeData.isError) return { icon: '❌', color: 'tool-status-error', text: '' };
-    return { icon: '✓', color: 'tool-status-success', text: '' };
+    if (completeData.error || completeData.isError) return { icon: '❌', color: 'text-[#da3633]', text: '' };
+    return { icon: '✓', color: 'text-[#238636]', text: '' };
   };
 
   const getToolErrorMessage = (group) => {

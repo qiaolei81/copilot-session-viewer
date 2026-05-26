@@ -93,6 +93,7 @@ class SessionController {
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
+      trackEvent('SessionViewed', { sessionId, source: session.source || 'unknown' });
       res.json(session);
     } catch (err) {
       console.error('Error loading session:', err);
@@ -151,8 +152,10 @@ class SessionController {
             hasMore: offset + limit < result.total
           }
         });
+        trackEvent('SessionEventsLoaded', { sessionId, source: session.source || 'unknown', eventCount: result.total, paginated: true });
       } else {
         res.json(result);
+        trackEvent('SessionEventsLoaded', { sessionId, source: session.source || 'unknown', eventCount: Array.isArray(result) ? result.length : 0, paginated: false });
       }
     } catch (err) {
       console.error('Error loading events:', err);
@@ -186,6 +189,7 @@ class SessionController {
         'Vary': 'Accept-Encoding'
       });
 
+      trackEvent('TimelineViewed', { sessionId, source: session.source || 'unknown' });
       res.json(timeline);
     } catch (err) {
       console.error('Error loading timeline:', err);

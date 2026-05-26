@@ -1051,26 +1051,43 @@ export function useTimeAnalyze(sessionId, metadata, _source) {
     return sortDir.value === 'asc' ? '↑' : '↓';
   };
 
+  const BADGE_CLASSES = {
+    'badge-subagent': 'bg-[#8957e5] text-white',
+    'badge-tool': 'bg-[#9e6a03] text-white',
+    'badge-turn': 'bg-[#238636] text-white',
+    'badge-read': 'bg-[rgba(88,166,255,0.15)] text-[#58a6ff] border border-[rgba(88,166,255,0.3)]',
+    'badge-write': 'bg-[rgba(63,185,80,0.15)] text-[#3fb950] border border-[rgba(63,185,80,0.3)]',
+    'badge-edit': 'bg-[rgba(210,153,34,0.15)] text-[#d29922] border border-[rgba(210,153,34,0.3)]',
+    'badge-create': 'bg-[rgba(63,185,80,0.15)] text-[#3fb950] border border-[rgba(63,185,80,0.3)]',
+    'badge-bash': 'bg-[rgba(139,148,158,0.15)] text-[#8b949e] border border-[rgba(139,148,158,0.3)]',
+    'badge-search': 'bg-[rgba(191,57,137,0.15)] text-[#f778ba] border border-[rgba(191,57,137,0.3)]',
+    'badge-other': 'bg-[rgba(110,118,129,0.15)] text-[#8b949e] border border-[rgba(110,118,129,0.3)]',
+  };
+  const BADGE_BASE = 'inline-block px-2 py-0.5 rounded-[3px] text-[11px] font-semibold whitespace-nowrap';
+
   const getToolBadgeClass = (toolName) => {
     const lower = (toolName || '').toLowerCase();
-    if (['bash', 'exec'].includes(lower)) return 'badge-bash';
-    if (lower === 'read') return 'badge-read';
-    if (lower === 'write' || lower === 'notebookedit') return 'badge-write';
-    if (lower === 'edit') return 'badge-edit';
-    if (lower === 'glob' || lower === 'grep') return 'badge-search';
-    if (lower === 'task') return 'badge-subagent';
-    return 'badge-other';
+    let key;
+    if (['bash', 'exec'].includes(lower)) key = 'badge-bash';
+    else if (lower === 'read') key = 'badge-read';
+    else if (lower === 'write' || lower === 'notebookedit') key = 'badge-write';
+    else if (lower === 'edit') key = 'badge-edit';
+    else if (lower === 'glob' || lower === 'grep') key = 'badge-search';
+    else if (lower === 'task') key = 'badge-subagent';
+    else key = 'badge-other';
+    return BADGE_BASE + ' ' + BADGE_CLASSES[key];
   };
 
   const getOpBadgeClass = (opType) => {
-    const classes = {
+    const keys = {
       read: 'badge-read',
       write: 'badge-write',
       edit: 'badge-edit',
       create: 'badge-create',
       search: 'badge-search'
     };
-    return classes[opType] || 'badge-other';
+    const key = keys[opType] || 'badge-other';
+    return BADGE_BASE + ' ' + BADGE_CLASSES[key];
   };
 
   // ── Gantt crosshair ──

@@ -1,18 +1,18 @@
 <template>
-  <router-link :to="`/${urlSource}/session/${session.id}`" :class="['recent-item', { 'recent-item-wip': session.sessionStatus === 'wip' }]" class="block bg-[#161b22] border border-[#30363d] rounded-lg py-3 px-4 text-[#c9d1d9] no-underline transition-all min-h-[140px] overflow-hidden min-w-0">
+  <router-link :to="`/${urlSource}/session/${session.id}`" :class="['block bg-[#161b22] border border-[#30363d] rounded-lg py-3 px-4 text-[#c9d1d9] no-underline transition-all min-h-[140px] overflow-hidden min-w-0 hover:border-[#58a6ff] hover:bg-[#1c2128] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(88,166,255,0.2)]', session.sessionStatus === 'wip' ? 'border-[#d29922] border-l-[3px] border-l-[#d29922] hover:border-[#e8b634] hover:border-l-[#e8b634]' : '']">
     <div class="flex justify-between items-center font-mono text-[11px] text-[#6e7681] mb-3 tracking-tight opacity-70">
       <span class="overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0" :title="session.id">{{ session.id }}</span>
     </div>
     <div class="flex flex-wrap items-center justify-start gap-1 mt-1">
       <div class="flex flex-wrap gap-1">
-        <span :class="['status-badge', session.sourceBadgeClass || 'source-copilot']" :title="session.sourceName || 'Copilot'">{{ session.sourceName || 'Copilot' }}</span>
-        <span v-if="session.sessionStatus === 'wip'" class="status-badge wip" title="Session in progress">🔄 WIP</span>
-        <span v-if="session.isImported" class="status-badge imported" title="Imported session">📥</span>
-        <span v-if="session.hasInsight" class="status-badge insight" title="Has Agent Review">💡</span>
-        <span v-if="session.selectedModel" :class="['status-badge', 'model', modelClass]" :title="`Model: ${session.selectedModel}`">{{ modelShort }}</span>
-        <span v-if="session.source === 'modernize' && session.modernizeVersion" class="status-badge version" title="Modernize version">{{ session.modernizeVersion }}</span>
-        <span v-else-if="session.copilotVersion" class="status-badge version" title="CLI version">{{ session.copilotVersion }}</span>
-        <span v-if="session.agentName" class="status-badge agent" :title="`Agent: ${session.agentName}`">🤖 {{ session.agentName }}</span>
+        <span :class="['inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100 py-0.5 px-2 rounded-xl text-[11px] font-semibold font-mono', sourceBadgeStyle.classes]" :style="sourceBadgeStyle.style" :title="session.sourceName || 'Copilot'">{{ session.sourceName || 'Copilot' }}</span>
+        <span v-if="session.sessionStatus === 'wip'" class="inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100 py-0.5 px-2 rounded-xl text-[11px] font-semibold bg-[rgba(210,153,34,0.2)] text-[#d29922] border border-[rgba(210,153,34,0.4)]" title="Session in progress">🔄 WIP</span>
+        <span v-if="session.isImported" class="inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100" title="Imported session">📥</span>
+        <span v-if="session.hasInsight" class="inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100" title="Has Agent Review">💡</span>
+        <span v-if="session.selectedModel" class="inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100 py-0.5 px-2 rounded-xl text-[11px] font-semibold font-mono" :style="modelStyle" :title="`Model: ${session.selectedModel}`">{{ modelShort }}</span>
+        <span v-if="session.source === 'modernize' && session.modernizeVersion" class="inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100 py-0.5 px-2 bg-[rgba(234,179,8,0.15)] text-[#fbbf24] rounded-xl text-[11px] font-semibold font-mono" title="Modernize version">{{ session.modernizeVersion }}</span>
+        <span v-else-if="session.copilotVersion" class="inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100 py-0.5 px-2 bg-[rgba(234,179,8,0.15)] text-[#fbbf24] rounded-xl text-[11px] font-semibold font-mono" title="CLI version">{{ session.copilotVersion }}</span>
+        <span v-if="session.agentName" class="inline-block text-[14px] align-middle opacity-80 transition-opacity duration-200 hover:opacity-100" :title="`Agent: ${session.agentName}`">🤖 {{ session.agentName }}</span>
       </div>
       <div v-if="session.tags && session.tags.length > 0" class="flex flex-wrap gap-1">
         <span v-for="tag in session.tags" :key="tag" class="inline-block py-[3px] px-2 rounded-[10px] text-[11px] font-medium text-white" :style="{ backgroundColor: getTagColor(tag) }" :title="tag">{{ tag }}</span>
@@ -72,12 +72,26 @@ const modelShort = computed(() => {
   return props.session.selectedModel.replace('claude-', '').replace('gpt-', '').replace('gemini-', '');
 });
 
-const modelClass = computed(() => {
+const modelStyle = computed(() => {
   const m = props.session.selectedModel || '';
-  if (m.includes('claude')) return 'model-claude';
-  if (m.includes('gpt')) return 'model-gpt';
-  if (m.includes('gemini')) return 'model-gemini';
-  return 'model-other';
+  if (m.includes('claude')) return { background: 'rgba(204, 120, 92, 0.15)', color: '#e8956f' };
+  if (m.includes('gpt')) return { background: 'rgba(16, 163, 127, 0.15)', color: '#1ec99d' };
+  if (m.includes('gemini')) return { background: 'rgba(66, 133, 244, 0.15)', color: '#5e9aff' };
+  return { background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa' };
+});
+
+const SOURCE_STYLES = {
+  'source-copilot': { bg: 'rgba(88, 166, 255, 0.15)', color: '#58a6ff' },
+  'source-claude': { bg: 'rgba(204, 120, 92, 0.15)', color: '#e8956f' },
+  'source-pi-mono': { bg: 'rgba(138, 102, 204, 0.15)', color: '#a78bdb' },
+  'source-vscode': { bg: 'rgba(0, 122, 204, 0.15)', color: '#4fc3f7' },
+  'source-modernize': { bg: 'rgba(76, 175, 80, 0.15)', color: '#66bb6a' },
+};
+
+const sourceBadgeStyle = computed(() => {
+  const cls = props.session.sourceBadgeClass || 'source-copilot';
+  const s = SOURCE_STYLES[cls] || SOURCE_STYLES['source-copilot'];
+  return { classes: '', style: { background: s.bg, color: s.color } };
 });
 
 const createdAtStr = computed(() => {

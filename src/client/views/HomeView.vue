@@ -35,7 +35,12 @@ Sessions
         <button
           v-for="pill in filterPills"
           :key="pill.source"
-          :class="['filter-pill', { active: currentSourceFilter === pill.source }]"
+          :class="[
+            'py-[6px] px-4 border border-[#30363d] rounded-[20px] text-[#8b949e] text-[13px] font-medium cursor-pointer transition-all duration-200 min-h-[32px] hover:bg-[#30363d] hover:border-[#58a6ff] hover:text-[#c9d1d9] focus-visible:outline-2 focus-visible:outline-[#58a6ff] focus-visible:outline-offset-2',
+            currentSourceFilter === pill.source
+              ? 'bg-[#58a6ff] !border-[#58a6ff] !text-white'
+              : 'bg-[#21262d]'
+          ]"
           @click="selectFilter(pill.source)"
         >
 {{ pill.label }}
@@ -51,7 +56,12 @@ Sessions
         style="display: none;"
         @change="handleFileChange"
       >
-      <div v-if="importStatusMsg" :class="['import-status', importStatusType]">
+      <div v-if="importStatusMsg" :class="[
+        'mb-3 py-2.5 px-3 rounded-md text-[13px]',
+        importStatusType === 'success' ? 'bg-[rgba(35,134,54,0.15)] border border-[#238636] text-[#3fb950]' : '',
+        importStatusType === 'error' ? 'bg-[rgba(248,81,73,0.15)] border border-[#f85149] text-[#ff7b72]' : '',
+        importStatusType === 'loading' ? 'bg-[rgba(88,166,255,0.15)] border border-[#58a6ff] text-[#58a6ff]' : ''
+      ]">
 {{ importStatusMsg }}
 </div>
       <div ref="sessionsContainer">

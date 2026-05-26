@@ -1,5 +1,5 @@
 <template>
-  <div class="section">
+  <div class="section my-6">
     <!-- Error State -->
     <div v-if="insightError" class="empty-state" style="padding: 60px; color: #f85149;">
       ❌ {{ insightError }}

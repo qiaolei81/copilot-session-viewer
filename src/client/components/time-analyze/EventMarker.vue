@@ -1,24 +1,24 @@
 <template>
   <span
-    class="event-marker"
+    class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-[2] cursor-pointer transition-transform duration-150 hover:scale-[1.8] hover:z-10 group"
     :style="{ left: marker.position + '%' }"
   >
     <template v-if="marker.shape === 'cluster'">
-      <span class="event-marker--cluster" :style="{ background: marker.color }">{{ marker.count }}</span>
+      <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold text-white border border-white/30" :style="{ background: marker.color }">{{ marker.count }}</span>
     </template>
     <template v-else-if="marker.shape === 'circle'">
-      <span class="event-marker--circle" :style="{ background: marker.color }" />
+      <span class="w-1.5 h-1.5 rounded-full block" :style="{ background: marker.color }" />
     </template>
     <template v-else-if="marker.shape === 'diamond'">
-      <span class="event-marker--diamond" :style="{ background: marker.color }" />
+      <span class="w-1.5 h-1.5 rotate-45 block" :style="{ background: marker.color }" />
     </template>
     <template v-else-if="marker.shape === 'square'">
-      <span class="event-marker--square" :style="{ background: marker.color }" />
+      <span class="w-[5px] h-[5px] rounded-[1px] block" :style="{ background: marker.color }" />
     </template>
     <template v-else-if="marker.shape === 'triangle'">
-      <span class="event-marker--triangle" :style="{ color: marker.color }" />
+      <span class="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[7px] border-l-transparent border-r-transparent border-b-current block" :style="{ color: marker.color }" />
     </template>
-    <span class="event-marker-tooltip">
+    <span class="hidden group-hover:block absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 bg-[#1c2128] border border-[#30363d] rounded-md py-1.5 px-2.5 text-[11px] text-[#c9d1d9] whitespace-nowrap z-[100] pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
       <template v-if="marker.shape === 'cluster'">{{ marker.count }} events: {{ marker.label }}</template>
       <template v-else>{{ marker.label }}<span v-if="marker.toolName"> ({{ marker.toolName }})</span></template>
     </span>

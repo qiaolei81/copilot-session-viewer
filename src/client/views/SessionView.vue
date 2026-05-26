@@ -12,7 +12,7 @@
       <!-- Mobile overlay backdrop -->
       <div
         v-if="!sidebarCollapsed"
-        class="sidebar-backdrop hidden"
+        class="hidden sm:hidden max-sm:block fixed inset-0 bg-black/50 z-[999]"
         @click="sidebarCollapsed = true"
       />
 
@@ -151,10 +151,10 @@
 
         <!-- Floating scroll buttons -->
         <div class="fixed bottom-6 right-6 flex flex-col gap-2 z-[9999]">
-          <button title="Scroll to top" class="scroll-edge-btn bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 text-[13px] cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToTop">
+          <button title="Scroll to top" class="bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 max-sm:w-7 max-sm:h-7 text-[13px] max-sm:text-xs cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToTop">
 ▲
 </button>
-          <button title="Scroll to bottom" class="scroll-edge-btn bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 text-[13px] cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToBottom">
+          <button title="Scroll to bottom" class="bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 max-sm:w-7 max-sm:h-7 text-[13px] max-sm:text-xs cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToBottom">
 ▼
 </button>
         </div>

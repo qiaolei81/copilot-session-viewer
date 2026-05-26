@@ -44,10 +44,16 @@
 
         <!-- Tabs -->
         <div class="flex gap-1 mb-4 border-b border-[#30363d]">
-          <button :class="['tab', { active: activeTab === 'timeline' }]" @click="activeTab = 'timeline'">
+          <button :class="[
+            'py-2 px-4 bg-none border-none border-b-2 border-transparent text-[#7d8590] text-sm cursor-pointer transition-all duration-200 font-inherit hover:text-[#c9d1d9]',
+            activeTab === 'timeline' ? '!text-[#58a6ff] !border-b-[#58a6ff]' : ''
+          ]" @click="activeTab = 'timeline'">
             📊 Timeline
           </button>
-          <button :class="['tab', { active: activeTab === 'insight' }]" @click="activeTab = 'insight'">
+          <button :class="[
+            'py-2 px-4 bg-none border-none border-b-2 border-transparent text-[#7d8590] text-sm cursor-pointer transition-all duration-200 font-inherit hover:text-[#c9d1d9]',
+            activeTab === 'insight' ? '!text-[#58a6ff] !border-b-[#58a6ff]' : ''
+          ]" @click="activeTab = 'insight'">
             💡 Agent Review
           </button>
         </div>
