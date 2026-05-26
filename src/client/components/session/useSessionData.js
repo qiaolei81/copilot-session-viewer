@@ -887,7 +887,7 @@ export function useSessionData() {
   const exportSession = async () => {
     exporting.value = true;
     try {
-      const response = await fetch(`/session/${sessionId.value}/export`);
+      const response = await fetch(`/api/${encodeURIComponent(source.value)}/sessions/${sessionId.value}/export`);
       if (!response.ok) throw new Error('Share failed');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);

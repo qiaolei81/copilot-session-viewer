@@ -1232,7 +1232,7 @@ export function useTimeAnalyze(sessionId, metadata, _source) {
 
   const checkExistingInsight = async () => {
     try {
-      const resp = await fetch(`/session/${sessionId.value}/insight`);
+      const resp = await fetch(`/api/${encodeURIComponent(_source.value)}/sessions/${sessionId.value}/insight`);
       const data = await resp.json();
 
       insightStatus.value = data.status;
@@ -1282,7 +1282,7 @@ export function useTimeAnalyze(sessionId, metadata, _source) {
     insightLog.value = null;
 
     try {
-      const resp = await fetch(`/session/${sessionId.value}/insight`, {
+      const resp = await fetch(`/api/${encodeURIComponent(_source.value)}/sessions/${sessionId.value}/insight`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force })
