@@ -43,7 +43,7 @@ async function getJsonWithRetry(request, url, options = {}) {
 
 async function getSessionsWithRetry(request, options = {}) {
   const source = options.source || 'copilot-cli';
-  return getJsonWithRetry(request, `/api/${source}/sessions`, {
+  const sessions = await getJsonWithRetry(request, `/api/${source}/sessions`, {
     ...options,
     validate(data) {
       if (!Array.isArray(data)) {
@@ -55,6 +55,7 @@ async function getSessionsWithRetry(request, options = {}) {
       }
     }
   });
+  return sessions.map(s => ({ ...s, urlSource: s.urlSource || source }));
 }
 
 /**
@@ -64,7 +65,9 @@ async function getAllSourceSessionsWithRetry(request, options = {}) {
   const sources = ['copilot-cli', 'claude', 'copilot-chat', 'pi-mono', 'modernize'];
   const results = await Promise.allSettled(
     sources.map(source =>
-      getSessionsWithRetry(request, { ...options, source }).catch(() => [])
+      getSessionsWithRetry(request, { ...options, source })
+        .then(sessions => sessions.map(s => ({ ...s, urlSource: source })))
+        .catch(() => [])
     )
   );
   return results.flatMap(r => r.status === 'fulfilled' ? r.value : []);

@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-6 max-md:grid-cols-2 gap-3 my-5 mx-auto">
+  <div data-testid="summary-grid" class="grid grid-cols-6 max-md:grid-cols-2 gap-3 my-5 mx-auto">
     <div class="summary-card" title="Wall-clock time from first event to last event in this session.">
       <div class="summary-label">
 Total Duration

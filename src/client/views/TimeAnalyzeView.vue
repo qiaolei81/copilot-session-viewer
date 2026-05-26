@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div data-testid="time-analyze">
     <div class="py-4 px-5 border-b border-border flex items-center gap-4 sticky top-0 bg-canvas z-10">
-      <router-link :to="'/' + source + '/session/' + sessionId" class="py-1.5 px-3 bg-surface-hover border border-border rounded-md text-text-secondary no-underline text-sm transition-all hover:bg-border hover:border-accent">
+      <router-link data-testid="nav-btn" :to="'/' + source + '/session/' + sessionId" class="py-1.5 px-3 bg-surface-hover border border-border rounded-md text-text-secondary no-underline text-sm transition-all hover:bg-border hover:border-accent">
 ← Back to Session
 </router-link>
       <h1 class="text-accent text-xl flex-1">
@@ -43,7 +43,7 @@
         />
 
         <!-- Tabs -->
-        <div class="flex gap-1 mb-4 border-b border-border">
+        <div data-testid="tabs" class="flex gap-1 mb-4 border-b border-border">
           <button :class="[
             'py-2 px-4 bg-none border-none border-b-2 border-transparent text-text-dim text-sm cursor-pointer transition-all duration-200 font-inherit hover:text-text-secondary',
             activeTab === 'timeline' ? '!text-accent !border-b-accent' : ''

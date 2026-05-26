@@ -11,7 +11,7 @@
       <router-link :to="'/' + source + '/session/' + sessionId + '/time-analyze'" class="header-action-btn bg-accent-emphasis border-accent-emphasis no-underline hover:bg-accent-emphasis hover:border-accent">
 ⏱ Analysis
 </router-link>
-      <button v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)" class="header-action-btn bg-success-emphasis border-success-emphasis cursor-pointer hover:bg-success-emphasis hover:border-success disabled:opacity-60 disabled:cursor-not-allowed" :disabled="exporting" @click="$emit('export')">
+      <button v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)" data-testid="export-btn" class="header-action-btn bg-success-emphasis border-success-emphasis cursor-pointer hover:bg-success-emphasis hover:border-success disabled:opacity-60 disabled:cursor-not-allowed" :disabled="exporting" @click="$emit('export')">
         {{ exporting ? '⏳ Sharing...' : '📤 Share Session' }}
       </button>
     </div>

@@ -7,10 +7,10 @@ test.describe('Infinite Scroll', () => {
   });
 
   test('should display sessions with infinite scroll', async ({ page }) => {
-    const sessionCount = await page.locator('.recent-item').count();
+    const sessionCount = await page.locator('[data-testid="session-card"]').count();
 
     // Verify the sessions container area is present
-    const container = page.locator('.recent-sessions');
+    const container = page.locator('[data-testid="session-list"]').first();
     if (sessionCount > 0) {
       await expect(container).toBeVisible();
     }
@@ -19,7 +19,7 @@ test.describe('Infinite Scroll', () => {
   });
 
   test('should load additional sessions when scrolling', async ({ page }) => {
-    const initialSessionCount = await page.locator('.recent-item').count();
+    const initialSessionCount = await page.locator('[data-testid="session-card"]').count();
 
     if (initialSessionCount === 0) {
       console.log('No sessions available - skipping infinite scroll test');
@@ -35,7 +35,7 @@ test.describe('Infinite Scroll', () => {
     await page.waitForTimeout(3000);
 
     // Count sessions after scrolling
-    const newSessionCount = await page.locator('.recent-item').count();
+    const newSessionCount = await page.locator('[data-testid="session-card"]').count();
 
     // Sessions should be same or more (depends on whether more exist)
     expect(newSessionCount).toBeGreaterThanOrEqual(initialSessionCount);
@@ -43,7 +43,7 @@ test.describe('Infinite Scroll', () => {
   });
 
   test('should show loading state during scroll loading', async ({ page }) => {
-    const sessionCount = await page.locator('.recent-item').count();
+    const sessionCount = await page.locator('[data-testid="session-card"]').count();
 
     if (sessionCount === 0) {
       console.log('No sessions available - skipping loading state test');
@@ -66,7 +66,7 @@ test.describe('Infinite Scroll', () => {
   });
 
   test('should trigger infinite scroll when scrolling near bottom', async ({ page }) => {
-    const initialSessionCount = await page.locator('.recent-item').count();
+    const initialSessionCount = await page.locator('[data-testid="session-card"]').count();
 
     // Scroll to bottom of page
     await page.evaluate(() => {
@@ -77,7 +77,7 @@ test.describe('Infinite Scroll', () => {
     await page.waitForTimeout(3000);
 
     // Check if more sessions were loaded
-    const newSessionCount = await page.locator('.recent-item').count();
+    const newSessionCount = await page.locator('[data-testid="session-card"]').count();
 
     if (initialSessionCount >= 20) {
       expect(newSessionCount).toBeGreaterThanOrEqual(initialSessionCount);
@@ -85,7 +85,7 @@ test.describe('Infinite Scroll', () => {
   });
 
   test('should stop loading when no more sessions available', async ({ page }) => {
-    let currentCount = await page.locator('.recent-item').count();
+    let currentCount = await page.locator('[data-testid="session-card"]').count();
 
     if (currentCount === 0) {
       console.log('No sessions available - skipping test');
@@ -104,7 +104,7 @@ test.describe('Infinite Scroll', () => {
       });
 
       await page.waitForTimeout(2000);
-      currentCount = await page.locator('.recent-item').count();
+      currentCount = await page.locator('[data-testid="session-card"]').count();
 
       if (currentCount === previousCount) {
         console.log('No more sessions to load - infinite scroll stopped');
@@ -127,7 +127,7 @@ test.describe('Infinite Scroll', () => {
       });
     });
 
-    const sessionCount = await page.locator('.recent-item').count();
+    const sessionCount = await page.locator('[data-testid="session-card"]').count();
 
     if (sessionCount === 0) {
       console.log('No sessions available - skipping error handling test');
@@ -152,7 +152,7 @@ test.describe('Infinite Scroll', () => {
   });
 
   test('should preserve session list state during navigation', async ({ page }) => {
-    const sessionCount = await page.locator('.recent-item').count();
+    const sessionCount = await page.locator('[data-testid="session-card"]').count();
 
     if (sessionCount === 0) {
       console.log('No sessions available - skipping navigation test');
@@ -165,22 +165,22 @@ test.describe('Infinite Scroll', () => {
     });
     await page.waitForTimeout(2000);
 
-    const sessionsAfterScroll = await page.locator('.recent-item').count();
+    const sessionsAfterScroll = await page.locator('[data-testid="session-card"]').count();
 
     // Click on first session
-    const firstSession = page.locator('.recent-item').first();
+    const firstSession = page.locator('[data-testid="session-card"]').first();
     await firstSession.click();
 
     // Wait for navigation (hash router)
-    await page.waitForURL(/#\/session\/.+/);
+    await page.waitForFunction(() => window.location.hash.match(/^#\/.*\/session\/.+/));
 
     // Go back to homepage
     await page.goBack();
     await page.waitForTimeout(2000);
 
     // Check if sessions are still loaded
-    await page.waitForSelector('.recent-item', { timeout: 5000 });
-    const newSessionCount = await page.locator('.recent-item').count();
+    await page.waitForSelector('[data-testid="session-card"]', { timeout: 5000 });
+    const newSessionCount = await page.locator('[data-testid="session-card"]').count();
 
     // Should show at least initial batch
     expect(newSessionCount).toBeGreaterThanOrEqual(Math.min(sessionsAfterScroll, 20));

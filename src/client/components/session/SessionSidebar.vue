@@ -202,26 +202,27 @@ Tool Calls
     </div>
 
     <!-- Session Tags -->
-    <div class="sidebar-section mb-5 mt-4">
+    <div data-testid="tags-section" class="sidebar-section mb-5 mt-4">
       <div class="sidebar-section-title">
 Tags
 </div>
       <div v-if="!tagsEditing" class="flex flex-wrap gap-1.5 min-h-[28px] items-start">
-        <span v-for="tag in sessionTags" :key="tag" class="inline-flex items-center gap-1 py-1 px-2.5 rounded-xl text-xs font-medium text-white cursor-default transition-opacity duration-200 hover:opacity-80" :style="{ backgroundColor: getTagColor(tag) }">
+        <span v-for="tag in sessionTags" :key="tag" data-testid="tag-label" class="inline-flex items-center gap-1 py-1 px-2.5 rounded-xl text-xs font-medium text-white cursor-default transition-opacity duration-200 hover:opacity-80" :style="{ backgroundColor: getTagColor(tag) }">
           {{ tag }}
         </span>
-        <button class="bg-none border border-border rounded py-1 px-2 text-text-muted cursor-pointer text-xs transition-all duration-200 inline-flex items-center gap-1 hover:border-accent hover:text-accent" title="Edit tags" @click="$emit('startEditTags')">
+        <button data-testid="tags-edit-btn" class="bg-none border border-border rounded py-1 px-2 text-text-muted cursor-pointer text-xs transition-all duration-200 inline-flex items-center gap-1 hover:border-accent hover:text-accent" title="Edit tags" @click="$emit('startEditTags')">
 ✏️
 </button>
       </div>
       <div v-else class="relative mt-2">
         <div class="flex flex-wrap gap-1.5 p-2 bg-surface border border-border rounded-md min-h-[38px] focus-within:border-accent">
-          <span v-for="tag in editingTags" :key="tag" class="inline-flex items-center gap-1 py-1 px-2 rounded-xl text-xs font-medium text-white" :style="{ backgroundColor: getTagColor(tag) }">
+          <span v-for="tag in editingTags" :key="tag" data-testid="tag-input-chip" class="inline-flex items-center gap-1 py-1 px-2 rounded-xl text-xs font-medium text-white" :style="{ backgroundColor: getTagColor(tag) }">
             {{ tag }}
             <button class="bg-none border-none text-white/70 cursor-pointer text-xs p-0 ml-0.5 hover:text-white" title="Remove tag" @click="$emit('removeTagFromEdit', tag)">×</button>
           </span>
           <input
             ref="tagInputRef"
+            data-testid="tag-input"
             :value="tagInputValue"
             class="flex-1 min-w-[120px] bg-transparent border-none outline-none text-text-secondary text-sm p-1 placeholder:text-text-faint"
             placeholder="Type tag name..."

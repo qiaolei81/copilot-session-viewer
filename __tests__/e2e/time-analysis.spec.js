@@ -9,7 +9,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     const sessions = await getSessionsWithRetry(request);
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
-      SESSION_SOURCE = sessions[0].source;
+      SESSION_SOURCE = sessions[0].urlSource || sessions[0].source;
     } else {
       throw new Error('No sessions available for testing');
     }
@@ -20,7 +20,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
 
       // Wait for page to load
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       // Check page title
       await expect(page.locator('h1')).toContainText('Analysis');
@@ -28,19 +28,19 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
     test('should display navigation buttons', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       // Check for back button
-      const homeBtn = page.locator('.nav-btn:has-text("← Back to Session")');
+      const homeBtn = page.locator('[data-testid="nav-btn"]:has-text("← Back to Session")');
       await expect(homeBtn).toBeVisible();
     });
 
     test('should navigate to session detail page', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       // Click session detail button
-      const sessionBtn = page.locator('.nav-btn:has-text("← Back to Session")');
+      const sessionBtn = page.locator('[data-testid="nav-btn"]:has-text("← Back to Session")');
       await sessionBtn.click();
 
       // Wait for navigation (hash router)
@@ -55,29 +55,30 @@ test.describe('Time Analysis and Timeline Tests', () => {
   test.describe('Summary Cards', () => {
     test('should display summary cards section', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
-      // Check for summary grid
-      const summaryGrid = page.locator('.summary-grid');
+      // Wait for loading to complete
+      await page.waitForSelector('[data-testid="summary-grid"]', { timeout: 30000 });
+      const summaryGrid = page.locator('[data-testid="summary-grid"]');
       await expect(summaryGrid).toBeVisible();
     });
 
     test('should display turns summary card', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       // Wait for data to load
       await page.waitForTimeout(2000);
 
       // Check for turns card
       const turnsCard = page.locator('.summary-card').filter({
-        has: page.locator('.summary-card-label:has-text("Turns")')
+        has: page.locator('.summary-label:has-text("Turns")')
       });
 
       if (await turnsCard.count() > 0) {
         await expect(turnsCard).toBeVisible();
 
-        const value = turnsCard.locator('.summary-card-value');
+        const value = turnsCard.locator('.summary-value');
         await expect(value).toBeVisible();
 
         const valueText = await value.textContent();
@@ -87,36 +88,36 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
     test('should display tools summary card', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       await page.waitForTimeout(2000);
 
       const toolsCard = page.locator('.summary-card').filter({
-        has: page.locator('.summary-card-label:has-text("Tools")')
+        has: page.locator('.summary-label:has-text("Tools")')
       });
 
       if (await toolsCard.count() > 0) {
         await expect(toolsCard).toBeVisible();
 
-        const value = toolsCard.locator('.summary-card-value');
+        const value = toolsCard.locator('.summary-value');
         await expect(value).toBeVisible();
       }
     });
 
     test('should display duration summary card', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       await page.waitForTimeout(2000);
 
       const durationCard = page.locator('.summary-card').filter({
-        has: page.locator('.summary-card-label:has-text("Duration")')
+        has: page.locator('.summary-label:has-text("Duration")')
       });
 
       if (await durationCard.count() > 0) {
         await expect(durationCard).toBeVisible();
 
-        const value = durationCard.locator('.summary-card-value');
+        const value = durationCard.locator('.summary-value');
         await expect(value).toBeVisible();
       }
     });
@@ -125,11 +126,9 @@ test.describe('Time Analysis and Timeline Tests', () => {
   test.describe('Timeline/Gantt Chart', () => {
     test('should display timeline section', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
-      const timelineSection = page.locator('.section').filter({
-        has: page.locator('.section-title:has-text("Timeline")')
-      });
+      const timelineSection = page.locator('h3:has-text("Timeline"), h2:has-text("Timeline")').first();
 
       if (await timelineSection.count() > 0) {
         await expect(timelineSection).toBeVisible();
@@ -138,11 +137,11 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
     test('should display timeline chart container', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       await page.waitForTimeout(2000);
 
-      const timelineChart = page.locator('.timeline-chart, #timeline-chart, .gantt-chart');
+      const timelineChart = page.locator('.gantt-row, [data-testid="time-analyze"]');
 
       if (await timelineChart.count() > 0) {
         await expect(timelineChart.first()).toBeVisible();
@@ -151,11 +150,11 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
     test('should render turn bars in timeline', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       await page.waitForTimeout(3000);
 
-      const turnBars = page.locator('.turn-bar, .timeline-bar, .gantt-bar, [class*="turn"]');
+      const turnBars = page.locator('.gantt-row, .turn-bar, .gantt-bar, [class*="turn"]');
 
       const count = await turnBars.count();
       if (count > 0) {
@@ -165,11 +164,11 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
     test('should display timeline with correct structure', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       await page.waitForTimeout(3000);
 
-      const timelineRows = page.locator('.timeline-row, .gantt-row, [class*="row"]');
+      const timelineRows = page.locator('.gantt-row');
 
       const rowCount = await timelineRows.count();
       if (rowCount > 0) {
@@ -181,7 +180,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
   test.describe('Tool Summary Section', () => {
     test('should display tool summary items sorted by count descending', async ({ page }, testInfo) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       await page.waitForTimeout(3000);
 
@@ -214,42 +213,42 @@ test.describe('Time Analysis and Timeline Tests', () => {
   test.describe('Tab Switching', () => {
     test('should have Timeline and Agent Review tabs', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="tabs"]', { timeout: 30000 });
 
       // Check for tabs container
-      const tabs = page.locator('.tabs');
+      const tabs = page.locator('[data-testid="tabs"]');
       await expect(tabs).toBeVisible();
 
       // Check for Timeline tab
-      const timelineTab = page.locator('button:has-text("Timeline")');
+      const timelineTab = page.locator('[data-testid="tabs"] button:has-text("Timeline")');
       await expect(timelineTab).toBeVisible();
 
       // Check for Agent Review tab
-      const agentReviewTab = page.locator('button:has-text("Agent Review")');
+      const agentReviewTab = page.locator('[data-testid="tabs"] button:has-text("Agent Review")');
       await expect(agentReviewTab).toBeVisible();
     });
 
     test('should switch between Timeline and Agent Review tabs', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
-      await page.waitForSelector('.container', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="tabs"]', { timeout: 30000 });
 
       await page.waitForTimeout(2000);
 
       // Click Agent Review tab
-      const agentReviewTab = page.locator('button:has-text("Agent Review")');
+      const agentReviewTab = page.locator('[data-testid="tabs"] button:has-text("Agent Review")');
       await agentReviewTab.click();
       await page.waitForTimeout(500);
 
-      // Verify Agent Review tab is active
-      await expect(agentReviewTab).toHaveClass(/active/);
+      // Verify Agent Review tab is active (has accent border)
+      await expect(agentReviewTab).toHaveClass(/border-b-accent/);
 
       // Switch back to Timeline tab
-      const timelineTab = page.locator('button:has-text("Timeline")');
+      const timelineTab = page.locator('[data-testid="tabs"] button:has-text("Timeline")');
       await timelineTab.click();
       await page.waitForTimeout(500);
 
       // Verify Timeline tab is active
-      await expect(timelineTab).toHaveClass(/active/);
+      await expect(timelineTab).toHaveClass(/border-b-accent/);
     });
   });
 });

@@ -27,7 +27,7 @@ test.describe('Subagent View', () => {
       throw new Error('No sessions available for testing');
     }
     SESSION_ID = sessions[0].id;
-      SESSION_SOURCE = sessions[0].source;
+      SESSION_SOURCE = sessions[0].urlSource || sessions[0].source;
 
     // Find a session with subagent.started events
     for (const session of sessions.slice(0, 20)) {
@@ -61,7 +61,7 @@ test.describe('Subagent View', () => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
     await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
     await page.waitForFunction(() => {
       const loadingEl = document.querySelector('.loading-message');
@@ -70,7 +70,7 @@ test.describe('Subagent View', () => {
 
     await page.waitForTimeout(2000);
 
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const count = await dropdown.count();
     if (count > 0) {
       await expect(dropdown).toBeVisible();
@@ -88,7 +88,7 @@ test.describe('Subagent View', () => {
     test.skip(SUBAGENT_SESSION_ID === SESSION_ID, 'Cannot test - first session has subagents');
 
     await page.goto(`/#/${SESSION_SOURCE}/session/${testId}`);
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
     await page.waitForFunction(() => {
       const loadingEl = document.querySelector('.loading-message');
@@ -97,7 +97,7 @@ test.describe('Subagent View', () => {
 
     await page.waitForTimeout(2000);
 
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const count = await dropdown.count();
     if (count === 0) {
       expect(count).toBe(0);
@@ -108,7 +108,7 @@ test.describe('Subagent View', () => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
     await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
     await page.waitForFunction(() => {
       const loadingEl = document.querySelector('.loading-message');
@@ -119,11 +119,11 @@ test.describe('Subagent View', () => {
     await page.waitForTimeout(1000);
 
     const getAllCount = async () => {
-      const toggle = page.locator('.filter-type-toggle');
+      const toggle = page.locator('[data-testid="filter-type-toggle"]');
       if (await toggle.count() === 0) return 0;
       await toggle.click();
       await page.waitForTimeout(200);
-      const allItem = page.locator('.filter-type-menu-item').first();
+      const allItem = page.locator('[data-testid="filter-type-item"]').first();
       const countText = await allItem.locator('.filter-type-menu-count').textContent();
       await toggle.click();
       await page.waitForTimeout(100);
@@ -132,7 +132,7 @@ test.describe('Subagent View', () => {
 
     const initialCount = await getAllCount();
 
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const options = dropdown.locator('option');
     const optionCount = await options.count();
 
@@ -152,7 +152,7 @@ test.describe('Subagent View', () => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
     await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
     await page.waitForFunction(() => {
       const loadingEl = document.querySelector('.loading-message');
@@ -161,12 +161,12 @@ test.describe('Subagent View', () => {
 
     await page.waitForTimeout(1000);
 
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const options = dropdown.locator('option');
     const optionCount = await options.count();
 
     if (optionCount > 1) {
-      const usageBadge = page.locator('.subagent-usage-badge');
+      const usageBadge = page.getByText(/\d+\s*events/);
       await expect(usageBadge).not.toBeVisible();
 
       const secondOption = options.nth(1);
@@ -184,7 +184,7 @@ test.describe('Subagent View', () => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
     await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
     await page.waitForFunction(() => {
       const loadingEl = document.querySelector('.loading-message');
@@ -195,11 +195,11 @@ test.describe('Subagent View', () => {
     await page.waitForTimeout(1000);
 
     const getAllCount = async () => {
-      const toggle = page.locator('.filter-type-toggle');
+      const toggle = page.locator('[data-testid="filter-type-toggle"]');
       if (await toggle.count() === 0) return 0;
       await toggle.click();
       await page.waitForTimeout(200);
-      const allItem = page.locator('.filter-type-menu-item').first();
+      const allItem = page.locator('[data-testid="filter-type-item"]').first();
       const countText = await allItem.locator('.filter-type-menu-count').textContent();
       await toggle.click();
       await page.waitForTimeout(100);
@@ -208,7 +208,7 @@ test.describe('Subagent View', () => {
 
     const initialCount = await getAllCount();
 
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const options = dropdown.locator('option');
     const optionCount = await options.count();
 
@@ -230,7 +230,7 @@ test.describe('Subagent View', () => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
     await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
-    await page.waitForSelector('.main-layout', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
     await page.waitForFunction(() => {
       const loadingEl = document.querySelector('.loading-message');
@@ -240,10 +240,10 @@ test.describe('Subagent View', () => {
     await page.waitForSelector('.event-header', { timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    const dropdown = page.locator('.subagent-dropdown');
+    const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const options = dropdown.locator('option');
     const optionCount = await options.count();
-    const toggle = page.locator('.filter-type-toggle');
+    const toggle = page.locator('[data-testid="filter-type-toggle"]');
     await expect(toggle).toBeVisible();
 
     if (optionCount > 1) {
@@ -255,7 +255,7 @@ test.describe('Subagent View', () => {
       await toggle.click();
       await page.waitForTimeout(200);
 
-      const items = page.locator('.filter-type-menu-item');
+      const items = page.locator('[data-testid="filter-type-item"]');
       const typeCount = await items.count();
       if (typeCount <= 1) {
         await toggle.click();
@@ -267,7 +267,7 @@ test.describe('Subagent View', () => {
       await typeItem.click();
       await page.waitForTimeout(300);
 
-      const chipBar = page.locator('.active-filters-bar');
+      const chipBar = page.locator('[data-testid="active-filters"]');
       await expect(chipBar).toBeVisible();
 
       const agentChipRemoveBtn = chipBar.locator('.filter-chip').filter({ hasText: 'Agent:' }).locator('.filter-chip-remove');

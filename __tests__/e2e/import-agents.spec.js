@@ -8,7 +8,7 @@ test.describe('Session Import - UI', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const importLink = page.locator('.import-link');
+    const importLink = page.locator('[data-testid="import-link"]');
     await expect(importLink).toBeVisible();
 
     const fileChooserPromise = page.waitForEvent('filechooser');
@@ -21,7 +21,7 @@ test.describe('Session Import - UI', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const hint = page.locator('.import-formats-hint');
+    const hint = page.locator('[data-testid="import-formats-hint"]');
     await expect(hint).toBeVisible();
     await expect(hint).toContainText('Copilot');
     await expect(hint).toContainText('Claude');

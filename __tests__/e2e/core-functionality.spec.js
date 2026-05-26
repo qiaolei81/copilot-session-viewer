@@ -9,7 +9,7 @@ test.describe('Core Functionality Tests', () => {
     const sessions = await getSessionsWithRetry(request);
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
-      SESSION_SOURCE = sessions[0].source;
+      SESSION_SOURCE = sessions[0].urlSource || sessions[0].source;
     }
   });
 
@@ -18,14 +18,14 @@ test.describe('Core Functionality Tests', () => {
 
     await expect(page.getByRole('heading', { name: /session viewer/i })).toBeVisible();
     await expect(page.getByPlaceholder('Enter Session ID...')).toBeVisible();
-    await expect(page.locator('.import-link')).toBeVisible();
+    await expect(page.locator('[data-testid="import-link"]')).toBeVisible();
   });
 
   test('should display sessions if available', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const sessionItems = page.locator('.recent-item');
+    const sessionItems = page.locator('[data-testid="session-card"]');
     const sessionCount = await sessionItems.count();
 
     if (sessionCount > 0) {
@@ -42,7 +42,7 @@ test.describe('Core Functionality Tests', () => {
 
     // In the Vue SPA, loading state is shown via v-if="isLoading"
     // Just verify the sessions container area renders
-    const container = page.locator('.recent-sessions');
+    const container = page.locator('[data-testid="session-list"]').first();
     await expect(container).toBeVisible({ timeout: 10000 });
   });
 
@@ -98,7 +98,7 @@ test.describe('Core Functionality Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Import link should be clickable
-    const importLink = page.locator('.import-link');
+    const importLink = page.locator('[data-testid="import-link"]');
     await expect(importLink).toBeVisible();
 
     // Set up file chooser handler

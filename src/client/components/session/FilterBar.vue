@@ -43,7 +43,7 @@
     <div class="filter-bar-divider w-px h-5 bg-border shrink-0" />
 
     <!-- Subagent selector -->
-    <div v-if="subagentList.length > 0" class="subagent-selector" style="position:relative">
+    <div v-if="subagentList.length > 0" class="subagent-selector" data-testid="subagent-dropdown" style="position:relative">
       <button class="flex items-center gap-1.5 py-1 px-2.5 bg-surface border border-border rounded-md text-text-secondary text-sm cursor-pointer max-w-[280px] hover:border-accent" @click.stop="$emit('toggleSubagentDropdown')">
         <span>🤖</span>
         <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ selectedSubagent ? (subagentList.find(s => s.toolCallId === selectedSubagent)?.name || 'Agent') : 'All Agents' }}</span>
@@ -101,6 +101,7 @@ No matches
     <!-- Event type dropdown -->
     <div class="filter-type-wrapper relative">
       <button
+        data-testid="filter-type-toggle"
         :class="[
           'py-1 px-2.5 bg-surface border border-border rounded-md text-text-secondary text-sm cursor-pointer whitespace-nowrap transition-all duration-200 hover:border-accent hover:bg-canvas',
           currentFilter !== 'all' ? '!border-accent !text-accent !bg-accent-subtle' : ''
@@ -109,7 +110,7 @@ No matches
       >
         ⚡ {{ currentFilter === 'all' ? 'All Types' : currentFilter }} ▾
       </button>
-      <div v-if="typeFilterOpen" class="absolute top-[calc(100%+4px)] left-0 bg-surface border border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.5)] min-w-[250px] z-[1000]">
+      <div v-if="typeFilterOpen" data-testid="filter-type-menu" class="absolute top-[calc(100%+4px)] left-0 bg-surface border border-border rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.5)] min-w-[250px] z-[1000]">
         <div class="py-2 px-3 border-b border-border text-xs font-semibold text-text-secondary">
 Event Types
 </div>
@@ -117,6 +118,7 @@ Event Types
           <div
             v-for="filter in filters"
             :key="filter.type"
+            data-testid="filter-type-item"
             :class="[
               'flex items-center justify-between py-1.5 px-3 cursor-pointer transition-colors duration-150 text-sm text-text-secondary hover:bg-accent-subtle',
               currentFilter === filter.type ? 'bg-accent-subtle !text-accent' : ''
@@ -132,7 +134,7 @@ Event Types
   </div>
 
   <!-- Active filter chips -->
-  <div v-if="activeFilterCount > 0" class="flex items-center gap-1.5 py-1 px-3 pb-2 flex-wrap">
+  <div v-if="activeFilterCount > 0" data-testid="active-filters" class="flex items-center gap-1.5 py-1 px-3 pb-2 flex-wrap">
     <span v-if="currentFilter !== 'all'" class="filter-chip">
       Type: {{ currentFilter }}
       <button class="filter-chip-remove" title="Remove filter" @click="$emit('setFilter', 'all')">×</button>
@@ -145,7 +147,7 @@ Event Types
       Search: "{{ searchText.length > 20 ? searchText.substring(0, 20) + '…' : searchText }}"
       <button class="filter-chip-remove" title="Remove filter" @click="$emit('update:searchText', '')">×</button>
     </span>
-    <button class="bg-none border-none text-danger-emphasis cursor-pointer text-xs py-0.5 px-1.5 rounded-badge transition-colors duration-200 hover:bg-danger-subtle" @click="$emit('clearAllFilters')">
+    <button data-testid="clear-all-filters" class="bg-none border-none text-danger-emphasis cursor-pointer text-xs py-0.5 px-1.5 rounded-badge transition-colors duration-200 hover:bg-danger-subtle" @click="$emit('clearAllFilters')">
 Clear all
 </button>
   </div>

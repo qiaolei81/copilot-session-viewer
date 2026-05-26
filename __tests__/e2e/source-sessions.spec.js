@@ -30,8 +30,8 @@ test.describe('Per-Source Session Tests', () => {
       await expect(page.locator('.filter-pill').filter({ hasText: 'Copilot CLI' })).toBeVisible();
       await expect(page.locator('.filter-pill').filter({ hasText: 'Copilot Chat' })).toBeVisible();
       await expect(page.locator('.filter-pill').filter({ hasText: 'Claude' })).toBeVisible();
-      await expect(page.locator('.filter-pill').filter({ hasText: 'Pi' })).toBeVisible();
-      await expect(page.locator('.filter-pill').filter({ hasText: 'Modernize' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Pi', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Modernize', exact: false })).toBeVisible();
     });
   });
 
@@ -55,9 +55,9 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/copilot-cli/session/${copilotSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
-      await expect(page.locator('.main-layout')).toBeVisible();
+      await expect(page.locator('[data-testid="session-layout"]')).toBeVisible();
       await expect(page.locator('.sidebar')).toBeVisible();
     });
 
@@ -68,9 +68,9 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/claude/session/${claudeSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
-      await expect(page.locator('.main-layout')).toBeVisible();
+      await expect(page.locator('[data-testid="session-layout"]')).toBeVisible();
       await expect(page.locator('.sidebar')).toBeVisible();
     });
 
@@ -81,9 +81,9 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/pi-mono/session/${piSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
-      await expect(page.locator('.main-layout')).toBeVisible();
+      await expect(page.locator('[data-testid="session-layout"]')).toBeVisible();
       await expect(page.locator('.sidebar')).toBeVisible();
     });
 
@@ -94,9 +94,9 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/modernize/session/${modernizeSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
-      await expect(page.locator('.main-layout')).toBeVisible();
+      await expect(page.locator('[data-testid="session-layout"]')).toBeVisible();
       await expect(page.locator('.sidebar')).toBeVisible();
     });
 
@@ -107,12 +107,12 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/copilot-cli/session/${copilotSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');
       await expect(sessionInfo).toBeVisible();
 
-      const sourceBadge = page.locator('.status-badge:has-text("Copilot")');
+      const sourceBadge = page.locator('text=("Copilot")');
       if (await sourceBadge.count() > 0) {
         await expect(sourceBadge).toBeVisible();
       }
@@ -125,12 +125,12 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/claude/session/${claudeSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');
       await expect(sessionInfo).toBeVisible();
 
-      const sourceBadge = page.locator('.status-badge:has-text("Claude")');
+      const sourceBadge = page.locator('text=("Claude")');
       if (await sourceBadge.count() > 0) {
         await expect(sourceBadge).toBeVisible();
       }
@@ -143,12 +143,12 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/pi-mono/session/${piSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');
       await expect(sessionInfo).toBeVisible();
 
-      const sourceBadge = page.locator('.status-badge:has-text("Pi")');
+      const sourceBadge = page.locator('text=("Pi")');
       if (await sourceBadge.count() > 0) {
         await expect(sourceBadge).toBeVisible();
       }
@@ -161,12 +161,12 @@ test.describe('Per-Source Session Tests', () => {
       }
 
       await page.goto(`/#/modernize/session/${modernizeSessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');
       await expect(sessionInfo).toBeVisible();
 
-      const sourceBadge = page.locator('.status-badge:has-text("Modernize")');
+      const sourceBadge = page.locator('text=("Modernize")');
       if (await sourceBadge.count() > 0) {
         await expect(sourceBadge).toBeVisible();
       }

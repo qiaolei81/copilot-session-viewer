@@ -1200,7 +1200,7 @@ export function useTimeAnalyze(sessionId, metadata, _source) {
   onMounted(async () => {
     try {
       const sessionStore = (await import('../../stores/sessionStore.js')).useSessionStore();
-      const data = await sessionStore.fetchEvents(sessionId.value);
+      const data = await sessionStore.fetchEvents(sessionId.value, _source.value);
       events.value = data.sort((a, b) => {
         const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;

@@ -41,10 +41,10 @@ test.describe('Export Tests', () => {
 
     test('should display export button on session detail page', async ({ page }) => {
       await page.goto(`/#/${sessionSource}/session/${sessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
       // Check for export button in header
-      const exportBtn = page.locator('.export-btn, button:has-text("Export"), button:has-text("📦")');
+      const exportBtn = page.locator('[data-testid="export-btn"], button:has-text("Export"), button:has-text("📦")');
 
       if (await exportBtn.count() > 0) {
         await expect(exportBtn.first()).toBeVisible();
@@ -59,10 +59,10 @@ test.describe('Export Tests', () => {
 
     test('export button should be enabled', async ({ page }) => {
       await page.goto(`/#/${sessionSource}/session/${sessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
       // Find export button
-      const exportBtn = page.locator('.export-btn, button:has-text("Export")');
+      const exportBtn = page.locator('[data-testid="export-btn"], button:has-text("Export")');
 
       if (await exportBtn.count() > 0) {
         const btn = exportBtn.first();
@@ -72,10 +72,10 @@ test.describe('Export Tests', () => {
 
     test('export button should have correct label', async ({ page }) => {
       await page.goto(`/#/${sessionSource}/session/${sessionId}`);
-      await page.waitForSelector('.main-layout', { timeout: 10000 });
+      await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
 
       // Check button text
-      const exportBtn = page.locator('.export-btn, button:has-text("Export")');
+      const exportBtn = page.locator('[data-testid="export-btn"], button:has-text("Export")');
 
       if (await exportBtn.count() > 0) {
         const btnText = await exportBtn.first().textContent();

@@ -28,8 +28,8 @@ View
         <div class="text-text-secondary text-sm mb-3 uppercase tracking-wider">
 Sessions
 </div>
-        <a class="text-accent text-sm no-underline cursor-pointer hover:text-link hover:underline" :style="importLinkStyle" @click.prevent="triggerImport">{{ importLinkText }}</a>
-        <span class="text-2xs text-text-faint ml-1.5 align-middle">Supports: GitHub Copilot, Claude, Pi-Mono</span>
+        <a data-testid="import-link" class="text-accent text-sm no-underline cursor-pointer hover:text-link hover:underline" :style="importLinkStyle" @click.prevent="triggerImport">{{ importLinkText }}</a>
+        <span data-testid="import-formats-hint" class="text-2xs text-text-faint ml-1.5 align-middle">Supports: GitHub Copilot, Claude, Pi-Mono</span>
       </div>
       <div class="flex gap-2 mb-4 flex-wrap">
         <button
@@ -75,7 +75,7 @@ No sessions found for this filter.
             <div class="text-accent text-lg font-semibold mt-8 mb-4 pb-2 first:mt-0">
 {{ formatDateHeader(groupedSessions[dateKey][0].createdAt) }}
 </div>
-            <div class="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-4 md:grid-cols-[repeat(auto-fill,minmax(400px,1fr))] max-md:grid-cols-1">
+            <div data-testid="session-list" class="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-4 md:grid-cols-[repeat(auto-fill,minmax(400px,1fr))] max-md:grid-cols-1">
               <SessionCard
                 v-for="session in groupedSessions[dateKey]"
                 :key="session.id"

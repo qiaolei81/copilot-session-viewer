@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-full h-screen flex flex-col p-0 font-sans bg-canvas text-text-secondary leading-normal overflow-hidden">
+  <div data-testid="session-layout" class="max-w-full h-screen flex flex-col p-0 font-sans bg-canvas text-text-secondary leading-normal overflow-hidden">
     <SessionHeader
       :session-id="sessionId"
       :source="source"
@@ -16,7 +16,7 @@
         @click="sidebarCollapsed = true"
       />
 
-      <SessionSidebar
+      <SessionSidebar class="sidebar"
         :collapsed="sidebarCollapsed"
         :metadata="metadata"
         :format-date-time="formatDateTime"
