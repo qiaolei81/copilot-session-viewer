@@ -162,10 +162,6 @@ const sortedDateKeys = computed(() => {
   return Object.keys(groupedSessions.value).sort((a, b) => b.localeCompare(a));
 });
 
-const currentSourceHint = computed(() => {
-  return sourceHints.value[currentSourceFilter.value] || '';
-});
-
 function getDateKey(timestamp) {
   if (!timestamp) return 'Unknown';
   const date = new Date(timestamp);
@@ -316,7 +312,14 @@ async function handleFileChange(e) {
     if (response.ok) {
       importStatusType.value = 'success';
       importStatusMsg.value = `✅ Session ${result.sessionId} imported successfully!`;
-      setTimeout(() => { window.location.reload(); }, 1500);
+      setTimeout(async () => {
+        const source = currentSourceFilter.value;
+        allSessions.value = allSessions.value.filter(s => s.source !== source);
+        const state = getState(source);
+        state.offset = 0;
+        state.hasMore = true;
+        await fetchSource(source);
+      }, 1500);
     } else {
       importStatusType.value = 'error';
       importStatusMsg.value = `❌ Import failed: ${result.error}`;
@@ -370,14 +373,6 @@ function onSummaryTouchStart(e) {
 
 function onTouchMove() { lpMoved = true; clearTimeout(lpTimer); }
 function onTouchEnd() { clearTimeout(lpTimer); }
-
-// Load source hints
-async function loadSourceHints() {
-  try {
-    const resp = await fetch('/api/copilot-cli/sessions?offset=0&limit=1');
-    // sourceHints come from the initial page data; for the SPA we fetch separately
-  } catch (_e) { /* ignore */ }
-}
 
 onMounted(async () => {
   hasLoaded.value = true;

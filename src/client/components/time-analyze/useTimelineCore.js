@@ -115,12 +115,7 @@ export function useTimelineCore(sessionId, _source) {
     try {
       const sessionStore = (await import('../../stores/sessionStore.js')).useSessionStore();
       const data = await sessionStore.fetchEvents(sessionId.value, _source.value);
-      events.value = data.sort((a, b) => {
-        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        if (timeA !== timeB) return timeA - timeB;
-        return (a._fileIndex ?? 0) - (b._fileIndex ?? 0);
-      });
+      events.value = data;
     } catch (err) {
       console.error('[TIME-ANALYZE] Error loading events:', err);
       error.value = err.message;

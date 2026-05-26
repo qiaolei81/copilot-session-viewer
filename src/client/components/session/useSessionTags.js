@@ -19,6 +19,7 @@ export function useSessionTags(sessionId, source) {
   const showAutocomplete = ref(false);
   const autocompleteOptions = ref([]);
   const autocompleteSelectedIndex = ref(0);
+  let _blurTimerId = null;
 
   const getTagColor = (tag) => {
     let hash = 0;
@@ -106,7 +107,8 @@ export function useSessionTags(sessionId, source) {
   const selectAutocompleteOption = (option) => { tagInputValue.value = option; addTag(); };
 
   const saveTagsOnBlur = async () => {
-    setTimeout(async () => {
+    if (_blurTimerId) clearTimeout(_blurTimerId);
+    _blurTimerId = setTimeout(async () => {
       if (!tagsEditing.value) return;
       const success = await saveTags(editingTags.value);
       if (success) {
@@ -117,6 +119,10 @@ export function useSessionTags(sessionId, source) {
         await loadAllTags();
       }
     }, 200);
+  };
+
+  const cleanup = () => {
+    if (_blurTimerId) { clearTimeout(_blurTimerId); _blurTimerId = null; }
   };
 
   return {
@@ -139,6 +145,7 @@ export function useSessionTags(sessionId, source) {
     removeTagFromEdit,
     updateAutocomplete,
     selectAutocompleteOption,
-    saveTagsOnBlur
+    saveTagsOnBlur,
+    cleanup
   };
 }

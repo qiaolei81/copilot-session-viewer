@@ -7,6 +7,7 @@ const routes = [
   { path: '/', component: HomeView },
   { path: '/:source/session/:id', component: SessionView },
   { path: '/:source/session/:id/time-analyze', component: TimeAnalyzeView },
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ];
 
 const router = createRouter({

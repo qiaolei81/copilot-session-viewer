@@ -1,14 +1,17 @@
 const SessionService = require('../services/sessionService');
 const { isValidSessionId } = require('../utils/helpers');
 const { resolveSource } = require('../utils/sourceMapping');
-const { trackEvent, trackMetric: _trackMetric } = require('../telemetry');
+const { trackEvent } = require('../telemetry');
 const AdmZip = require('adm-zip');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const TagService = require('../services/tagService');
 
 class SessionController {
-  constructor(sessionService = null) {
+  constructor(sessionService = null, tagService = null) {
     this.sessionService = sessionService || new SessionService();
+    this.tagService = tagService || new TagService();
   }
 
   // ── Helper to get sessionId from either new or legacy param ──
@@ -191,7 +194,6 @@ class SessionController {
 
       const timeline = await this.sessionService.getTimeline(sessionId);
 
-      const crypto = require('crypto');
       const etagBase = `${sessionId}-timeline-${session.updatedAt || session.createdAt}`;
       const etag = crypto.createHash('md5').update(etagBase).digest('hex');
 
@@ -318,9 +320,7 @@ class SessionController {
         const fileName = path.basename(sessionPath);
         zip.addLocalFile(sessionPath, '', fileName);
 
-        const TagService = require('../services/tagService');
-        const tagService = new TagService();
-        const tagsFilePath = tagService.getSessionTagsFilePath(session);
+        const tagsFilePath = this.tagService.getSessionTagsFilePath(session);
         try {
           await fs.promises.access(tagsFilePath);
           zip.addLocalFile(tagsFilePath, '', path.basename(tagsFilePath));

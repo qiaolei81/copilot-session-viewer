@@ -8,7 +8,7 @@ const config = require('./config');
 
 // Middleware
 // Rate limiting disabled for local development
-const { globalLimiter, insightGenerationLimiter, insightAccessLimiter, uploadLimiter } = require('./middleware/rateLimiting');
+
 const { requestTimeout, developmentCors, errorHandler, notFoundHandler, telemetryLocals } = require('./middleware/common');
 
 // Source mapping
@@ -24,7 +24,8 @@ const TagController = require('./controllers/tagController');
 function validateSource(req, res, next) {
   const { source } = req.params;
   if (!isValidSource(source)) {
-    return res.status(404).json({ error: `Unknown source: ${source}` });
+    const sanitizedSource = String(source).replace(/[^a-zA-Z0-9_-]/g, '');
+    return res.status(404).json({ error: `Unknown source: ${sanitizedSource}` });
   }
   next();
 }
@@ -88,7 +89,7 @@ function createApp(options = {}) {
   }
 
   // Rate limiting - DISABLED for local development
-  app.use(globalLimiter);
+
 
   // Static files (legacy public folder)
   app.use('/public', express.static(path.join(__dirname, '../../public')));
@@ -151,9 +152,6 @@ function createApp(options = {}) {
   app.post('/api/:source/sessions/:sessionId/insight', validateSource, insightController.generateInsight.bind(insightController));
   app.get('/api/:source/sessions/:sessionId/insight', validateSource, insightController.getInsightStatus.bind(insightController));
   app.delete('/api/:source/sessions/:sessionId/insight', validateSource, insightController.deleteInsight.bind(insightController));
-
-  // Upload rate limiting - DISABLED
-  app.use('/session/import', uploadLimiter);
 
   // SPA fallback: serve index.html for all non-API routes
   app.get('*', (req, res, next) => {

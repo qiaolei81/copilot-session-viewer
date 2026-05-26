@@ -2,7 +2,7 @@
  * Session detail composable — orchestrates focused composables.
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { marked } from 'marked';
 import { getDisplayInputTokens } from '../../utils/formatting.js';
 import { useSubagentAnalysis } from './useSubagentAnalysis.js';
@@ -26,7 +26,6 @@ function getUsageCacheHitRatio(usage) {
 
 export function useSessionData() {
   const route = useRoute();
-  const _router = useRouter();
   const sessionId = computed(() => route.params.id);
   const source = computed(() => route.params.source);
   const metadata = ref({});
@@ -263,6 +262,8 @@ export function useSessionData() {
 
   // ── Scroll & navigation ──
 
+  const _retryTimerIds = [];
+
   const scrollToTurn = (turn) => {
     sessionFilters.searchText.value = '';
     sessionFilters.currentFilter.value = 'all';
@@ -275,9 +276,9 @@ export function useSessionData() {
           const doScroll = (attempts) => {
             if (attempts <= 0 || !scrollerRef.value) return;
             scrollerRef.value.scrollToItem(targetIndex);
-            setTimeout(() => doScroll(attempts - 1), 100);
+            _retryTimerIds.push(setTimeout(() => doScroll(attempts - 1), 100));
           };
-          setTimeout(() => doScroll(3), 50);
+          _retryTimerIds.push(setTimeout(() => doScroll(3), 50));
         }
       }
     });
@@ -285,14 +286,14 @@ export function useSessionData() {
 
   const scrollToTop = () => {
     if (!scrollerRef.value) return;
-    const doScroll = (a) => { if (a <= 0 || !scrollerRef.value) return; scrollerRef.value.scrollToItem(0); setTimeout(() => doScroll(a - 1), 100); };
+    const doScroll = (a) => { if (a <= 0 || !scrollerRef.value) return; scrollerRef.value.scrollToItem(0); _retryTimerIds.push(setTimeout(() => doScroll(a - 1), 100)); };
     doScroll(3);
   };
 
   const scrollToBottom = () => {
     if (!scrollerRef.value) return;
     const lastIndex = sessionFilters.filteredEvents.value.length - 1;
-    const doScroll = (a) => { if (a <= 0 || !scrollerRef.value) return; scrollerRef.value.scrollToItem(lastIndex); setTimeout(() => doScroll(a - 1), 100); };
+    const doScroll = (a) => { if (a <= 0 || !scrollerRef.value) return; scrollerRef.value.scrollToItem(lastIndex); _retryTimerIds.push(setTimeout(() => doScroll(a - 1), 100)); };
     doScroll(5);
   };
 
@@ -450,9 +451,9 @@ export function useSessionData() {
               const doScroll = (attempts) => {
                 if (attempts <= 0 || !scrollerRef.value) return;
                 scrollerRef.value.scrollToItem(targetIndex);
-                setTimeout(() => doScroll(attempts - 1), 100);
+                _retryTimerIds.push(setTimeout(() => doScroll(attempts - 1), 100));
               };
-              setTimeout(() => doScroll(3), 50);
+              _retryTimerIds.push(setTimeout(() => doScroll(3), 50));
             }
           }
         });
@@ -468,7 +469,7 @@ export function useSessionData() {
     await tags.loadAllTags();
 
     // Scroll listener for visible range
-    setTimeout(() => {
+    _retryTimerIds.push(setTimeout(() => {
       const scroller = document.querySelector('.vue-recycle-scroller');
       if (scroller) {
         const updateVisibleRange = () => {
@@ -486,15 +487,18 @@ export function useSessionData() {
         scrollCleanup = () => scroller.removeEventListener('scroll', updateVisibleRange);
         updateVisibleRange();
       }
-    }, 500);
+    }, 500));
   });
 
   onBeforeUnmount(() => {
+    _retryTimerIds.forEach(id => clearTimeout(id));
+    _retryTimerIds.length = 0;
     document.removeEventListener('click', sessionFilters.closeTypeFilter);
     document.removeEventListener('click', subagent.closeSubagentDropdown);
     window.removeEventListener('keydown', handleKeydown);
     sessionFilters.clearSearchTimeout();
     if (scrollCleanup) { scrollCleanup(); scrollCleanup = null; }
+    tags.cleanup();
     expandedTools.value = {};
     expandedContent.value = {};
     formatting.clearMarkdownCache();

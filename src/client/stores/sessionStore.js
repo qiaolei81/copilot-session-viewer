@@ -19,14 +19,16 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   function getCached(sessionId) {
-    return cache.value[sessionId] || null;
+    const entry = cache.value[sessionId] || null;
+    if (entry) _touch(sessionId);
+    return entry;
   }
 
   async function fetchMetadata(sessionId, source) {
     const cached = cache.value[sessionId];
     if (cached?.metadata) return cached.metadata;
 
-    const resp = await fetch(`/api/${encodeURIComponent(source)}/sessions/${sessionId}`);
+    const resp = await fetch(`/api/${encodeURIComponent(source)}/sessions/${encodeURIComponent(sessionId)}`);
     if (!resp.ok) return null;
     const data = await resp.json();
 
@@ -34,6 +36,7 @@ export const useSessionStore = defineStore('session', () => {
       cache.value[sessionId] = { timestamp: Date.now() };
     }
     cache.value[sessionId].metadata = data;
+    _touch(sessionId);
     _evictOldest();
     return data;
   }
@@ -42,7 +45,7 @@ export const useSessionStore = defineStore('session', () => {
     const cached = cache.value[sessionId];
     if (cached?.events) return cached.events;
 
-    const resp = await fetch(`/api/${encodeURIComponent(source)}/sessions/${sessionId}/events`);
+    const resp = await fetch(`/api/${encodeURIComponent(source)}/sessions/${encodeURIComponent(sessionId)}/events`);
     if (!resp.ok) throw new Error(`Failed to load events: ${resp.statusText}`);
     const data = await resp.json();
     const events = Array.isArray(data) ? data : (data.events || []);
@@ -51,6 +54,7 @@ export const useSessionStore = defineStore('session', () => {
       cache.value[sessionId] = { timestamp: Date.now() };
     }
     cache.value[sessionId].events = events;
+    _touch(sessionId);
     _evictOldest();
     return events;
   }

@@ -1,5 +1,5 @@
 const config = require('../config');
-const { trackException, isEnabled: isTelemetryEnabled } = require('../telemetry');
+const { trackException } = require('../telemetry');
 
 // Request timeout middleware
 const requestTimeout = (req, res, next) => {
@@ -7,12 +7,8 @@ const requestTimeout = (req, res, next) => {
   next();
 };
 
-// Telemetry middleware - makes telemetry settings available to templates
+// Telemetry middleware - no-op (connection strings must not be exposed to clients)
 const telemetryLocals = (req, res, next) => {
-  res.locals.telemetryEnabled = isTelemetryEnabled;
-  res.locals.telemetryConnectionString = isTelemetryEnabled
-    ? (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING || null)
-    : null;
   next();
 };
 
