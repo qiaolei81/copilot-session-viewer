@@ -161,12 +161,16 @@ function loadCustomDirs() {
 
 function saveCustomDirs(data) {
   try { localStorage.setItem(CUSTOM_DIRS_KEY, JSON.stringify(data)); } catch (_e2) { /* ignore */ }
+  customDirsVersion.value++;
 }
 
 function getCustomDirs(source) {
+  customDirsVersion.value; // reactive dependency
   const all = loadCustomDirs();
   return all[source] || [];
 }
+
+const customDirsVersion = ref(0);
 
 const currentCustomDirs = computed(() => getCustomDirs(currentSourceFilter.value));
 
