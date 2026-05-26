@@ -17,13 +17,14 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 
 const isOpen = ref(false);
 const sheetVisible = ref(false);
 const text = ref('');
+let closeTimer = null;
 
 const renderedHtml = computed(() => {
   const md = text.value;
@@ -40,9 +41,12 @@ function open(md) {
 }
 
 function close() {
+  if (closeTimer) clearTimeout(closeTimer);
   sheetVisible.value = false;
-  setTimeout(() => { isOpen.value = false; }, 280);
+  closeTimer = setTimeout(() => { isOpen.value = false; closeTimer = null; }, 280);
 }
+
+onBeforeUnmount(() => { if (closeTimer) clearTimeout(closeTimer); });
 
 defineExpose({ open, close });
 </script>

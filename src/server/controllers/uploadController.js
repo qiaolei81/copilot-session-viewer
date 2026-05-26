@@ -46,13 +46,14 @@ class UploadController {
 
   // Import session from zip (with validation)
   async importSession(req, res) {
+    let extractDir = null;
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
       const zipPath = req.file.path;
-      const extractDir = path.join(this.uploadDir, `extract-${Date.now()}`);
+      extractDir = path.join(this.uploadDir, `extract-${Date.now()}`);
       const uploadedFileSize = (await fs.promises.stat(zipPath)).size;
 
       await fs.promises.mkdir(extractDir, { recursive: true });
@@ -109,6 +110,7 @@ class UploadController {
       console.error('Error processing upload:', err);
       trackException(err, { operation: 'importSession_upload' });
       if (req.file) await fs.promises.unlink(req.file.path).catch(() => {});
+      if (extractDir) await fs.promises.rm(extractDir, { recursive: true, force: true }).catch(() => {});
       // Surface known validation errors as 400
       if (err.message?.match(/Compressed file too large|Uncompressed size too large|Too many files|Directory nesting too deep|Failed to list zip/)) {
         return res.status(400).json({ error: err.message });

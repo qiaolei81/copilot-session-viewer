@@ -31,10 +31,15 @@ async function countLines(filePath) {
     const stream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
     let count = 0;
-    for await (const line of rl) {
-      if (line.trim()) count++;
+    try {
+      for await (const line of rl) {
+        if (line.trim()) count++;
+      }
+      return count;
+    } finally {
+      rl.close();
+      stream.destroy();
     }
-    return count;
   } catch (err) {
     console.error(`Error counting lines in ${filePath}:`, err.message);
     return 0;
@@ -93,6 +98,7 @@ async function getSessionMetadataOptimized(filePath, maxMessageLength = 500) {
     let hasSessionEnd = false;
     let eventCount = 0;
 
+    try {
     for await (const line of rl) {
       if (!line.trim()) continue;
 
@@ -146,9 +152,10 @@ async function getSessionMetadataOptimized(filePath, maxMessageLength = 500) {
         // Skip malformed JSON lines
       }
     }
-
-    rl.close();
-    stream.destroy();
+    } finally {
+      rl.close();
+      stream.destroy();
+    }
 
     // Calculate duration
     const duration = firstTimestamp && lastTimestamp && lastTimestamp > firstTimestamp
@@ -226,6 +233,7 @@ async function getSessionDuration(filePath) {
     let firstTimestamp = null;
     let lastTimestamp = null;
 
+    try {
     for await (const line of rl) {
       if (!line.trim()) continue;
       try {
@@ -240,6 +248,10 @@ async function getSessionDuration(filePath) {
       } catch {
         // Skip malformed JSON lines
       }
+    }
+    } finally {
+      rl.close();
+      stream.destroy();
     }
 
     if (firstTimestamp && lastTimestamp && lastTimestamp >= firstTimestamp) {
@@ -265,36 +277,33 @@ async function getSessionMetadata(filePath) {
     let copilotVersion = null;
     let selectedModel = null;
 
-    for await (const line of rl) {
-      if (!line.trim()) continue;
-      try {
-        const event = JSON.parse(line);
-        
-        // Extract copilotVersion and selectedModel from session.start
-        if (event.type === 'session.start' && event.data) {
-          copilotVersion = event.data.copilotVersion || null;
-          selectedModel = event.data.selectedModel || null;
-          
-          // If we have selectedModel, we're done
-          if (selectedModel) {
-            rl.close();
-            stream.destroy();
+    try {
+      for await (const line of rl) {
+        if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
+
+          if (event.type === 'session.start' && event.data) {
+            copilotVersion = event.data.copilotVersion || null;
+            selectedModel = event.data.selectedModel || null;
+            if (selectedModel) {
+              return { copilotVersion, selectedModel };
+            }
+          }
+
+          if (!selectedModel && event.type === 'session.model_change' && event.data) {
+            selectedModel = event.data.newModel || null;
             return { copilotVersion, selectedModel };
           }
+        } catch {
+          // Skip malformed JSON lines
         }
-        
-        // If no selectedModel in session.start, check for model_change
-        if (!selectedModel && event.type === 'session.model_change' && event.data) {
-          selectedModel = event.data.newModel || null;
-          rl.close();
-          stream.destroy();
-          return { copilotVersion, selectedModel };
-        }
-      } catch {
-        // Skip malformed JSON lines
       }
+      return { copilotVersion, selectedModel };
+    } finally {
+      rl.close();
+      stream.destroy();
     }
-    return { copilotVersion, selectedModel };
   } catch (err) {
     console.error(`Error reading session metadata from ${filePath}:`, err.message);
     return { copilotVersion: null, selectedModel: null };

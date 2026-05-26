@@ -270,11 +270,16 @@ class SessionService {
           });
           
           const lines = [];
-          for await (const line of rl) {
-            const trimmedLine = line.trim();
-            if (trimmedLine) {
-              lines.push(trimmedLine);
+          try {
+            for await (const line of rl) {
+              const trimmedLine = line.trim();
+              if (trimmedLine) {
+                lines.push(trimmedLine);
+              }
             }
+          } finally {
+            rl.close();
+            fileStream.destroy();
           }
           
           if (lines.length === 0) continue;

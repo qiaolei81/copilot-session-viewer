@@ -162,7 +162,7 @@ describe('InsightController - Additional Coverage', () => {
       expect(mockInsightService.generateInsight).not.toHaveBeenCalled();
     });
 
-    it('should handle error with message', async () => {
+    it('should redact internal error message and return generic 500', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockReq.params.id = 'valid-session-id';
       const error = new Error('Insight generation failed');
@@ -171,7 +171,8 @@ describe('InsightController - Additional Coverage', () => {
       await controller.generateInsight(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Insight generation failed' });
+      // Internal error message must NOT leak to client; generic message instead.
+      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Error generating insight' });
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error generating insight:', error);
 
       consoleErrorSpy.mockRestore();

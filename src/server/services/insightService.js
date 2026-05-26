@@ -77,10 +77,15 @@ class InsightService {
         await fs.access(eventsFile);
       } catch {
         // Try *_<sessionId>.jsonl (Pi-Mono format: YYYY-MM-DDTHH-mm-ss-SSSZ_<uuid>.jsonl)
-        const entries = await fs.readdir(sessionPath);
-        const piFile = entries.find(f => f.endsWith(`_${sessionId}.jsonl`));
-        if (piFile) {
-          eventsFile = path.join(sessionPath, piFile);
+        try {
+          const entries = await fs.readdir(sessionPath);
+          const piFile = entries.find(f => f.endsWith(`_${sessionId}.jsonl`));
+          if (piFile) {
+            eventsFile = path.join(sessionPath, piFile);
+          }
+        } catch (_readdirErr) {
+          // Fall through — eventsFile remains; the access check below will produce
+          // the standard "Events file not found" 400 response.
         }
       }
     }
@@ -103,14 +108,28 @@ class InsightService {
       }
     }
 
-    // Check if generation is already in progress (atomic check)
-    try {
-      // Try to create lock file exclusively (fails if exists)
-      await fs.writeFile(lockFile, JSON.stringify({
+    // Check if generation is already in progress (atomic check via rename)
+    const _acquireLock = async () => {
+      const tmp = `${lockFile}.${process.pid}.${Date.now()}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify({
         sessionId,
         startTime: new Date().toISOString(),
         pid: process.pid
-      }), { flag: 'wx' });
+      }));
+      try {
+        // rename to a non-existent destination is atomic on POSIX; if dest exists
+        // on POSIX rename will overwrite, so guard with link()+unlink pattern.
+        // Use link (which fails with EEXIST if target exists) for true atomicity.
+        await fs.link(tmp, lockFile);
+        await fs.unlink(tmp).catch(() => {});
+      } catch (e) {
+        await fs.unlink(tmp).catch(() => {});
+        throw e;
+      }
+    };
+
+    try {
+      await _acquireLock();
     } catch (err) {
       if (err.code === 'EEXIST') {
         // Another process is generating, check if it's stale
@@ -134,12 +153,8 @@ class InsightService {
           console.log(`⚠️  Removing stale lock file (${Math.floor(ageMs/1000)}s old)`);
           await fs.unlink(lockFile);
           
-          // Retry lock creation
-          await fs.writeFile(lockFile, JSON.stringify({
-            sessionId,
-            startTime: new Date().toISOString(),
-            pid: process.pid
-          }), { flag: 'wx' });
+          // Retry lock creation atomically
+          await _acquireLock();
         } catch (_retryErr) {
           throw new Error('Failed to acquire lock for insight generation', { cause: _retryErr });
         }
@@ -204,16 +219,23 @@ class InsightService {
     // Register for cleanup
     processManager.register(analysisProcess, { name: `insight-${sessionId}` });
 
+    // Always attach an 'error' handler to stdin to avoid unhandled EPIPE crashes.
+    analysisProcess.stdin.on('error', (err) => {
+      if (err.code !== 'EPIPE') {
+        console.error('❌ stdin error:', err);
+      }
+    });
+
     // Pipe events file to stdin (for tools that read from stdin like copilot)
     // Claude Code and Pi read files directly, so they don't need stdin
     if (toolConfig.cli === 'copilot') {
       const eventsStream = fsSync.createReadStream(eventsFile);
-      // Handle EPIPE: if process exits before stdin is fully written, suppress the error
+      eventsStream.on('error', (err) => {
+        console.error('❌ events stream error:', err);
+      });
       analysisProcess.stdin.on('error', (err) => {
         if (err.code === 'EPIPE') {
           eventsStream.destroy();
-        } else {
-          console.error('❌ stdin error:', err);
         }
       });
       eventsStream.pipe(analysisProcess.stdin);

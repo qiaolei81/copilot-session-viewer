@@ -415,7 +415,7 @@ export function useSessionData() {
       if (loadedEvents.value.length > 0) {
         const lastEvent = loadedEvents.value[loadedEvents.value.length - 1];
         const lastTime = lastEvent.timestamp || lastEvent.time || lastEvent.data?.timestamp;
-        if (lastTime) metadata.value.updated = new Date(lastTime);
+        if (lastTime) metadata.value = { ...metadata.value, updated: new Date(lastTime) };
       }
 
       // Handle URL query params for navigation

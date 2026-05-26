@@ -35,6 +35,13 @@ ESLINT.md
 sessions/
 !__tests__/fixtures/sessions/
 !__tests__/fixtures/sessions/**
+# But never commit server-side side-effects written into fixture dirs
+__tests__/fixtures/sessions/**/*.lock
+__tests__/fixtures/sessions/**/*.tmp
+__tests__/fixtures/sessions/**/tags.json
+__tests__/fixtures/sessions/**/*.tags.json
+__tests__/fixtures/sessions/**/*.agent-review.md*
+__tests__/fixtures/sessions/**/.output/
 *.jsonl
 !__tests__/fixtures/**/*.jsonl
 # CI test sessions

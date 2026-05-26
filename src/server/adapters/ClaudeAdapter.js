@@ -2,6 +2,7 @@ const path = require('path');
 const os = require('os');
 const fsSync = require('fs');
 const fs = fsSync.promises;
+const readline = require('readline');
 const BaseSourceAdapter = require('./BaseSourceAdapter');
 const Session = require('../models/Session');
 const { countLines, shouldSkipEntry } = require('../utils/fileUtils');
@@ -161,11 +162,27 @@ class ClaudeAdapter extends BaseSourceAdapter {
     const eventCount = await countLines(fullPath);
 
     try {
-      const content = await fs.readFile(fullPath, 'utf-8');
-      const lines = content.trim().split('\n').filter(line => line.trim());
-      const events = lines.map(line => {
-        try { return JSON.parse(line); } catch { return null; }
-      }).filter(e => e !== null);
+      // Stream first ~50 lines instead of loading entire file
+      const stream = fsSync.createReadStream(fullPath, { encoding: 'utf-8' });
+      const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+      const events = [];
+      const MAX_LINES = 50;
+      let scanned = 0;
+      try {
+        for await (const line of rl) {
+          if (!line.trim()) continue;
+          scanned++;
+          try {
+            events.push(JSON.parse(line));
+          } catch {
+            // skip
+          }
+          if (scanned >= MAX_LINES) break;
+        }
+      } finally {
+        rl.close();
+        stream.destroy();
+      }
 
       // VALIDATION: Check for Claude core events
       const hasClaudeCoreEvents = events.some(e => e.type === 'assistant' || e.type === 'user');

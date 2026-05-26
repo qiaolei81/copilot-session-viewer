@@ -51,7 +51,7 @@ class PiMonoAdapter extends BaseSourceAdapter {
         const projectPath = path.join(dir, project);
         try {
           const files = await fs.readdir(projectPath);
-          const matchingFile = files.find(f => f.includes(`_${sessionId}.jsonl`));
+          const matchingFile = files.find(f => f.endsWith(`_${sessionId}.jsonl`));
           if (matchingFile) {
             const fullPath = path.join(projectPath, matchingFile);
             const stats = await fs.stat(fullPath);
@@ -108,7 +108,7 @@ class PiMonoAdapter extends BaseSourceAdapter {
         const projectPath = path.join(dir, project);
         try {
           const files = await fs.readdir(projectPath);
-          const matchingFile = files.find(f => f.includes(`_${session.id}.jsonl`));
+          const matchingFile = files.find(f => f.endsWith(`_${session.id}.jsonl`));
           if (matchingFile) {
             return path.join(projectPath, matchingFile);
           }

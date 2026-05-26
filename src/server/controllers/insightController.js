@@ -33,9 +33,6 @@ class InsightController {
         return { status: 503, body: { error: err.message } };
       }
 
-      if (err.message) {
-        return { status: 500, body: { error: err.message } };
-      }
     }
 
     return { status: 500, body: { error: 'Error generating insight' } };

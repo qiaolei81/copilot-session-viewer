@@ -79,6 +79,11 @@ class ProcessManager {
       console.error('💥 Uncaught exception:', err);
       cleanup('uncaughtException', 1);
     });
+
+    process.on('unhandledRejection', (reason) => {
+      console.error('💥 Unhandled rejection:', reason);
+      cleanup('unhandledRejection', 1);
+    });
   }
 }
 

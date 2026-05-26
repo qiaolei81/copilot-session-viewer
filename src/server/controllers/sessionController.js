@@ -9,6 +9,24 @@ const os = require('os');
 const crypto = require('crypto');
 const TagService = require('../services/tagService');
 
+// Cache of realpath'd source dirs so symlink trickery cannot defeat containment check
+const _resolvedSourceDirCache = new Map();
+async function _getResolvedSourceDirs(sources) {
+  const out = [];
+  for (const s of sources) {
+    if (!s || !s.dir) continue;
+    if (!_resolvedSourceDirCache.has(s.dir)) {
+      try {
+        _resolvedSourceDirCache.set(s.dir, await fs.promises.realpath(s.dir));
+      } catch {
+        _resolvedSourceDirCache.set(s.dir, path.resolve(s.dir));
+      }
+    }
+    out.push(_resolvedSourceDirCache.get(s.dir));
+  }
+  return out;
+}
+
 class SessionController {
   constructor(sessionService = null, tagService = null) {
     this.sessionService = sessionService || new SessionService();
@@ -350,8 +368,11 @@ class SessionController {
 
       // Resolve symlinks and verify path is within expected source directories
       const resolvedPath = await fs.promises.realpath(sessionPath);
-      const sourceDirs = this.sessionService.sessionRepository.sources.map(s => s.dir);
-      const isWithinSource = sourceDirs.some(dir => resolvedPath.startsWith(dir));
+      const sourceDirs = await _getResolvedSourceDirs(this.sessionService.sessionRepository.sources);
+      const isWithinSource = sourceDirs.some(dir => {
+        const rel = path.relative(dir, resolvedPath);
+        return rel !== '' ? !rel.startsWith('..') && !path.isAbsolute(rel) : true;
+      });
       if (!isWithinSource) {
         return res.status(403).json({ error: 'Access denied: path outside source directories' });
       }

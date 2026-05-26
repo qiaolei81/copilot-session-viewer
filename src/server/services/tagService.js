@@ -2,6 +2,15 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
+// Single module-level promise tail to serialize tag writes across instances/calls.
+let _writeTail = Promise.resolve();
+function _serializeWrite(fn) {
+  const next = _writeTail.then(fn, fn);
+  // Swallow rejection on the tail so one failed write doesn't poison subsequent ones.
+  _writeTail = next.catch(() => {});
+  return next;
+}
+
 /**
  * Service for managing session tags
  * - Per-session tags: stored in {session.directory}/tags.json as ["tag1", "tag2"]
@@ -34,7 +43,8 @@ class TagService {
     await this.ensureKnownTagsFile();
     try {
       const content = await fs.readFile(this.knownTagsFilePath, 'utf8');
-      return JSON.parse(content);
+      const parsed = JSON.parse(content);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (err) {
       console.error('Error reading known tags file:', err);
       return [];
@@ -113,6 +123,10 @@ class TagService {
    * @returns {Promise<string[]>} Normalized and saved tags
    */
   async setSessionTags(session, tags) {
+    return _serializeWrite(() => this._setSessionTagsInternal(session, tags));
+  }
+
+  async _setSessionTagsInternal(session, tags) {
     if (!Array.isArray(tags)) {
       throw new Error('Tags must be an array');
     }
