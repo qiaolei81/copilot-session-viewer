@@ -57,8 +57,9 @@ function getAppVersion() {
 }
 
 // Determine if telemetry should be disabled
-const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING || null;
-const isDisabled = process.env.DISABLE_TELEMETRY === 'true' || !connectionString;
+const DEFAULT_CONNECTION_STRING = 'InstrumentationKey=39f4fbf1-d82f-42c3-b4ef-ea92a1fd82cb;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=7d4bb432-f2f5-4526-a5e6-31901e5a2db2';
+const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING || DEFAULT_CONNECTION_STRING;
+const isDisabled = process.env.DISABLE_TELEMETRY === 'true';
 
 let client = null;
 
