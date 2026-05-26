@@ -110,7 +110,7 @@ function createApp(options = {}) {
     const hints = {};
     if (sources) {
       for (const src of sources) {
-        hints[src.type] = { configured: true };
+        hints[src.type] = { configured: true, dir: src.dir };
       }
     }
     res.json(hints);

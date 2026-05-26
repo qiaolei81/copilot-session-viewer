@@ -18,7 +18,7 @@ test.describe('Core Functionality Tests', () => {
 
     await expect(page.getByRole('heading', { name: /session viewer/i })).toBeVisible();
     await expect(page.getByPlaceholder('Enter Session ID...')).toBeVisible();
-    await expect(page.locator('[data-testid="import-link"]')).toBeVisible();
+    await expect(page.locator('[data-testid="import-btn"]')).toBeVisible();
   });
 
   test('should display sessions if available', async ({ page }) => {
@@ -98,7 +98,7 @@ test.describe('Core Functionality Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Import link should be clickable
-    const importLink = page.locator('[data-testid="import-link"]');
+    const importLink = page.locator('[data-testid="import-btn"]');
     await expect(importLink).toBeVisible();
 
     // Set up file chooser handler

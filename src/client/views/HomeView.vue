@@ -28,7 +28,8 @@ View
         <div class="text-text-secondary text-sm mb-3 uppercase tracking-wider">
 Sessions
 </div>
-        <a data-testid="import-link" class="text-accent text-sm no-underline cursor-pointer hover:text-link hover:underline" :style="importLinkStyle" @click.prevent="triggerImport">{{ importLinkText }}</a>
+        <button data-testid="add-dir-btn" class="text-accent text-sm cursor-pointer hover:text-link bg-transparent border-none p-0" title="Add custom directory" @click="addCustomDirectory">📁</button>
+        <button data-testid="import-btn" class="text-accent text-sm cursor-pointer hover:text-link bg-transparent border-none p-0" title="Import session from zip" :style="importLinkStyle" @click="triggerImport">📤</button>
         <span data-testid="import-formats-hint" class="text-2xs text-text-faint ml-1.5 align-middle">Supports: GitHub Copilot, Claude, Pi-Mono</span>
       </div>
       <div class="flex gap-2 mb-4 flex-wrap">
@@ -45,6 +46,15 @@ Sessions
         >
 {{ pill.label }}
 </button>
+      </div>
+      <!-- Directory info -->
+      <div v-if="currentSourceHintDir || currentCustomDirs.length > 0" class="mb-4 text-sm">
+        <div v-if="currentSourceHintDir" class="text-text-faint text-xs mb-1">📂 {{ currentSourceHintDir }}</div>
+        <div v-for="cd in currentCustomDirs" :key="cd.dir" class="flex items-center gap-2 text-xs text-text-secondary mb-1">
+          <span class="inline-block w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: cd.color }"></span>
+          <span class="font-mono">{{ cd.dir }}</span>
+          <button class="text-text-faint hover:text-error-text bg-transparent border-none cursor-pointer p-0 text-xs" @click="removeCustomDir(cd.dir)">×</button>
+        </div>
       </div>
       <p v-if="currentSourceFilter" class="hint mt-5 text-text-secondary text-sm">
         Showing <span class="inline-block bg-surface py-1 px-2 rounded font-mono text-sm text-accent">{{ currentSourceFilter }}</span> sessions
@@ -118,7 +128,6 @@ const currentSourceFilter = ref('copilot');
 const sourceHints = ref({});
 const sourceState = {};
 
-const importLinkText = ref('Import session from zip');
 const importLinkStyle = ref({});
 const importStatusMsg = ref('');
 const importStatusType = ref('');
@@ -143,6 +152,66 @@ try {
     currentSourceFilter.value = saved;
   }
 } catch (_e) { /* ignore */ }
+
+// Custom directory management
+const DIR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+const CUSTOM_DIRS_KEY = 'customDirs';
+
+function loadCustomDirs() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_DIRS_KEY) || '{}');
+  } catch (_e2) { return {}; }
+}
+
+function saveCustomDirs(data) {
+  try { localStorage.setItem(CUSTOM_DIRS_KEY, JSON.stringify(data)); } catch (_e2) { /* ignore */ }
+}
+
+function getCustomDirs(source) {
+  const all = loadCustomDirs();
+  return all[source] || [];
+}
+
+const currentCustomDirs = computed(() => getCustomDirs(currentSourceFilter.value));
+
+const currentSourceHintDir = computed(() => {
+  const hint = sourceHints.value[currentSourceFilter.value];
+  return hint ? hint.dir : null;
+});
+
+function addCustomDirectory() {
+  const dir = prompt('Enter absolute directory path (e.g. /home/user/sessions):');
+  if (!dir || (!dir.startsWith('/') && !dir.startsWith('~'))) {
+    if (dir) alert('Path must be absolute (start with / or ~)');
+    return;
+  }
+  const source = currentSourceFilter.value;
+  const all = loadCustomDirs();
+  if (!all[source]) all[source] = [];
+  if (all[source].some(d => d.dir === dir)) return;
+  const colorIdx = all[source].length % DIR_COLORS.length;
+  all[source].push({ dir, color: DIR_COLORS[colorIdx] });
+  saveCustomDirs(all);
+  reloadCurrentSource();
+}
+
+function removeCustomDir(dir) {
+  const source = currentSourceFilter.value;
+  const all = loadCustomDirs();
+  if (!all[source]) return;
+  all[source] = all[source].filter(d => d.dir !== dir);
+  saveCustomDirs(all);
+  reloadCurrentSource();
+}
+
+async function reloadCurrentSource() {
+  const source = currentSourceFilter.value;
+  allSessions.value = allSessions.value.filter(s => s.source !== source);
+  const state = getState(source);
+  state.offset = 0;
+  state.hasMore = true;
+  await fetchSource(source);
+}
 
 const filteredSessions = computed(() => {
   return allSessions.value.filter(s => s.source === currentSourceFilter.value);
@@ -229,6 +298,31 @@ async function fetchSource(source) {
       }
       state.offset = (data.sessions || []).length;
       state.hasMore = data.hasMore;
+
+      // Fetch custom directory sessions
+      const customDirs = getCustomDirs(source);
+      for (const cd of customDirs) {
+        try {
+          const cdResp = await fetch(`/api/${encodeURIComponent(toUrlSource(source))}/sessions?dir=${encodeURIComponent(cd.dir)}`);
+          if (cdResp.ok) {
+            const cdData = await cdResp.json();
+            for (const s of (cdData.sessions || [])) {
+              s._customDirColor = cd.color;
+              if (!existingIds.has(s.id)) {
+                existingIds.add(s.id);
+                allSessions.value.push(s);
+                newSessions.push(s);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load custom dir sessions:', cd.dir, e);
+        }
+      }
+
+      // Re-sort all sessions for this source by updatedAt
+      allSessions.value.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
       await attachTags(newSessions);
     }
   } catch (e) {
@@ -301,7 +395,6 @@ async function handleFileChange(e) {
     return;
   }
   importLinkStyle.value = { pointerEvents: 'none', opacity: '0.5' };
-  importLinkText.value = 'Importing...';
   importStatusType.value = 'loading';
   importStatusMsg.value = 'Uploading and extracting session...';
 
@@ -337,7 +430,6 @@ async function handleFileChange(e) {
 
 function resetImportLink() {
   importLinkStyle.value = {};
-  importLinkText.value = 'Import session from zip';
 }
 
 // Tooltip handlers

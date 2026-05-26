@@ -8,7 +8,7 @@ test.describe('Session Import - UI', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const importLink = page.locator('[data-testid="import-link"]');
+    const importLink = page.locator('[data-testid="import-btn"]');
     await expect(importLink).toBeVisible();
 
     const fileChooserPromise = page.waitForEvent('filechooser');

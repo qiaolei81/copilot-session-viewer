@@ -1,5 +1,5 @@
 <template>
-  <router-link data-testid="session-card" :to="`/${urlSource}/session/${session.id}`" :class="['block bg-surface border border-border rounded-lg py-3 px-4 text-text-secondary no-underline transition-all min-h-[140px] overflow-hidden min-w-0 hover:border-accent hover:bg-surface-alt hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(88,166,255,0.2)]', session.sessionStatus === 'wip' ? 'border-warning border-l-[3px] border-l-warning hover:border-warning hover:border-l-[#e8b634]' : '']">
+  <router-link data-testid="session-card" :to="`/${urlSource}/session/${session.id}`" :class="['block bg-surface border border-border rounded-lg py-3 px-4 text-text-secondary no-underline transition-all min-h-[140px] overflow-hidden min-w-0 hover:border-accent hover:bg-surface-alt hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(88,166,255,0.2)]', session.sessionStatus === 'wip' ? 'border-warning border-l-[3px] border-l-warning hover:border-warning hover:border-l-[#e8b634]' : '']" :style="customDirStyle">
     <div class="flex justify-between items-center font-mono text-2xs text-text-faint mb-3 tracking-tight opacity-70">
       <span class="overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0" :title="session.id">{{ session.id }}</span>
     </div>
@@ -57,6 +57,13 @@ const props = defineProps({
 defineEmits(['summary-hover', 'summary-move', 'summary-leave', 'summary-touchstart']);
 
 const urlSource = computed(() => toUrlSource(props.session.source || 'copilot'));
+
+const customDirStyle = computed(() => {
+  if (props.session._customDirColor) {
+    return { borderLeft: `3px solid ${props.session._customDirColor}` };
+  }
+  return {};
+});
 
 const hasSummary = computed(() => {
   const s = props.session.summary;

@@ -104,7 +104,7 @@ class SessionRepository {
 
     for (const source of sources) {
       try {
-        const sessions = await this._scanSource(source);
+        const sessions = await this.scanSource(source);
         allSessions.push(...sessions);
       } catch (err) {
         console.error(`Error reading ${source.type} sessions from ${source.dir}:`, err.message);
@@ -118,7 +118,7 @@ class SessionRepository {
    * Scan a single source via its adapter.
    * @private
    */
-  async _scanSource(source) {
+  async scanSource(source) {
     const adapter = this.registry.get(source.type);
     if (!adapter) {
       console.warn(`No adapter registered for source type: ${source.type}`);

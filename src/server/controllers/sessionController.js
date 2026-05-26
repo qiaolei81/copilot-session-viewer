@@ -5,6 +5,7 @@ const { trackEvent } = require('../telemetry');
 const AdmZip = require('adm-zip');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const crypto = require('crypto');
 const TagService = require('../services/tagService');
 
@@ -27,6 +28,41 @@ class SessionController {
       const sourceFilter = sourceParam
         ? resolveSource(sourceParam)
         : (req.query.source || null);
+
+      // Custom directory scanning
+      const customDir = req.query.dir || null;
+      if (customDir) {
+        try {
+          // Validate and resolve
+          let resolvedDir = customDir;
+          if (resolvedDir.startsWith('~')) {
+            resolvedDir = path.join(os.homedir(), resolvedDir.slice(1));
+          }
+          resolvedDir = path.resolve(resolvedDir);
+
+          // Security: reject path traversal
+          if (customDir.includes('..')) {
+            return res.status(400).json({ error: 'Path traversal not allowed' });
+          }
+
+          // Verify exists
+          await fs.promises.access(resolvedDir);
+
+          const repo = this.sessionService.sessionRepository;
+          const sessions = await repo.scanSource({ type: sourceFilter, dir: resolvedDir });
+          const sorted = sessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+          return res.json({
+            sessions: sorted,
+            hasMore: false,
+            totalSessions: sorted.length
+          });
+        } catch (err) {
+          if (err.code === 'ENOENT' || err.code === 'EACCES') {
+            return res.status(400).json({ error: `Directory not accessible: ${customDir}` });
+          }
+          throw err;
+        }
+      }
 
       const offset = req.query.offset !== undefined ? parseInt(req.query.offset) : null;
       const limit = req.query.limit ? parseInt(req.query.limit) : null;
