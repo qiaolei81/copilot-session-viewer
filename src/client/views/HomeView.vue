@@ -273,6 +273,7 @@ async function selectFilter(source) {
 
 // Infinite scroll
 let scrollTimeout = null;
+let importTimer = null;
 function throttledScroll() {
   if (scrollTimeout) return;
   scrollTimeout = setTimeout(() => {
@@ -312,7 +313,7 @@ async function handleFileChange(e) {
     if (response.ok) {
       importStatusType.value = 'success';
       importStatusMsg.value = `✅ Session ${result.sessionId} imported successfully!`;
-      setTimeout(async () => {
+      importTimer = setTimeout(async () => {
         const source = currentSourceFilter.value;
         allSessions.value = allSessions.value.filter(s => s.source !== source);
         const state = getState(source);
@@ -394,6 +395,9 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  clearTimeout(scrollTimeout);
+  clearTimeout(lpTimer);
+  clearTimeout(importTimer);
   window.removeEventListener('scroll', throttledScroll);
   document.removeEventListener('touchmove', onTouchMove);
   document.removeEventListener('touchend', onTouchEnd);

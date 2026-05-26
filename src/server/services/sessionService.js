@@ -588,64 +588,6 @@ class SessionService {
     }
   }
 
-  /**
-   * OLD METHOD - kept for reference, not used anymore
-   * Match Pi-Mono tool results (old format with tool.result type)
-   * @private
-   */
-  _matchPiMonoToolResults_OLD(events) {
-    const matchedResultIds = new Set(); // Track matched tool.result event IDs to remove
-
-    // Find all assistant messages with tool calls
-    events.forEach(assistantEvent => {
-      if (assistantEvent.type === 'assistant.message' && assistantEvent.data.tools && assistantEvent.data.tools.length > 0) {
-        const tools = assistantEvent.data.tools;
-        
-        // Collect toolResult events by following parentId chain
-        const resultEvents = [];
-        let currentId = assistantEvent.id;
-        
-        // Follow the chain: find events whose parentId points to current
-        let foundMore = true;
-        while (foundMore && resultEvents.length < tools.length) {
-          foundMore = false;
-          for (const event of events) {
-            if (event.type === 'tool.result' && event.parentId === currentId && !resultEvents.includes(event)) {
-              resultEvents.push(event);
-              currentId = event.id;
-              foundMore = true;
-              break;
-            }
-          }
-        }
-
-        // Match results to tools by order
-        resultEvents.forEach((resultEvent, index) => {
-          if (index < tools.length) {
-            const tool = tools[index];
-            tool.status = 'completed';
-            tool._matched = true;
-            tool.result = resultEvent.data.result;
-            tool.resultId = resultEvent.id;
-            matchedResultIds.add(resultEvent.id); // Mark for removal
-          }
-        });
-      }
-    });
-
-    // Remove matched tool.result events from the stream (like Claude does)
-    // These are now attached to assistant messages, don't need separate display
-    const originalLength = events.length;
-    for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].type === 'tool.result' && matchedResultIds.has(events[i].id)) {
-        events.splice(i, 1);
-      }
-    }
-    
-    if (matchedResultIds.size > 0) {
-      console.log(`[PI-MONO] Removed ${matchedResultIds.size} matched tool.result events (${originalLength} → ${events.length} events)`);
-    }
-  }
 
   /**
    * Merge hook.start/hook.end pairs: attach end result to start, mark end for removal.

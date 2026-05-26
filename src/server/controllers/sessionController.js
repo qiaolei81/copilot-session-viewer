@@ -195,7 +195,7 @@ class SessionController {
       const timeline = await this.sessionService.getTimeline(sessionId);
 
       const etagBase = `${sessionId}-timeline-${session.updatedAt || session.createdAt}`;
-      const etag = crypto.createHash('md5').update(etagBase).digest('hex');
+      const etag = crypto.createHash('sha256').update(etagBase).digest('hex');
 
       res.set({
         'ETag': etag,
@@ -270,9 +270,9 @@ class SessionController {
         } else if (session.source === 'claude') {
           const claudeSource = this.sessionService.sessionRepository.sources.find(s => s.type === 'claude');
           if (claudeSource) {
-            const projectDirs = await fs.promises.readdir(path.join(claudeSource.dir, 'projects'));
+            const projectDirs = await fs.promises.readdir(claudeSource.dir);
             for (const projectDir of projectDirs) {
-              const candidatePath = path.join(claudeSource.dir, 'projects', projectDir, `${sessionId}.jsonl`);
+              const candidatePath = path.join(claudeSource.dir, projectDir, `${sessionId}.jsonl`);
               try {
                 await fs.promises.access(candidatePath);
                 sessionPath = candidatePath;
