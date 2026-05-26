@@ -1,11 +1,11 @@
-id: 1bbaf36c-f48b-4936-a88a-d2d26857a38d
-cwd: /Users/testuser/workspace/struts2-project
-git_root: /Users/testuser/workspace/struts2-project
-repository: josesanchezr/struts2-project
+id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+cwd: /home/user/project
+git_root: /home/user/project
+repository: test-org/test-project
 host_type: github
-branch: master
+branch: main
 user_named: false
 summary_count: 0
-created_at: 2026-05-20T12:54:57.139Z
-updated_at: 2026-05-20T12:55:03.128Z
-name: migrate to springboot into another directory, Complete all phases autonomously without asking for confirmation or feedback.
+created_at: 2026-01-15T10:00:00.000Z
+updated_at: 2026-01-15T10:00:03.000Z
+name: E2E test fixture session

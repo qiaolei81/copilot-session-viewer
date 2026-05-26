@@ -207,7 +207,8 @@ export function useSessionData() {
       skill: { label: 'SKILL', style: { backgroundColor: 'var(--color-badge-skill)', color: '#fff' } },
       session: { label: 'SESSION', style: { backgroundColor: 'var(--color-badge-session)', color: '#fff' } },
       error: { label: 'ERROR', style: { backgroundColor: 'var(--color-badge-error)', color: '#fff' } },
-      abort: { label: 'ABORT', style: { backgroundColor: 'var(--color-badge-abort)', color: '#fff' } }
+      abort: { label: 'ABORT', style: { backgroundColor: 'var(--color-badge-abort)', color: '#fff' } },
+      system: { label: 'SYSTEM', style: { backgroundColor: 'var(--color-badge-system)', color: '#adbac7', fontStyle: 'italic' } }
     };
     return badges[category] || { label: category.toUpperCase(), style: { backgroundColor: 'var(--color-badge-default)', color: '#fff' } };
   };
