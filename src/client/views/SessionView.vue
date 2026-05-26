@@ -1,83 +1,84 @@
 <template>
-  <div class="container">
+  <div class="max-w-full h-screen flex flex-col p-0 font-sans bg-[#0d1117] text-[#c9d1d9] leading-normal overflow-hidden">
     <SessionHeader
-      :sessionId="sessionId"
+      :session-id="sessionId"
+      :source="source"
       :metadata="metadata"
       :exporting="exporting"
       @export="exportSession"
     />
 
-    <div class="main-layout">
+    <div class="flex flex-1 overflow-hidden">
       <!-- Mobile overlay backdrop -->
       <div
         v-if="!sidebarCollapsed"
+        class="sidebar-backdrop hidden"
         @click="sidebarCollapsed = true"
-        class="sidebar-backdrop"
-      ></div>
+      />
 
       <SessionSidebar
         :collapsed="sidebarCollapsed"
         :metadata="metadata"
-        :formatDateTime="formatDateTime"
-        :formatTokens="formatTokens"
-        :formatDuration="formatDuration"
-        :formatCost="formatCost"
-        :totalTokens="totalTokens"
-        :totalRequests="totalRequests"
-        :totalModels="totalModels"
-        :getDisplayUsageInputTokens="getDisplayUsageInputTokens"
-        :getModelCacheHitRatio="getModelCacheHitRatio"
-        :toolCallingSummary="toolCallingSummary"
-        :sessionTags="sessionTags"
-        :tagsEditing="tagsEditing"
-        :editingTags="editingTags"
-        :tagInputValue="tagInputValue"
-        :tagsError="tagsError"
-        :showAutocomplete="showAutocomplete"
-        :autocompleteOptions="autocompleteOptions"
-        :autocompleteSelectedIndex="autocompleteSelectedIndex"
-        :getTagColor="getTagColor"
-        @startEditTags="startEditTags"
-        @cancelEditTags="cancelEditTags"
-        @addTag="addTag"
-        @removeTagFromEdit="removeTagFromEdit"
-        @updateAutocomplete="updateAutocomplete"
-        @selectAutocompleteOption="selectAutocompleteOption"
-        @saveTagsOnBlur="saveTagsOnBlur"
-        @update:tagInputValue="tagInputValue = $event"
+        :format-date-time="formatDateTime"
+        :format-tokens="formatTokens"
+        :format-duration="formatDuration"
+        :format-cost="formatCost"
+        :total-tokens="totalTokens"
+        :total-requests="totalRequests"
+        :total-models="totalModels"
+        :get-display-usage-input-tokens="getDisplayUsageInputTokens"
+        :get-model-cache-hit-ratio="getModelCacheHitRatio"
+        :tool-calling-summary="toolCallingSummary"
+        :session-tags="sessionTags"
+        :tags-editing="tagsEditing"
+        :editing-tags="editingTags"
+        :tag-input-value="tagInputValue"
+        :tags-error="tagsError"
+        :show-autocomplete="showAutocomplete"
+        :autocomplete-options="autocompleteOptions"
+        :autocomplete-selected-index="autocompleteSelectedIndex"
+        :get-tag-color="getTagColor"
+        @start-edit-tags="startEditTags"
+        @cancel-edit-tags="cancelEditTags"
+        @add-tag="addTag"
+        @remove-tag-from-edit="removeTagFromEdit"
+        @update-autocomplete="updateAutocomplete"
+        @select-autocomplete-option="selectAutocompleteOption"
+        @save-tags-on-blur="saveTagsOnBlur"
+        @update:tag-input-value="tagInputValue = $event"
       />
 
-      <div class="content">
+      <div class="flex-1 flex flex-col overflow-hidden relative">
         <FilterBar
-          :sidebarCollapsed="sidebarCollapsed"
-          :searchText="searchText"
-          :searchResultCount="searchResultCount"
+          :sidebar-collapsed="sidebarCollapsed"
+          :search-text="searchText"
+          :search-result-count="searchResultCount"
           :turns="turns"
-          :userReqs="userReqs"
-          :currentTurnIndex="currentTurnIndex"
-          :subagentList="subagentList"
-          :filteredSubagentList="filteredSubagentList"
-          :selectedSubagent="selectedSubagent"
-          :subagentDropdownOpen="subagentDropdownOpen"
-          :subagentSearchQuery="subagentSearchQuery"
-          :subagentTokenUsage="subagentTokenUsage"
+          :user-reqs="userReqs"
+          :current-turn-index="currentTurnIndex"
+          :subagent-list="subagentList"
+          :filtered-subagent-list="filteredSubagentList"
+          :selected-subagent="selectedSubagent"
+          :subagent-dropdown-open="subagentDropdownOpen"
+          :subagent-search-query="subagentSearchQuery"
+          :subagent-token-usage="subagentTokenUsage"
           :SUBAGENT_COLORS="SUBAGENT_COLORS"
-          :currentFilter="currentFilter"
-          :typeFilterOpen="typeFilterOpen"
+          :current-filter="currentFilter"
+          :type-filter-open="typeFilterOpen"
           :filters="filters"
-          :activeFilterCount="activeFilterCount"
-          :formatDuration="formatDuration"
-          :truncateText="truncateText"
-          @toggleSidebar="sidebarCollapsed = !sidebarCollapsed"
-          @update:searchText="searchText = $event"
-          @jumpToTurn="jumpToTurn"
-          @update:currentTurnIndex="currentTurnIndex = $event"
-          @selectSubagent="selectSubagent"
-          @toggleSubagentDropdown="subagentDropdownOpen = !subagentDropdownOpen"
-          @update:subagentSearchQuery="subagentSearchQuery = $event"
-          @setFilter="setFilter"
-          @toggleTypeFilter="typeFilterOpen = !typeFilterOpen"
-          @clearAllFilters="clearAllFilters"
+          :active-filter-count="activeFilterCount"
+          :format-duration="formatDuration"
+          :truncate-text="truncateText"
+          @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+          @update:search-text="searchText = $event"
+          @jump-to-turn="jumpToTurn"
+          @update:current-turn-index="currentTurnIndex = $event"
+          @select-subagent="selectSubagent"
+          @toggle-subagent-dropdown="subagentDropdownOpen = !subagentDropdownOpen"
+          @update:subagent-search-query="subagentSearchQuery = $event"
+          @set-filter="setFilter"
+          @toggle-type-filter="typeFilterOpen = !typeFilterOpen"
+          @clear-all-filters="clearAllFilters"
         />
 
         <!-- Loading state -->
@@ -114,44 +115,48 @@
               <EventItem
                 :item="item"
                 :metadata="metadata"
-                :expandedTools="expandedTools"
-                :expandedContent="expandedContent"
-                :searchText="searchText"
-                :subagentOwnership="subagentOwnership"
-                :formatTime="formatTime"
-                :formatToolTime="formatToolTime"
-                :formatDateTime="formatDateTime"
-                :renderMarkdown="renderMarkdown"
-                :highlightSearchText="highlightSearchText"
-                :toggleTool="toggleTool"
-                :toggleContent="toggleContent"
-                :isContentTooLong="isContentTooLong"
-                :truncateContent="truncateContent"
-                :getBadgeInfo="getBadgeInfo"
-                :getToolStatus="getToolStatus"
-                :getToolErrorMessage="getToolErrorMessage"
-                :getToolDuration="getToolDuration"
-                :getToolCommand="getToolCommand"
-                :hasTools="hasTools"
-                :getToolGroups="getToolGroups"
-                :getSubagentInfo="getSubagentInfo"
-                :getSubagentColor="getSubagentColor"
-                :getTurnNumber="getTurnNumber"
-                :getTurnDuration="getTurnDuration"
+                :expanded-tools="expandedTools"
+                :expanded-content="expandedContent"
+                :search-text="searchText"
+                :subagent-ownership="subagentOwnership"
+                :format-time="formatTime"
+                :format-tool-time="formatToolTime"
+                :format-date-time="formatDateTime"
+                :render-markdown="renderMarkdown"
+                :highlight-search-text="highlightSearchText"
+                :toggle-tool="toggleTool"
+                :toggle-content="toggleContent"
+                :is-content-too-long="isContentTooLong"
+                :truncate-content="truncateContent"
+                :get-badge-info="getBadgeInfo"
+                :get-tool-status="getToolStatus"
+                :get-tool-error-message="getToolErrorMessage"
+                :get-tool-duration="getToolDuration"
+                :get-tool-command="getToolCommand"
+                :has-tools="hasTools"
+                :get-tool-groups="getToolGroups"
+                :get-subagent-info="getSubagentInfo"
+                :get-subagent-color="getSubagentColor"
+                :get-turn-number="getTurnNumber"
+                :get-turn-duration="getTurnDuration"
                 :SUBAGENT_COLORS="SUBAGENT_COLORS"
-                @selectSubagent="selectSubagent"
+                @select-subagent="selectSubagent"
               />
             </DynamicScrollerItem>
           </template>
         </DynamicScroller>
 
         <!-- Bottom spacer -->
-        <div class="scroller-bottom-spacer"></div>
+        <div class="h-[max(env(safe-area-inset-bottom,0px),16px)] shrink-0" />
 
         <!-- Floating scroll buttons -->
-        <div class="scroll-float-btns">
-          <button @click="scrollToTop" title="Scroll to top" class="scroll-edge-btn">▲</button>
-          <button @click="scrollToBottom" title="Scroll to bottom" class="scroll-edge-btn">▼</button>
+        <div class="fixed bottom-6 right-6 flex flex-col gap-2 z-[9999]">
+          <button title="Scroll to top" class="scroll-edge-btn bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 text-[13px] cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToTop">
+▲
+</button>
+          <button title="Scroll to bottom" class="scroll-edge-btn bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 text-[13px] cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToBottom">
+▼
+</button>
         </div>
       </div>
     </div>
@@ -169,7 +174,7 @@ import EventItem from '../components/session/EventItem.vue';
 import { useSessionData } from '../components/session/useSessionData.js';
 
 const {
-  sessionId, metadata, exporting, sidebarCollapsed,
+  sessionId, source, metadata, exporting, sidebarCollapsed,
   expandedTools, expandedContent, expansionCount,
   currentFilter, searchText, debouncedSearchText, currentTurnIndex,
   scrollerRef, visibleRange,
@@ -201,132 +206,3 @@ const {
   getDisplayUsageInputTokens, getModelCacheHitRatio, toolCallingSummary
 } = useSessionData();
 </script>
-
-<style scoped>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-.container {
-  max-width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-  background: #0d1117;
-  color: #c9d1d9;
-  line-height: 1.5;
-  overflow: hidden;
-}
-
-/* Focus indicators for accessibility */
-:deep(button:focus-visible),
-:deep(input:focus-visible) {
-  outline: 2px solid #58a6ff;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.2);
-}
-
-/* Main layout */
-.main-layout {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* Content */
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
-/* Virtual Scroller */
-:deep(.vue-recycle-scroller) {
-  flex: 1;
-  overflow-x: hidden !important;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-:deep(.vue-recycle-scroller__item-wrapper) {
-  overflow: visible !important;
-}
-
-/* Scroll float buttons */
-.scroll-float-btns {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 9999;
-}
-.scroll-edge-btn {
-  background: #21262d;
-  color: #c9d1d9;
-  border: 1px solid #30363d;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  transition: background 0.15s, transform 0.1s, opacity 0.15s;
-  padding: 0;
-  opacity: 0.3;
-}
-.scroll-edge-btn:hover {
-  background: #388bfd;
-  border-color: #388bfd;
-  color: #fff;
-  transform: scale(1.1);
-  opacity: 1;
-}
-
-/* Bottom spacer */
-.scroller-bottom-spacer {
-  height: max(env(safe-area-inset-bottom, 0px), 16px);
-  flex-shrink: 0;
-}
-
-/* Sidebar backdrop — hidden by default, shown via mobile media query */
-.sidebar-backdrop {
-  display: none;
-}
-
-/* ── Mobile responsive ── */
-@media (max-width: 640px) {
-  .sidebar-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 999;
-  }
-
-  .content {
-    width: 100%;
-  }
-
-  .scroll-float-btns {
-    bottom: 16px;
-    right: 12px;
-  }
-
-  :deep(.vue-recycle-scroller) {
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), 80px);
-  }
-  .scroller-bottom-spacer {
-    height: max(env(safe-area-inset-bottom, 0px), 100px);
-  }
-  .scroll-edge-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
-  }
-}
-</style>

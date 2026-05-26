@@ -298,26 +298,6 @@ paths:
                   source:
                     type: string
 
-  /api/{source}/sessions/{sessionId}/share:
-    get:
-      operationId: shareSession
-      summary: Get shareable link for a session
-      tags: [sessions]
-      parameters:
-        - $ref: '#/components/parameters/source'
-        - $ref: '#/components/parameters/sessionId'
-      responses:
-        '200':
-          description: Share URL
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  url:
-                    type: string
-                    format: uri
-
 components:
   parameters:
     source:

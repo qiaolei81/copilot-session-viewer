@@ -54,7 +54,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${copilotSessionId}`);
+      await page.goto(`/#/copilot-cli/session/${copilotSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       await expect(page.locator('.main-layout')).toBeVisible();
@@ -67,7 +67,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${claudeSessionId}`);
+      await page.goto(`/#/claude/session/${claudeSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       await expect(page.locator('.main-layout')).toBeVisible();
@@ -80,7 +80,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${piSessionId}`);
+      await page.goto(`/#/pi-mono/session/${piSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       await expect(page.locator('.main-layout')).toBeVisible();
@@ -93,7 +93,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${modernizeSessionId}`);
+      await page.goto(`/#/modernize/session/${modernizeSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       await expect(page.locator('.main-layout')).toBeVisible();
@@ -106,7 +106,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${copilotSessionId}`);
+      await page.goto(`/#/copilot-cli/session/${copilotSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');
@@ -124,7 +124,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${claudeSessionId}`);
+      await page.goto(`/#/claude/session/${claudeSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');
@@ -142,7 +142,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${piSessionId}`);
+      await page.goto(`/#/pi-mono/session/${piSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');
@@ -160,7 +160,7 @@ test.describe('Per-Source Session Tests', () => {
         return;
       }
 
-      await page.goto(`/#/session/${modernizeSessionId}`);
+      await page.goto(`/#/modernize/session/${modernizeSessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       const sessionInfo = page.locator('.session-info');

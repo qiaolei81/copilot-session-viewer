@@ -129,6 +129,7 @@ export default [
       'test-*.js', // Debug scripts
       'debug-*.js', // Debug scripts
       'verify-*.js', // Debug scripts
+      'playwright-report/**', // Generated Playwright files
     ],
   },
 ];

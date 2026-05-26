@@ -164,12 +164,6 @@ for (const { urlSource, minSessions, hasEvents } of SOURCES) {
       }
     });
 
-    // ── Share ──
-    it('GET /sessions/:id/share — share session', async () => {
-      if (!sessionId) return;
-      const res = await request(app).get(`/api/${urlSource}/sessions/${sessionId}/share`);
-      expect([200, 404, 500]).toContain(res.status);
-    });
 
     // ── Insight (CRUD) ──
     it('POST /sessions/:id/insight — creates insight', async () => {

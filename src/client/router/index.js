@@ -5,8 +5,8 @@ import TimeAnalyzeView from '../views/TimeAnalyzeView.vue';
 
 const routes = [
   { path: '/', component: HomeView },
-  { path: '/session/:id', component: SessionView },
-  { path: '/session/:id/time-analyze', component: TimeAnalyzeView },
+  { path: '/:source/session/:id', component: SessionView },
+  { path: '/:source/session/:id/time-analyze', component: TimeAnalyzeView },
 ];
 
 const router = createRouter({

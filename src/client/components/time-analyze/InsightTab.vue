@@ -7,13 +7,15 @@
 
     <!-- Generating State -->
     <div v-else-if="insightStatus === 'generating'" style="padding: 20px;">
-      <div :style="{
+      <div
+:style="{
         background: '#0d1117',
         border: '1px solid ' + (insightAgeMs > 300000 ? '#d29922' : '#30363d'),
         borderRadius: '6px',
         padding: '20px',
         marginBottom: '20px',
-      }">
+      }"
+>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
           <div style="display: flex; align-items: center;">
             <span style="font-size: 24px; margin-right: 10px;">⏳</span>
@@ -29,7 +31,6 @@
           </div>
           <button
             v-if="insightAgeMs > 300000"
-            @click="$emit('regenerate')"
             style="
               background: #d29922;
               color: #fff;
@@ -41,6 +42,7 @@
               font-weight: 500;
               white-space: nowrap;
             "
+            @click="$emit('regenerate')"
             @mouseover="$event.target.style.background='#e3b341'"
             @mouseleave="$event.target.style.background='#d29922'"
           >
@@ -48,7 +50,8 @@
           </button>
         </div>
         <!-- Slow generation warning -->
-        <div v-if="insightAgeMs > 300000" style="
+        <div
+v-if="insightAgeMs > 300000" style="
           background: rgba(210, 153, 34, 0.1);
           border: 1px solid rgba(210, 153, 34, 0.3);
           border-radius: 6px;
@@ -56,10 +59,12 @@
           margin-bottom: 12px;
           font-size: 13px;
           color: #d29922;
-        ">
+        "
+>
           ⚠️ Generation is taking longer than 5 minutes. For large sessions this is normal — the agent needs to read and analyze all events. If it appears stuck, you can click <strong>Stop &amp; Retry</strong> to cancel and start fresh.
         </div>
-        <div v-if="insightLog" id="insight-log" style="
+        <div
+v-if="insightLog" id="insight-log" style="
           background: #161b22;
           border: 1px solid #30363d;
           border-radius: 6px;
@@ -72,19 +77,24 @@
           word-break: break-word;
           max-height: 400px;
           overflow-y: auto;
-        ">{{ insightLog }}</div>
+        "
+>
+{{ insightLog }}
+</div>
       </div>
     </div>
 
     <!-- Timeout State -->
     <div v-else-if="insightStatus === 'timeout'" style="padding: 20px;">
-      <div style="
+      <div
+style="
         background: #0d1117;
         border: 1px solid #d29922;
         border-radius: 6px;
         padding: 20px;
         margin-bottom: 20px;
-      ">
+      "
+>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
           <div style="display: flex; align-items: center;">
             <span style="font-size: 24px; margin-right: 10px;">⏳</span>
@@ -98,7 +108,6 @@
             </div>
           </div>
           <button
-            @click="$emit('regenerate')"
             style="
               background: #d29922;
               color: #fff;
@@ -110,13 +119,15 @@
               font-weight: 500;
               white-space: nowrap;
             "
+            @click="$emit('regenerate')"
             @mouseover="$event.target.style.background='#e3b341'"
             @mouseleave="$event.target.style.background='#d29922'"
           >
             🔄 Stop &amp; Retry
           </button>
         </div>
-        <div v-if="insightLog" style="
+        <div
+v-if="insightLog" style="
           background: #161b22;
           border: 1px solid #30363d;
           border-radius: 6px;
@@ -129,7 +140,10 @@
           word-break: break-word;
           max-height: 400px;
           overflow-y: auto;
-        ">{{ insightLog }}</div>
+        "
+>
+{{ insightLog }}
+</div>
       </div>
     </div>
 
@@ -139,7 +153,6 @@
         Generate an AI-powered quality &amp; performance review of how the agent used its tools, prompts, and workflow in this session
       </p>
       <button
-        @click="$emit('generate')"
         :disabled="insightLoading"
         style="
           background: #238636;
@@ -151,6 +164,7 @@
           cursor: pointer;
           font-weight: 500;
         "
+        @click="$emit('generate')"
         @mouseover="$event.target.style.background='#2ea043'"
         @mouseleave="$event.target.style.background='#238636'"
       >
@@ -163,19 +177,20 @@
 
     <!-- Completed State -->
     <div v-else-if="insightStatus === 'completed'" style="padding: 20px;">
-      <div style="
+      <div
+style="
         background: #161b22;
         border: 1px solid #30363d;
         border-radius: 6px;
         padding: 20px;
         margin-bottom: 20px;
-      ">
+      "
+>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
           <span style="color: #7d8590; font-size: 13px;">
             Generated: {{ formatDateTime(insightGeneratedAt) }}
           </span>
           <button
-            @click="$emit('regenerate')"
             style="
               background: transparent;
               color: #58a6ff;
@@ -185,16 +200,19 @@
               font-size: 12px;
               cursor: pointer;
             "
+            @click="$emit('regenerate')"
             @mouseover="$event.target.style.background='rgba(88, 166, 255, 0.1)'"
             @mouseleave="$event.target.style.background='transparent'"
           >
             🔄 Regenerate
           </button>
         </div>
-        <div v-html="renderedInsight" style="
+        <div
+style="
           color: #c9d1d9;
           line-height: 1.6;
-        "></div>
+        " v-html="renderedInsight"
+/>
       </div>
     </div>
   </div>

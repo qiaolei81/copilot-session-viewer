@@ -1,7 +1,7 @@
 const SessionService = require('../services/sessionService');
 const { isValidSessionId } = require('../utils/helpers');
 const { resolveSource } = require('../utils/sourceMapping');
-const { trackEvent, trackMetric } = require('../telemetry');
+const { trackEvent, trackMetric: _trackMetric } = require('../telemetry');
 const AdmZip = require('adm-zip');
 const path = require('path');
 const fs = require('fs');

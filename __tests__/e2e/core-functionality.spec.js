@@ -2,12 +2,14 @@ const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 test.describe('Core Functionality Tests', () => {
   let SESSION_ID;
+  let SESSION_SOURCE;
 
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API for testing
     const sessions = await getSessionsWithRetry(request);
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
+      SESSION_SOURCE = sessions[0].source;
     }
   });
 
@@ -49,14 +51,14 @@ test.describe('Core Functionality Tests', () => {
       test.skip('No sessions available for navigation test');
     }
 
-    await page.goto(`/#/session/${SESSION_ID}`);
+    await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     // Should load session detail page
     await expect(page.locator('body')).toBeVisible();
 
     // URL should be correct
-    expect(page.url()).toContain(`/#/session/${SESSION_ID}`);
+    expect(page.url()).toContain(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
   });
 
   test('should load time analysis page', async ({ page }) => {
@@ -64,7 +66,7 @@ test.describe('Core Functionality Tests', () => {
       test.skip('No sessions available for time analysis test');
     }
 
-    await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+    await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
     await page.waitForLoadState('networkidle');
 
     // Time analysis page should load

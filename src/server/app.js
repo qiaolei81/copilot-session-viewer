@@ -133,8 +133,7 @@ function createApp(options = {}) {
   app.get('/api/:source/sessions/:sessionId/tags', validateSource, tagController.getSessionTags.bind(tagController));
   app.put('/api/:source/sessions/:sessionId/tags', validateSource, tagController.setSessionTags.bind(tagController));
 
-  // Session share
-  app.get('/api/:source/sessions/:sessionId/share', validateSource, uploadController.shareSession.bind(uploadController));
+  
 
   // Insight routes
   app.post('/api/:source/sessions/:sessionId/insight', validateSource, insightController.generateInsight.bind(insightController));

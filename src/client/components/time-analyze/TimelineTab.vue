@@ -21,32 +21,32 @@
       <!-- Event Legend -->
       <div v-show="showMarkerLegend" class="event-legend">
         <div class="event-legend-item">
-          <span class="event-legend-swatch" style="background: rgba(88, 166, 255, 0.5);"></span>
+          <span class="event-legend-swatch" style="background: rgba(88, 166, 255, 0.5);" />
           <span>User Request</span>
         </div>
         <div class="event-legend-item">
-          <span class="event-legend-swatch" style="background: rgba(63, 185, 80, 0.8);"></span>
+          <span class="event-legend-swatch" style="background: rgba(63, 185, 80, 0.8);" />
           <span>Sub-Agent</span>
         </div>
         <div class="event-legend-item">
-          <span class="event-legend-swatch" style="background: rgba(139, 148, 158, 0.3); border: 1px dashed rgba(139, 148, 158, 0.5);"></span>
+          <span class="event-legend-swatch" style="background: rgba(139, 148, 158, 0.3); border: 1px dashed rgba(139, 148, 158, 0.5);" />
           <span>Main Agent</span>
         </div>
         <div class="event-legend-item">
-          <span class="event-legend-swatch" style="background: #d29922;"></span>
+          <span class="event-legend-swatch" style="background: #d29922;" />
           <span>Tool (no errors)</span>
         </div>
         <div class="event-legend-item">
-          <span class="event-legend-swatch" style="background: linear-gradient(to right, #d29922, #f85149);"></span>
+          <span class="event-legend-swatch" style="background: linear-gradient(to right, #d29922, #f85149);" />
           <span>Tool (error gradient)</span>
         </div>
         <div class="event-legend-item">
-          <span class="event-legend-swatch" style="background: #f85149;"></span>
+          <span class="event-legend-swatch" style="background: #f85149;" />
           <span>Tool Error (100%)</span>
         </div>
         <template v-for="(cat, type) in EVENT_MARKER_CATEGORIES" :key="type">
           <div v-if="type && !type.startsWith('tool.')" class="event-legend-item">
-            <span class="event-legend-swatch" :style="{ background: cat.color, borderRadius: cat.shape === 'circle' ? '50%' : cat.shape === 'diamond' ? '1px' : '2px', transform: cat.shape === 'diamond' ? 'rotate(45deg)' : 'none' }"></span>
+            <span class="event-legend-swatch" :style="{ background: cat.color, borderRadius: cat.shape === 'circle' ? '50%' : cat.shape === 'diamond' ? '1px' : '2px', transform: cat.shape === 'diamond' ? 'rotate(45deg)' : 'none' }" />
             <span>{{ cat.label }}</span>
           </div>
         </template>
@@ -55,11 +55,12 @@
       <div class="gantt-container" @mousemove="onGanttMouseMove" @mouseleave="onGanttMouseLeave">
         <!-- Crosshair -->
         <div v-if="ganttCrosshairX !== null" class="gantt-crosshair" :style="{ left: ganttCrosshairX + 'px' }">
-          <div class="gantt-crosshair-label">{{ ganttCrosshairTime }}</div>
+          <div class="gantt-crosshair-label">
+{{ ganttCrosshairTime }}
+</div>
         </div>
         <template v-for="(item, idx) in unifiedTimelineItems" :key="'utl-' + idx">
-
-          <!-- Divider row -->
+<!-- Divider row -->
           <div v-if="item.rowType === 'divider'" class="gantt-divider">
             Tool Summary
           </div>
@@ -144,8 +145,7 @@
               </div>
             </div>
           </div>
-
-        </template>
+</template>
 
         <div class="gantt-time-axis">
           <span>{{ formatTime(events[0]?.timestamp) }}</span>
@@ -155,7 +155,9 @@
 
       <!-- Tool Summary -->
       <div v-if="toolTimeByCategory.length" style="margin-top: 24px;">
-        <h3 style="color: #e6edf3; font-size: 14px; margin-bottom: 12px;">🔧 Tool Summary</h3>
+        <h3 style="color: #e6edf3; font-size: 14px; margin-bottom: 12px;">
+🔧 Tool Summary
+</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px;">
           <div
             v-for="cat in toolTimeByCategory"
@@ -168,15 +170,16 @@
                 <span style="color: #7d8590; font-size: 11px;">{{ cat.count }} call{{ cat.count !== 1 ? 's' : '' }}<span v-if="cat.errors" style="color: #f85149;"> · {{ cat.errors }} err</span></span>
               </div>
               <div style="background: #21262d; border-radius: 3px; height: 6px; overflow: hidden;">
-                <div :style="{ width: (cat.totalTime / maxCategoryTime * 100) + '%', height: '100%', background: 'rgba(158, 106, 3, 0.7)', borderRadius: '3px' }"></div>
+                <div :style="{ width: (cat.totalTime / maxCategoryTime * 100) + '%', height: '100%', background: 'rgba(158, 106, 3, 0.7)', borderRadius: '3px' }" />
               </div>
-              <div style="color: #7d8590; font-size: 11px; margin-top: 3px;">{{ formatDuration(cat.totalTime) }}</div>
+              <div style="color: #7d8590; font-size: 11px; margin-top: 3px;">
+{{ formatDuration(cat.totalTime) }}
+</div>
             </div>
           </div>
         </div>
       </div>
-
-    </div>
+</div>
   </div>
 </template>
 

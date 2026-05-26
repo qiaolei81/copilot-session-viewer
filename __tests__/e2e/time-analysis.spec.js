@@ -2,12 +2,14 @@ const { test, expect, getSessionsWithRetry } = require('./fixtures');
 
 test.describe('Time Analysis and Timeline Tests', () => {
   let SESSION_ID;
+  let SESSION_SOURCE;
 
   test.beforeAll(async ({ request }) => {
     // Get first session ID from API
     const sessions = await getSessionsWithRetry(request);
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
+      SESSION_SOURCE = sessions[0].source;
     } else {
       throw new Error('No sessions available for testing');
     }
@@ -15,7 +17,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
   test.describe('Time Analysis Page', () => {
     test('should load time analysis page', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
 
       // Wait for page to load
       await page.waitForSelector('.container', { timeout: 10000 });
@@ -25,7 +27,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should display navigation buttons', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       // Check for back button
@@ -34,7 +36,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should navigate to session detail page', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       // Click session detail button
@@ -42,17 +44,17 @@ test.describe('Time Analysis and Timeline Tests', () => {
       await sessionBtn.click();
 
       // Wait for navigation (hash router)
-      await page.waitForURL(`**/#/session/${SESSION_ID}`, { timeout: 5000 });
+      await page.waitForURL(`**/#/${SESSION_SOURCE}/session/${SESSION_ID}`, { timeout: 5000 });
 
       // Verify URL changed
-      expect(page.url()).toContain(`/#/session/${SESSION_ID}`);
+      expect(page.url()).toContain(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       expect(page.url()).not.toContain('/time-analyze');
     });
   });
 
   test.describe('Summary Cards', () => {
     test('should display summary cards section', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       // Check for summary grid
@@ -61,7 +63,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should display turns summary card', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       // Wait for data to load
@@ -84,7 +86,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should display tools summary card', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       await page.waitForTimeout(2000);
@@ -102,7 +104,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should display duration summary card', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       await page.waitForTimeout(2000);
@@ -122,7 +124,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
   test.describe('Timeline/Gantt Chart', () => {
     test('should display timeline section', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       const timelineSection = page.locator('.section').filter({
@@ -135,7 +137,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should display timeline chart container', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       await page.waitForTimeout(2000);
@@ -148,7 +150,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should render turn bars in timeline', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       await page.waitForTimeout(3000);
@@ -162,7 +164,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should display timeline with correct structure', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       await page.waitForTimeout(3000);
@@ -178,7 +180,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
   test.describe('Tool Summary Section', () => {
     test('should display tool summary items sorted by count descending', async ({ page }, testInfo) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       await page.waitForTimeout(3000);
@@ -211,7 +213,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
 
   test.describe('Tab Switching', () => {
     test('should have Timeline and Agent Review tabs', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       // Check for tabs container
@@ -228,7 +230,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     });
 
     test('should switch between Timeline and Agent Review tabs', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}/time-analyze`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('.container', { timeout: 10000 });
 
       await page.waitForTimeout(2000);

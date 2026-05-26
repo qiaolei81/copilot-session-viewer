@@ -3,8 +3,12 @@ const { test, expect, getSessionsWithRetry, getAllSourceSessionsWithRetry } = re
 test.describe('Session Detail Page', () => {
   let SESSION_ID;
   let EVENTFUL_SESSION_ID;
+  let EVENTFUL_SOURCE;
   let CLAUDE_USAGE_SESSION_ID;
+  let CLAUDE_USAGE_SOURCE;
   let CLAUDE_DEDUP_SESSION_ID;
+  let CLAUDE_DEDUP_SOURCE;
+  let SESSION_SOURCE;
 
   const getWithRetry = async (request, url, attempts = 3) => {
     let lastError;
@@ -86,6 +90,7 @@ test.describe('Session Detail Page', () => {
     const sessions = await getAllSourceSessionsWithRetry(request);
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
+      SESSION_SOURCE = sessions[0].source;
     } else {
       throw new Error('No sessions available for testing');
     }
@@ -104,6 +109,7 @@ test.describe('Session Detail Page', () => {
       const events = await eventsResponse.json();
       if (Array.isArray(events) && events.length > 0) {
         EVENTFUL_SESSION_ID = session.id;
+          EVENTFUL_SOURCE = session.source;
         break;
       }
     }
@@ -116,6 +122,7 @@ test.describe('Session Detail Page', () => {
           const events = await eventsResponse.json();
           if (isClaudeDedupCandidate(events)) {
             CLAUDE_DEDUP_SESSION_ID = session.id;
+              CLAUDE_DEDUP_SOURCE = session.source;
           }
         }
       }
@@ -128,6 +135,7 @@ test.describe('Session Detail Page', () => {
           const hasUsage = Array.isArray(events) && events.some(e => e.data?.usage || e.data?.model);
           if (hasUsage) {
             CLAUDE_USAGE_SESSION_ID = session.id;
+              CLAUDE_USAGE_SOURCE = session.source;
           }
         }
       }
@@ -151,7 +159,7 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should load session detail page', async ({ page }) => {
-    await page.goto(`/#/session/${SESSION_ID}`);
+    await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
 
     // Wait for Vue to mount and render
     await page.waitForSelector('.main-layout', { timeout: 10000 });
@@ -161,7 +169,7 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should display session metadata', async ({ page }) => {
-    await page.goto(`/#/session/${SESSION_ID}`);
+    await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
 
     // Wait for Vue to mount
     await page.waitForSelector('.main-layout', { timeout: 10000 });
@@ -176,7 +184,7 @@ test.describe('Session Detail Page', () => {
   test('should display usage summary for Claude sessions when usage data exists', async ({ page }) => {
     test.skip(!CLAUDE_USAGE_SESSION_ID, 'No Claude session with usage data available');
 
-    await page.goto(`/#/session/${CLAUDE_USAGE_SESSION_ID}`);
+    await page.goto(`/#/${CLAUDE_USAGE_SOURCE}/session/${CLAUDE_USAGE_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     const usageSummary = page.locator('.usage-summary').first();
@@ -193,7 +201,7 @@ test.describe('Session Detail Page', () => {
   test('should display tool calling summary in sidebar sorted by count descending', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
 
     // Check for Tool Calls sidebar section
@@ -227,7 +235,7 @@ test.describe('Session Detail Page', () => {
   test('should display event list', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
 
     // Check events are displayed
@@ -249,7 +257,7 @@ test.describe('Session Detail Page', () => {
 
     expect(uniqueEventKeys.size).toBe(visibleEvents.length);
 
-    await page.goto(`/#/session/${CLAUDE_DEDUP_SESSION_ID}`);
+    await page.goto(`/#/${CLAUDE_DEDUP_SOURCE}/session/${CLAUDE_DEDUP_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -274,7 +282,7 @@ test.describe('Session Detail Page', () => {
   test('should filter events by search', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
 
     await waitForEventsToRender(page);
 
@@ -313,7 +321,7 @@ test.describe('Session Detail Page', () => {
   test('should clear search filter', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
 
     // Wait for virtual scroller to stabilize
@@ -351,7 +359,7 @@ test.describe('Session Detail Page', () => {
   test('should expand and collapse tool details', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     // Wait for page content to load
@@ -392,7 +400,7 @@ test.describe('Session Detail Page', () => {
   test('should toggle content visibility', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     const _pageLoaded = await Promise.race([
@@ -427,7 +435,7 @@ test.describe('Session Detail Page', () => {
   test('should toggle sidebar', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
     const _pageLoaded = await Promise.race([
@@ -471,7 +479,7 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should handle invalid session ID gracefully', async ({ page }) => {
-    await page.goto('/#/session/invalid-session-id-123');
+    await page.goto('/#/copilot-cli/session/invalid-session-id-123');
 
     // Wait for Vue to mount and try to load the session
     await page.waitForLoadState('networkidle');
@@ -492,7 +500,7 @@ test.describe('Session Detail Page', () => {
   test('should open event type dropdown and select a type', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -532,7 +540,7 @@ test.describe('Session Detail Page', () => {
   test('should show filter chips when filters active and clear all', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -565,7 +573,7 @@ test.describe('Session Detail Page', () => {
   test('should dismiss filter chip individually', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 
@@ -597,7 +605,7 @@ test.describe('Session Detail Page', () => {
   test('should close type dropdown when clicking outside', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/session/${EVENTFUL_SESSION_ID}`);
+    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
     await page.waitForTimeout(1000);
 

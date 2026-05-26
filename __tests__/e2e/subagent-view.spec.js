@@ -2,7 +2,9 @@ const { test, expect, getAllSourceSessionsWithRetry } = require('./fixtures');
 
 test.describe('Subagent View', () => {
   let SESSION_ID;
+  let SESSION_SOURCE;
   let SUBAGENT_SESSION_ID;
+  let SUBAGENT_SOURCE;
 
   const getWithRetry = async (request, url, attempts = 3) => {
     let lastError;
@@ -25,6 +27,7 @@ test.describe('Subagent View', () => {
       throw new Error('No sessions available for testing');
     }
     SESSION_ID = sessions[0].id;
+      SESSION_SOURCE = sessions[0].source;
 
     // Find a session with subagent.started events
     for (const session of sessions.slice(0, 20)) {
@@ -36,6 +39,7 @@ test.describe('Subagent View', () => {
       const hasVsCodeSubagent = events.some(e => e.type === 'assistant.message' && e.data?.subAgentName && e.data?.subAgentId);
       if (hasSubagentStarted || hasVsCodeSubagent) {
         SUBAGENT_SESSION_ID = session.id;
+        SUBAGENT_SOURCE = session.source;
         break;
       }
     }
@@ -56,7 +60,7 @@ test.describe('Subagent View', () => {
   test('should show subagent dropdown when session has subagents', async ({ page }) => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
-    await page.goto(`/#/session/${SUBAGENT_SESSION_ID}`);
+    await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     await page.waitForFunction(() => {
@@ -83,7 +87,7 @@ test.describe('Subagent View', () => {
     const testId = SUBAGENT_SESSION_ID ? SESSION_ID : SESSION_ID;
     test.skip(SUBAGENT_SESSION_ID === SESSION_ID, 'Cannot test - first session has subagents');
 
-    await page.goto(`/#/session/${testId}`);
+    await page.goto(`/#/${SESSION_SOURCE}/session/${testId}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     await page.waitForFunction(() => {
@@ -103,7 +107,7 @@ test.describe('Subagent View', () => {
   test('should filter events when subagent is selected', async ({ page }) => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
-    await page.goto(`/#/session/${SUBAGENT_SESSION_ID}`);
+    await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     await page.waitForFunction(() => {
@@ -147,7 +151,7 @@ test.describe('Subagent View', () => {
   test('should show usage badge when subagent is selected', async ({ page }) => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
-    await page.goto(`/#/session/${SUBAGENT_SESSION_ID}`);
+    await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     await page.waitForFunction(() => {
@@ -179,7 +183,7 @@ test.describe('Subagent View', () => {
   test('should return to all events when "All Agents" is selected', async ({ page }) => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
-    await page.goto(`/#/session/${SUBAGENT_SESSION_ID}`);
+    await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     await page.waitForFunction(() => {
@@ -225,7 +229,7 @@ test.describe('Subagent View', () => {
   test('should preserve type filter when clearing agent chip', async ({ page }) => {
     test.skip(!SUBAGENT_SESSION_ID, 'No session with subagents available');
 
-    await page.goto(`/#/session/${SUBAGENT_SESSION_ID}`);
+    await page.goto(`/#/${SUBAGENT_SOURCE}/session/${SUBAGENT_SESSION_ID}`);
     await page.waitForSelector('.main-layout', { timeout: 10000 });
 
     await page.waitForFunction(() => {

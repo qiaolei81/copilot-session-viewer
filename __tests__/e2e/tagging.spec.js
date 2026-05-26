@@ -13,6 +13,7 @@ test.describe('Tagging Feature', () => {
 
     if (sessions.length > 0) {
       SESSION_ID = sessions[0].id;
+      SESSION_SOURCE = sessions[0].source;
       SESSION_SOURCE = sessions[0].source || 'copilot-cli';
     } else {
       test.skip('No sessions available for testing');
@@ -73,7 +74,7 @@ test.describe('Tagging Feature', () => {
       }
 
       // Find the target session card by its link
-      const targetCard = page.locator(`.recent-item[href="/session/${SESSION_ID}"]`).first();
+      const targetCard = page.locator(`.recent-item[href="/${SESSION_SOURCE}/session/${SESSION_ID}"]`).first();
 
       if (await targetCard.count() === 0) {
         console.log('Tagged session not visible on homepage current page/filter');
@@ -126,7 +127,7 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should display tags section in sidebar', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Check for tags container
@@ -138,7 +139,7 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should show edit button for tags', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       const tagsContainer = page.locator('.session-tags-container');
@@ -150,7 +151,7 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should open tag editing dropdown on edit button click', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Click edit button
@@ -177,7 +178,7 @@ test.describe('Tagging Feature', () => {
       });
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Click edit button
@@ -214,7 +215,7 @@ test.describe('Tagging Feature', () => {
       });
 
       // Navigate to session detail page
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Verify tag is visible
@@ -242,7 +243,7 @@ test.describe('Tagging Feature', () => {
       }
 
       // Navigate to our test session
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Open tag editor
@@ -272,7 +273,7 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should remove tag from editing view', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Open editor
@@ -308,7 +309,7 @@ test.describe('Tagging Feature', () => {
       });
       await new Promise(resolve => setTimeout(resolve, 400));
 
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Wait for Vue to mount and load tags
@@ -343,7 +344,7 @@ test.describe('Tagging Feature', () => {
     });
 
     test('should limit tag input to 30 characters', async ({ page }) => {
-      await page.goto(`/#/session/${SESSION_ID}`);
+      await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Open editor

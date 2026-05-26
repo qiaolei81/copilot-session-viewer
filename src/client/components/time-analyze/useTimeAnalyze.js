@@ -39,7 +39,7 @@ const EVENT_MARKER_CATEGORIES = {
 };
 const TRACKABLE_EVENT_TYPES = new Set(Object.keys(EVENT_MARKER_CATEGORIES));
 
-export function useTimeAnalyze(sessionId, metadata) {
+export function useTimeAnalyze(sessionId, metadata, _source) {
   const events = ref([]);
   const loading = ref(true);
   const error = ref(null);
@@ -556,7 +556,7 @@ export function useTimeAnalyze(sessionId, metadata) {
           ? allUserMessages.indexOf(userMessage) + 1
           : 0;
 
-        let displayText = '';
+        let displayText;
         const hasText = msg.data?.message && msg.data.message.trim() !== '';
 
         if (hasText) {
@@ -640,7 +640,7 @@ export function useTimeAnalyze(sessionId, metadata) {
       const args = group.start.data?.arguments || {};
       const isError = group.complete?.data?.isError || !!group.complete?.data?.error;
 
-      let description = '';
+      let description;
       if (toolName === 'Bash' || toolName === 'bash' || toolName === 'exec') {
         description = args.command || args.description || '';
       } else if (['Read', 'read', 'Write', 'write', 'Edit', 'edit'].includes(toolName)) {

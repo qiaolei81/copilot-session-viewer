@@ -1,12 +1,17 @@
 <template>
-  <div class="header">
-    <router-link to="/" class="home-btn">← Back to Home</router-link>
-    <h1>📋 Session: {{ sessionId }}
+  <div class="py-4 px-5 border-b border-[#30363d] shrink-0 flex items-center gap-4 max-sm:py-2 max-sm:px-3 max-sm:flex-wrap max-sm:gap-2">
+    <router-link to="/" class="py-1.5 px-3 bg-[#21262d] border border-[#30363d] rounded-md text-[#c9d1d9] no-underline text-sm transition-all hover:bg-[#30363d] hover:border-[#58a6ff]">
+← Back to Home
+</router-link>
+    <h1 class="text-[#58a6ff] text-xl m-0 flex-1">
+📋 Session: {{ sessionId }}
       <span v-if="metadata.sessionStatus === 'wip'" style="font-size: 12px; padding: 2px 8px; border-radius: 3px; background: rgba(210, 153, 34, 0.2); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.4); vertical-align: middle; margin-left: 8px;">🔄 WIP</span>
     </h1>
     <div style="display: flex; gap: 10px;">
-      <router-link :to="'/session/' + sessionId + '/time-analyze'" class="time-analyze-btn">⏱ Analysis</router-link>
-      <button @click="$emit('export')" class="export-btn" :disabled="exporting" v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)">
+      <router-link :to="'/' + source + '/session/' + sessionId + '/time-analyze'" class="py-1.5 px-3 bg-[#1f6feb] border border-[#388bfd] rounded-md text-white no-underline text-sm font-medium transition-all whitespace-nowrap hover:bg-[#388bfd] hover:border-[#58a6ff]">
+⏱ Analysis
+</router-link>
+      <button v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)" class="py-1.5 px-3 bg-[#238636] border border-[#2ea043] rounded-md text-white text-sm font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-[#2ea043] hover:border-[#3fb950] disabled:opacity-60 disabled:cursor-not-allowed" :disabled="exporting" @click="$emit('export')">
         {{ exporting ? '⏳ Sharing...' : '📤 Share Session' }}
       </button>
     </div>
@@ -16,83 +21,10 @@
 <script setup>
 defineProps({
   sessionId: String,
+  source: String,
   metadata: Object,
   exporting: Boolean,
 });
 
 defineEmits(['export']);
 </script>
-
-<style scoped>
-.header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #30363d;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.home-btn {
-  padding: 6px 12px;
-  background: #21262d;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  color: #c9d1d9;
-  text-decoration: none;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-.home-btn:hover {
-  background: #30363d;
-  border-color: #58a6ff;
-}
-.time-analyze-btn {
-  padding: 6px 12px;
-  background: #1f6feb;
-  border: 1px solid #388bfd;
-  border-radius: 6px;
-  color: #fff;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.time-analyze-btn:hover {
-  background: #388bfd;
-  border-color: #58a6ff;
-}
-.export-btn {
-  padding: 6px 12px;
-  background: #238636;
-  border: 1px solid #2ea043;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.export-btn:hover:not(:disabled) {
-  background: #2ea043;
-  border-color: #3fb950;
-}
-.export-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-h1 {
-  color: #58a6ff;
-  font-size: 20px;
-  margin: 0;
-  flex: 1;
-}
-@media (max-width: 640px) {
-  .header {
-    padding: 8px 12px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-}
-</style>

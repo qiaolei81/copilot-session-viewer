@@ -1,38 +1,48 @@
 <template>
-  <div class="container">
-    <h1>🤖 Session Viewer</h1>
-    <p class="subtitle">View session logs from Copilot CLI, Copilot Chat, Claude Code, and Pi-Mono</p>
+  <div class="max-w-[1400px] w-full text-center mx-auto p-5">
+    <h1 class="text-5xl mb-2.5 text-[#58a6ff]">
+🤖 Session Viewer
+</h1>
+    <p class="text-[#c9d1d9] mb-10 text-base">
+View session logs from Copilot CLI, Copilot Chat, Claude Code, and Pi-Mono
+</p>
 
     <form @submit.prevent="viewSession">
-      <div class="input-group">
+      <div class="bg-[#161b22] border-2 border-[#30363d] rounded-xl p-2 flex gap-2 transition-colors focus-within:border-[#58a6ff]">
         <input
-          type="text"
-          class="session-input"
           v-model="sessionInput"
+          type="text"
+          class="flex-1 py-4 px-5 min-h-11 bg-transparent border-none text-[#c9d1d9] text-base font-mono focus:outline-none placeholder:text-[#6e7681] focus-visible:outline-2 focus-visible:outline-[#58a6ff] focus-visible:outline-offset-2"
           placeholder="Enter Session ID..."
           autofocus
           required
         >
-        <button type="submit" class="view-btn">View</button>
+        <button type="submit" class="py-4 px-8 min-h-11 bg-[#238636] border-none rounded-lg text-white text-base font-semibold cursor-pointer transition-all hover:bg-[#2ea043] hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-[#58a6ff] focus-visible:outline-offset-2">
+View
+</button>
       </div>
     </form>
 
-    <div v-if="allSessions.length > 0 || hasLoaded" class="recent-sessions">
-      <div class="sessions-header">
-        <div class="recent-title">Sessions</div>
-        <a class="import-link" :style="importLinkStyle" @click.prevent="triggerImport">{{ importLinkText }}</a>
-        <span class="import-formats-hint">Supports: GitHub Copilot, Claude, Pi-Mono</span>
+    <div v-if="allSessions.length > 0 || hasLoaded" class="mt-10 text-left">
+      <div class="flex items-baseline gap-3 mb-3">
+        <div class="text-[#c9d1d9] text-sm mb-3 uppercase tracking-wider">
+Sessions
+</div>
+        <a class="text-[#58a6ff] text-sm no-underline cursor-pointer hover:text-[#79c0ff] hover:underline" :style="importLinkStyle" @click.prevent="triggerImport">{{ importLinkText }}</a>
+        <span class="text-[11px] text-[#6e7681] ml-1.5 align-middle">Supports: GitHub Copilot, Claude, Pi-Mono</span>
       </div>
-      <div class="filter-pills">
+      <div class="flex gap-2 mb-4 flex-wrap">
         <button
           v-for="pill in filterPills"
           :key="pill.source"
           :class="['filter-pill', { active: currentSourceFilter === pill.source }]"
           @click="selectFilter(pill.source)"
-        >{{ pill.label }}</button>
+        >
+{{ pill.label }}
+</button>
       </div>
-      <p class="hint source-hint" v-if="currentSourceHint">
-        Sessions from <span class="hint-code">{{ currentSourceHint }}</span>
+      <p v-if="currentSourceHint" class="hint mt-5 text-[#c9d1d9] text-sm">
+        Sessions from <span class="inline-block bg-[#161b22] py-1 px-2 rounded font-mono text-[13px] text-[#58a6ff]">{{ currentSourceHint }}</span>
       </p>
       <input
         ref="fileInputRef"
@@ -41,15 +51,21 @@
         style="display: none;"
         @change="handleFileChange"
       >
-      <div v-if="importStatusMsg" :class="['import-status', importStatusType]">{{ importStatusMsg }}</div>
+      <div v-if="importStatusMsg" :class="['import-status', importStatusType]">
+{{ importStatusMsg }}
+</div>
       <div ref="sessionsContainer">
         <template v-if="filteredSessions.length === 0 && !isLoading">
-          <div style="text-align: center; color: #6e7681; padding: 40px; font-size: 14px;">No sessions found for this filter.</div>
+          <div style="text-align: center; color: #6e7681; padding: 40px; font-size: 14px;">
+No sessions found for this filter.
+</div>
         </template>
         <template v-else>
           <template v-for="dateKey in sortedDateKeys" :key="dateKey">
-            <div class="date-group-header">{{ formatDateHeader(groupedSessions[dateKey][0].createdAt) }}</div>
-            <div class="recent-list">
+            <div class="text-[#58a6ff] text-lg font-semibold mt-8 mb-4 pb-2 first:mt-0">
+{{ formatDateHeader(groupedSessions[dateKey][0].createdAt) }}
+</div>
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-4 md:grid-cols-[repeat(auto-fill,minmax(400px,1fr))] max-md:grid-cols-1">
               <SessionCard
                 v-for="session in groupedSessions[dateKey]"
                 :key="session.id"
@@ -64,7 +80,9 @@
         </template>
       </div>
       <div v-if="isLoading" style="text-align: center; margin-top: 20px;">
-        <div class="loading-spinner">Loading more sessions...</div>
+        <div class="loading-spinner">
+Loading more sessions...
+</div>
       </div>
     </div>
 
@@ -159,7 +177,7 @@ function formatDateHeader(dateStr) {
 function viewSession() {
   const id = sessionInput.value.trim();
   if (id) {
-    router.push(`/session/${id}`);
+    router.push(`/${toUrlSource(currentSourceFilter.value)}/session/${id}`);
   }
 }
 
@@ -170,14 +188,14 @@ function getState(source) {
   return sourceState[source];
 }
 
-async function loadSessionTags(sessionIds) {
+async function loadSessionTags(sessions) {
   try {
     const results = await Promise.all(
-      sessionIds.map(id =>
-        fetch(`/api/sessions/${id}/tags`)
+      sessions.map(s =>
+        fetch(`/api/${encodeURIComponent(toUrlSource(s.source))}/sessions/${s.id}/tags`)
           .then(r => r.ok ? r.json() : { tags: [] })
-          .then(data => ({ id, tags: data.tags || [] }))
-          .catch(() => ({ id, tags: [] }))
+          .then(data => ({ id: s.id, tags: data.tags || [] }))
+          .catch(() => ({ id: s.id, tags: [] }))
       )
     );
     const map = {};
@@ -189,9 +207,8 @@ async function loadSessionTags(sessionIds) {
 }
 
 async function attachTags(sessions) {
-  const ids = sessions.map(s => s.id);
-  if (ids.length === 0) return;
-  const tagsMap = await loadSessionTags(ids);
+  if (sessions.length === 0) return;
+  const tagsMap = await loadSessionTags(sessions);
   sessions.forEach(s => { s.tags = tagsMap[s.id] || []; });
 }
 
@@ -385,223 +402,3 @@ onUnmounted(() => {
   document.removeEventListener('touchcancel', onTouchEnd);
 });
 </script>
-
-<style scoped>
-/* Focus indicators for accessibility */
-button:focus-visible,
-input:focus-visible {
-  outline: 2px solid #58a6ff;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.2);
-}
-
-h1 {
-  font-size: 48px;
-  margin-bottom: 10px;
-  color: #58a6ff;
-}
-.subtitle {
-  color: #c9d1d9;
-  margin-bottom: 40px;
-  font-size: 16px;
-}
-.container {
-  max-width: 1400px;
-  width: 100%;
-  text-align: center;
-  margin: 0 auto;
-  padding: 20px;
-}
-.input-group {
-  background: #161b22;
-  border: 2px solid #30363d;
-  border-radius: 12px;
-  padding: 8px;
-  display: flex;
-  gap: 8px;
-  transition: border-color 0.2s;
-}
-.input-group:focus-within {
-  border-color: #58a6ff;
-}
-.session-input {
-  flex: 1;
-  padding: 16px 20px;
-  min-height: 44px;
-  background: transparent;
-  border: none;
-  color: #c9d1d9;
-  font-size: 16px;
-  font-family: "SF Mono", Monaco, monospace;
-}
-.session-input:focus {
-  outline: none;
-}
-.session-input::placeholder {
-  color: #6e7681;
-}
-.view-btn {
-  padding: 16px 32px;
-  min-height: 44px;
-  background: #238636;
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.view-btn:hover {
-  background: #2ea043;
-  transform: scale(1.02);
-}
-.view-btn:active {
-  transform: scale(0.98);
-}
-.hint {
-  margin-top: 20px;
-  color: #c9d1d9;
-  font-size: 14px;
-}
-.hint-code {
-  display: inline-block;
-  background: #161b22;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: "SF Mono", Monaco, monospace;
-  font-size: 13px;
-  color: #58a6ff;
-}
-.recent-sessions {
-  margin-top: 40px;
-  text-align: left;
-}
-.recent-title {
-  color: #c9d1d9;
-  font-size: 14px;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.recent-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 16px;
-  grid-auto-flow: dense;
-}
-.filter-pills {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.filter-pill {
-  padding: 6px 16px;
-  background: #21262d;
-  border: 1px solid #30363d;
-  border-radius: 20px;
-  color: #8b949e;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-height: 32px;
-}
-.filter-pill:hover {
-  background: #30363d;
-  border-color: #58a6ff;
-  color: #c9d1d9;
-}
-.filter-pill.active {
-  background: #58a6ff;
-  border-color: #58a6ff;
-  color: #fff;
-}
-.sessions-header {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.import-link {
-  color: #58a6ff;
-  font-size: 14px;
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.import-link:hover {
-  color: #79c0ff;
-  text-decoration: underline;
-}
-.import-formats-hint {
-  font-size: 11px;
-  color: #6e7681;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-.import-status {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-.import-status.success {
-  background: rgba(35, 134, 54, 0.15);
-  border: 1px solid #238636;
-  color: #3fb950;
-}
-.import-status.error {
-  background: rgba(248, 81, 73, 0.15);
-  border: 1px solid #f85149;
-  color: #ff7b72;
-}
-.import-status.loading {
-  background: rgba(88, 166, 255, 0.15);
-  border: 1px solid #58a6ff;
-  color: #58a6ff;
-}
-.date-group-header {
-  color: #58a6ff;
-  font-size: 18px;
-  font-weight: 600;
-  margin-top: 32px;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-}
-.date-group-header:first-child {
-  margin-top: 0;
-}
-.loading-spinner {
-  color: #58a6ff;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-.loading-spinner::before {
-  content: '⏳';
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .recent-list {
-    grid-template-columns: 1fr;
-  }
-  .container {
-    max-width: 100%;
-  }
-}
-@media (min-width: 769px) and (max-width: 1200px) {
-  .recent-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-</style>

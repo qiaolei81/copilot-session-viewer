@@ -502,10 +502,6 @@ describe('API Routes Integration Tests', () => {
       await request(app).put(`/api/${invalidSource}/sessions/some-id/tags`).send({ tags: [] }).expect(404);
     });
 
-    it('GET share', async () => {
-      await request(app).get(`/api/${invalidSource}/sessions/some-id/share`).expect(404);
-    });
-
     it('POST insight', async () => {
       await request(app).post(`/api/${invalidSource}/sessions/some-id/insight`).expect(404);
     });

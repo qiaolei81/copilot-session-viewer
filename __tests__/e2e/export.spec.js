@@ -2,6 +2,7 @@ const { test, expect, getAllSourceSessionsWithRetry } = require('./fixtures');
 
 test.describe('Export Tests', () => {
   let sessionId;
+  let sessionSource;
 
   test.beforeAll(async ({ request }) => {
     const sessions = await getAllSourceSessionsWithRetry(request);
@@ -10,12 +11,14 @@ test.describe('Export Tests', () => {
     for (const session of sessions) {
       if (session?.hasEvents && session.eventCount > 0) {
         sessionId = session.id;
+        sessionSource = session.source;
         break;
       }
     }
 
     if (!sessionId && sessions.length > 0) {
       sessionId = sessions[0].id;
+      sessionSource = sessions[0].source;
     }
 
     if (!sessionId) {
@@ -37,7 +40,7 @@ test.describe('Export Tests', () => {
     });
 
     test('should display export button on session detail page', async ({ page }) => {
-      await page.goto(`/#/session/${sessionId}`);
+      await page.goto(`/#/${sessionSource}/session/${sessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Check for export button in header
@@ -55,7 +58,7 @@ test.describe('Export Tests', () => {
     });
 
     test('export button should be enabled', async ({ page }) => {
-      await page.goto(`/#/session/${sessionId}`);
+      await page.goto(`/#/${sessionSource}/session/${sessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Find export button
@@ -68,7 +71,7 @@ test.describe('Export Tests', () => {
     });
 
     test('export button should have correct label', async ({ page }) => {
-      await page.goto(`/#/session/${sessionId}`);
+      await page.goto(`/#/${sessionSource}/session/${sessionId}`);
       await page.waitForSelector('.main-layout', { timeout: 10000 });
 
       // Check button text

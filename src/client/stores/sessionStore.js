@@ -9,11 +9,11 @@ export const useSessionStore = defineStore('session', () => {
     return cache.value[sessionId] || null;
   }
 
-  async function fetchMetadata(sessionId) {
+  async function fetchMetadata(sessionId, source) {
     const cached = cache.value[sessionId];
     if (cached?.metadata) return cached.metadata;
 
-    const resp = await fetch(`/api/sessions/${sessionId}`);
+    const resp = await fetch(`/api/${encodeURIComponent(source)}/sessions/${sessionId}`);
     if (!resp.ok) return null;
     const data = await resp.json();
 
@@ -24,11 +24,11 @@ export const useSessionStore = defineStore('session', () => {
     return data;
   }
 
-  async function fetchEvents(sessionId) {
+  async function fetchEvents(sessionId, source) {
     const cached = cache.value[sessionId];
     if (cached?.events) return cached.events;
 
-    const resp = await fetch(`/api/sessions/${sessionId}/events`);
+    const resp = await fetch(`/api/${encodeURIComponent(source)}/sessions/${sessionId}/events`);
     if (!resp.ok) throw new Error(`Failed to load events: ${resp.statusText}`);
     const data = await resp.json();
     const events = Array.isArray(data) ? data : (data.events || []);

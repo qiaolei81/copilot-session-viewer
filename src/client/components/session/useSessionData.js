@@ -223,8 +223,9 @@ const TAG_COLORS = [
 
 export function useSessionData() {
   const route = useRoute();
-  const router = useRouter();
+  const _router = useRouter();
   const sessionId = ref(route.params.id);
+  const source = ref(route.params.source);
   const metadata = ref({});
   const exporting = ref(false);
 
@@ -476,7 +477,7 @@ export function useSessionData() {
       const isVsCode = ev.data?.subAgentId === tcid;
       if (isSubagentDivider || isOwned || isSubagentMeta || isVsCode) {
         eventCount++;
-        if (ev.timestamp != null) {
+        if (ev.timestamp !== null && ev.timestamp !== undefined) {
           const t = new Date(ev.timestamp).getTime();
           if (startTime === null || t < startTime) startTime = t;
           if (endTime === null || t > endTime) endTime = t;
@@ -541,7 +542,7 @@ export function useSessionData() {
     if (!text) return '';
     if (markdownCache.has(text)) return markdownCache.get(text);
     try {
-      let processedText = text
+      const processedText = text
         .replace(/\\r\\n/g, '\n')
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
@@ -717,7 +718,7 @@ export function useSessionData() {
     if (!group.start) return '';
     const args = group.start.data?.arguments || {};
     const toolName = group.start.data?.toolName || group.tool || '';
-    let command = '';
+    let command;
     if (toolName === 'bash' || toolName === 'exec') command = args.command || args.description || '';
     else if (toolName === 'ask_user') command = args.question || args.message || '';
     else if (toolName === 'read' || toolName === 'write' || toolName === 'edit') command = args.file_path || args.path || '';
@@ -975,7 +976,7 @@ export function useSessionData() {
 
   const loadTags = async () => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId.value}/tags`);
+      const response = await fetch(`/api/${encodeURIComponent(source.value)}/sessions/${sessionId.value}/tags`);
       if (response.ok) { const data = await response.json(); sessionTags.value = data.tags || []; }
     } catch (err) { console.error('Error loading tags:', err); }
   };
@@ -989,7 +990,7 @@ export function useSessionData() {
 
   const saveTags = async (tags) => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId.value}/tags`, {
+      const response = await fetch(`/api/${encodeURIComponent(source.value)}/sessions/${sessionId.value}/tags`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags })
@@ -1094,7 +1095,7 @@ export function useSessionData() {
     // Load metadata (from store cache or API)
     const sessionStore = (await import('../../stores/sessionStore.js')).useSessionStore();
     try {
-      const metaData = await sessionStore.fetchMetadata(sessionId.value);
+      const metaData = await sessionStore.fetchMetadata(sessionId.value, source.value);
       if (metaData) {
         metadata.value = metaData;
       }
@@ -1104,7 +1105,7 @@ export function useSessionData() {
 
     // Load events (from store cache or API)
     try {
-      loadedEvents.value = await sessionStore.fetchEvents(sessionId.value);
+      loadedEvents.value = await sessionStore.fetchEvents(sessionId.value, source.value);
 
       // Update 'Updated' time from last event timestamp
       if (loadedEvents.value.length > 0) {
@@ -1199,7 +1200,7 @@ export function useSessionData() {
   });
 
   return {
-    sessionId, metadata, exporting, sidebarCollapsed,
+    sessionId, source, metadata, exporting, sidebarCollapsed,
     expandedTools, expandedContent, expansionCount,
     currentFilter, searchText, debouncedSearchText, currentTurnIndex,
     scrollerRef, visibleRange,
