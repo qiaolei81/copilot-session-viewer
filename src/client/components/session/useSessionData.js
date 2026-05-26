@@ -690,27 +690,57 @@ export function useSessionData() {
   // Helper: convert legacy badgeClass string to inline style
   function badgeClassToStyle(cls) {
     const style = { color: '#fff' };
-    const bgMatch = cls.match(/bg-\[([^\]]+)\]/);
-    if (bgMatch) {
-      style.backgroundColor = bgMatch[1];
-    } else if (cls.includes('bg-accent-emphasis')) {
-      style.backgroundColor = 'var(--color-badge-user)';
-    } else if (cls.includes('bg-success-emphasis')) {
-      style.backgroundColor = 'var(--color-badge-assistant)';
-    } else if (cls.includes('bg-purple-light')) {
-      style.backgroundColor = 'var(--color-badge-reasoning)';
-    } else if (cls.includes('bg-text-faint')) {
-      style.backgroundColor = 'var(--color-badge-session)';
-    } else if (cls.includes('bg-danger')) {
-      style.backgroundColor = 'var(--color-badge-error)';
-    } else if (cls.includes('bg-surface-overlay')) {
-      style.backgroundColor = 'var(--color-badge-system)';
-    } else if (cls.includes('bg-pink')) {
-      style.backgroundColor = 'var(--color-badge-skill)';
-    } else if (cls.includes('bg-accent')) {
-      style.backgroundColor = 'var(--color-badge-default)';
+
+    // Direct badge token name mapping (e.g. 'badge-session', 'badge-tool')
+    const tokenMap = {
+      'badge-user': 'var(--color-badge-user)',
+      'badge-assistant': 'var(--color-badge-assistant)',
+      'badge-reasoning': 'var(--color-badge-reasoning)',
+      'badge-turn': 'var(--color-badge-turn)',
+      'badge-tool': 'var(--color-badge-tool)',
+      'badge-subagent': 'var(--color-badge-subagent)',
+      'badge-skill': 'var(--color-badge-skill)',
+      'badge-session': 'var(--color-badge-session)',
+      'badge-error': 'var(--color-badge-error)',
+      'badge-abort': 'var(--color-badge-abort)',
+      'badge-truncation': 'var(--color-badge-truncation)',
+      'badge-compaction': 'var(--color-badge-compaction)',
+      'badge-system': 'var(--color-badge-system)',
+      'badge-hook': 'var(--color-badge-tool)',
+      'badge-default': 'var(--color-badge-default)',
+    };
+
+    // Check direct token name first
+    const trimmed = cls.trim();
+    if (tokenMap[trimmed]) {
+      style.backgroundColor = tokenMap[trimmed];
+    } else {
+      // Legacy Tailwind class fallback
+      const bgMatch = cls.match(/bg-\[([^\]]+)\]/);
+      if (bgMatch) {
+        style.backgroundColor = bgMatch[1];
+      } else if (cls.includes('bg-accent-emphasis')) {
+        style.backgroundColor = 'var(--color-badge-user)';
+      } else if (cls.includes('bg-success-emphasis')) {
+        style.backgroundColor = 'var(--color-badge-assistant)';
+      } else if (cls.includes('bg-purple-light')) {
+        style.backgroundColor = 'var(--color-badge-reasoning)';
+      } else if (cls.includes('bg-text-faint')) {
+        style.backgroundColor = 'var(--color-badge-session)';
+      } else if (cls.includes('bg-danger')) {
+        style.backgroundColor = 'var(--color-badge-error)';
+      } else if (cls.includes('bg-surface-overlay')) {
+        style.backgroundColor = 'var(--color-badge-system)';
+      } else if (cls.includes('bg-pink')) {
+        style.backgroundColor = 'var(--color-badge-skill)';
+      } else if (cls.includes('bg-accent')) {
+        style.backgroundColor = 'var(--color-badge-default)';
+      }
     }
+
     if (cls.includes('italic')) style.fontStyle = 'italic';
+    // badge-system uses muted text
+    if (trimmed === 'badge-system') style.color = '#adbac7';
     return style;
   }
 
