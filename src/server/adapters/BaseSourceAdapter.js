@@ -2,6 +2,7 @@ const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
 const readline = require('readline');
+const { shouldSkipEntry } = require('../utils/fileUtils');
 
 /**
  * Base Source Adapter Interface
