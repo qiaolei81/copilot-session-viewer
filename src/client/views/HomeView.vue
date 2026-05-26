@@ -34,6 +34,7 @@ View
               ? 'bg-accent !border-accent !text-white'
               : 'bg-surface-hover'
           ]"
+          data-testid="source-pill"
           @click="selectFilter(pill.source)"
         >
 {{ pill.label }}
@@ -49,7 +50,7 @@ View
         <div v-for="cd in currentCustomDirs" :key="cd.dir" class="flex items-center gap-2 text-sm text-text-secondary mb-1">
           <span class="inline-block w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: cd.color }"></span>
           <span class="font-mono">{{ cd.dir }}</span>
-          <button class="text-text-faint hover:text-error-text bg-transparent border-none cursor-pointer p-0 text-xs" @click="removeCustomDir(cd.dir)">×</button>
+          <button data-testid="remove-dir-btn" class="text-text-faint hover:text-error-text bg-transparent border-none cursor-pointer p-0 text-xs" @click="removeCustomDir(cd.dir)">×</button>
         </div>
       </div>
       <p v-if="currentSourceFilter" class="hint mt-5 text-text-secondary text-sm">

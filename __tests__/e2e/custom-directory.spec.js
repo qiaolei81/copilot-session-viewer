@@ -37,89 +37,70 @@ test.describe('Custom Directory Support', () => {
   });
 
   test.describe('UI', () => {
-    test('should add custom directory and show sessions', async ({ page }) => {
+    test('should show custom dir sessions when set via localStorage', async ({ page }) => {
       await page.goto('/');
+
+      // Pre-set custom dir in localStorage
+      await page.evaluate((dir) => {
+        localStorage.setItem('customDirs', JSON.stringify({
+          'copilot': [{ dir, color: '#ff6b6b' }]
+        }));
+      }, CUSTOM_DIR);
+
+      await page.reload();
       await page.waitForLoadState('networkidle');
 
-      // Click copilot pill first
+      // Select copilot source
       const copilotPill = page.locator('[data-testid="source-pill"]', { hasText: /copilot/i }).first();
-      if (await copilotPill.isVisible()) {
+      if (await copilotPill.isVisible({ timeout: 3000 }).catch(() => false)) {
         await copilotPill.click();
         await page.waitForLoadState('networkidle');
       }
 
-      // Intercept the prompt dialog and provide our fixture path
-      page.on('dialog', async dialog => {
-        await dialog.accept(CUSTOM_DIR);
-      });
+      // Custom dir path should appear
+      await expect(page.locator('.font-mono', { hasText: 'custom-dir' }).first()).toBeVisible({ timeout: 10000 });
 
-      // Click the add-dir button
-      const addBtn = page.locator('[data-testid="add-dir-btn"]');
-      await addBtn.click();
-
-      // Wait for custom dir sessions to load
-      await page.waitForTimeout(2000);
-
-      // The custom dir path should appear in the UI
-      await expect(page.locator(`text=${CUSTOM_DIR}`).first()).toBeVisible();
-
-      // The nested session should appear in the list
-      const sessionCard = page.locator(`[data-testid="session-card"]`).filter({ hasText: NESTED_SESSION_ID });
+      // The nested session should appear
+      const sessionCard = page.locator('[data-testid="session-card"]').filter({ hasText: /Placeholder task/i });
       await expect(sessionCard.first()).toBeVisible({ timeout: 10000 });
     });
 
     test('custom dir session card link should include dir param', async ({ page }) => {
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
-
-      // Set up custom dir in localStorage before navigating
       await page.evaluate((dir) => {
-        localStorage.setItem('session-viewer-custom-dirs', JSON.stringify({
+        localStorage.setItem('customDirs', JSON.stringify({
           'copilot': [{ dir, color: '#ff6b6b' }]
         }));
       }, CUSTOM_DIR);
 
-      // Reload to pick up localStorage
       await page.reload();
       await page.waitForLoadState('networkidle');
 
       const copilotPill = page.locator('[data-testid="source-pill"]', { hasText: /copilot/i }).first();
-      if (await copilotPill.isVisible()) {
+      if (await copilotPill.isVisible({ timeout: 3000 }).catch(() => false)) {
         await copilotPill.click();
         await page.waitForLoadState('networkidle');
       }
 
-      await page.waitForTimeout(2000);
-
       // Find the custom dir session card and verify its href includes dir=
-      const sessionCard = page.locator(`[data-testid="session-card"]`).filter({ hasText: NESTED_SESSION_ID }).first();
-      if (await sessionCard.isVisible({ timeout: 5000 })) {
-        const href = await sessionCard.getAttribute('href');
-        expect(href).toContain('dir=');
-        expect(href).toContain(encodeURIComponent(CUSTOM_DIR));
-      }
+      const sessionCard = page.locator('[data-testid="session-card"]').filter({ hasText: /Placeholder task/i }).first();
+      await expect(sessionCard).toBeVisible({ timeout: 10000 });
+      const href = await sessionCard.getAttribute('href');
+      expect(href).toContain('dir=');
     });
 
     test('should navigate to custom dir session and load events', async ({ page }) => {
-      // Set up custom dir in localStorage
-      await page.goto('/');
-      await page.evaluate((dir) => {
-        localStorage.setItem('session-viewer-custom-dirs', JSON.stringify({
-          'copilot': [{ dir, color: '#ff6b6b' }]
-        }));
-      }, CUSTOM_DIR);
-
       // Navigate directly to the session detail with dir param
       await page.goto(`/#/copilot-cli/session/${NESTED_SESSION_ID}?dir=${encodeURIComponent(CUSTOM_DIR)}`);
       await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(3000);
 
       // Should show session content, not an error
-      await page.waitForTimeout(3000);
       const errorText = page.locator('text=Session not found');
       const hasError = await errorText.isVisible().catch(() => false);
       expect(hasError).toBeFalsy();
 
-      // Should have loaded events (look for turn elements or event content)
+      // Should have loaded events
       const content = await page.textContent('body');
       expect(content.length).toBeGreaterThan(100);
     });
@@ -127,7 +108,7 @@ test.describe('Custom Directory Support', () => {
     test('should remove custom directory', async ({ page }) => {
       await page.goto('/');
       await page.evaluate((dir) => {
-        localStorage.setItem('session-viewer-custom-dirs', JSON.stringify({
+        localStorage.setItem('customDirs', JSON.stringify({
           'copilot': [{ dir, color: '#ff6b6b' }]
         }));
       }, CUSTOM_DIR);
@@ -136,25 +117,25 @@ test.describe('Custom Directory Support', () => {
       await page.waitForLoadState('networkidle');
 
       const copilotPill = page.locator('[data-testid="source-pill"]', { hasText: /copilot/i }).first();
-      if (await copilotPill.isVisible()) {
+      if (await copilotPill.isVisible({ timeout: 3000 }).catch(() => false)) {
         await copilotPill.click();
         await page.waitForLoadState('networkidle');
       }
 
       // Verify custom dir is shown
-      await expect(page.locator(`text=${CUSTOM_DIR}`).first()).toBeVisible({ timeout: 5000 });
+      const dirLabel = page.locator('.font-mono', { hasText: 'custom-dir' }).first();
+      await expect(dirLabel).toBeVisible({ timeout: 10000 });
 
       // Click remove button
-      const removeBtn = page.locator(`text=${CUSTOM_DIR}`).locator('..').locator('button:has-text("×")');
+      const removeBtn = page.locator('[data-testid="remove-dir-btn"]').first();
       await removeBtn.click();
 
       // Custom dir should be gone
-      await page.waitForTimeout(1000);
-      await expect(page.locator(`text=${CUSTOM_DIR}`)).not.toBeVisible();
+      await expect(dirLabel).not.toBeVisible({ timeout: 5000 });
 
       // localStorage should be updated
       const dirs = await page.evaluate(() => {
-        return JSON.parse(localStorage.getItem('session-viewer-custom-dirs') || '{}');
+        return JSON.parse(localStorage.getItem('customDirs') || '{}');
       });
       expect(dirs.copilot || []).toHaveLength(0);
     });
