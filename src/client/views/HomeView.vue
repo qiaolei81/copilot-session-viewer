@@ -36,7 +36,7 @@ Sessions
           v-for="pill in filterPills"
           :key="pill.source"
           :class="[
-            'py-[6px] px-4 border border-border rounded-pill text-text-muted text-sm font-medium cursor-pointer transition-all duration-200 min-h-[32px] hover:bg-border hover:border-accent hover:text-text-secondary focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2',
+            'filter-pill',
             currentSourceFilter === pill.source
               ? 'bg-accent !border-accent !text-white'
               : 'bg-surface-hover'

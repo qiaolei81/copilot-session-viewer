@@ -1,7 +1,7 @@
 <template>
   <div :class="['w-80 shrink-0 bg-surface border-r border-border overflow-y-auto p-4 transition-all duration-300', collapsed ? '!w-0 !p-0 !border-r-0 overflow-hidden' : '']">
     <div class="sidebar-section mb-5">
-      <div class="sidebar-section-title text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">
+      <div class="sidebar-section-title">
 Session Info
 </div>
       <div class="session-info text-sm">
@@ -10,7 +10,7 @@ Session Info
             <tr v-if="metadata.source">
               <td>Source</td>
               <td>
-                <span class="inline-block text-2xs font-semibold py-0.5 px-2 rounded-badge uppercase tracking-[0.5px]" :style="getSourceBadgeStyle(metadata.sourceBadgeClass)">
+                <span class="source-badge" :style="getSourceBadgeStyle(metadata.sourceBadgeClass)">
                   {{ metadata.sourceName || 'GitHub Copilot' }}
                 </span>
               </td>
@@ -62,7 +62,7 @@ Session Info
 
     <!-- Usage Section -->
     <div v-if="metadata.usage" class="sidebar-section mb-5">
-      <div class="sidebar-section-title text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">
+      <div class="sidebar-section-title">
 Token Usage
 </div>
       <div class="text-xs flex flex-col gap-3">
@@ -77,25 +77,25 @@ Overview
             Usage captured across {{ totalModels }} model{{ totalModels === 1 ? '' : 's' }}
           </div>
           <div class="grid grid-cols-3 gap-2 mt-3">
-            <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(88,166,255,0.14)] bg-[rgba(13,17,23,0.42)]">
-              <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Requests</span>
-              <span class="text-sm leading-tight font-bold text-text break-all">{{ totalRequests }} reqs</span>
+            <div class="overview-metric-cell">
+              <span class="usage-metric-label">Requests</span>
+              <span class="usage-metric-value">{{ totalRequests }} reqs</span>
             </div>
-            <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(88,166,255,0.14)] bg-[rgba(13,17,23,0.42)]">
-              <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Models</span>
-              <span class="text-sm leading-tight font-bold text-text break-all">{{ totalModels }}</span>
+            <div class="overview-metric-cell">
+              <span class="usage-metric-label">Models</span>
+              <span class="usage-metric-value">{{ totalModels }}</span>
             </div>
-            <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(88,166,255,0.14)] bg-[rgba(13,17,23,0.42)]">
-              <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">API Time</span>
-              <span class="text-sm leading-tight font-bold text-text break-all">{{ formatDuration(metadata.usage.totalApiDurationMs) }}</span>
+            <div class="overview-metric-cell">
+              <span class="usage-metric-label">API Time</span>
+              <span class="usage-metric-value">{{ formatDuration(metadata.usage.totalApiDurationMs) }}</span>
             </div>
           </div>
         </div>
 
         <div class="flex flex-col gap-3">
-          <div v-if="Object.keys(metadata.usage.modelMetrics).length > 0" class="p-3 bg-[rgba(110,118,129,0.05)] border border-border rounded-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+          <div v-if="Object.keys(metadata.usage.modelMetrics).length > 0" class="usage-card">
             <div class="flex items-center justify-between gap-2 mb-2.5">
-              <div class="text-2xs font-semibold text-text-muted uppercase tracking-[0.5px] m-0">
+              <div class="usage-card-title">
 Models
 </div>
               <div class="inline-flex items-center justify-center min-w-[24px] py-0.5 px-2 rounded-full bg-[rgba(88,166,255,0.12)] border border-[rgba(88,166,255,0.22)] text-link text-2xs font-bold">
@@ -109,77 +109,77 @@ Models
 {{ model }}
 </div>
                   <div class="flex flex-wrap justify-start gap-1.5">
-                    <span class="inline-flex items-center py-0.5 px-2 rounded-full bg-[rgba(110,118,129,0.12)] border border-[rgba(110,118,129,0.2)] text-text-secondary text-2xs font-semibold">{{ metrics.requests?.count || 0 }} reqs</span>
-                    <span v-if="metrics.requests?.cost" class="inline-flex items-center py-0.5 px-2 rounded-full bg-[rgba(210,153,34,0.12)] border border-[rgba(210,153,34,0.25)] text-warning text-2xs font-semibold">{{ formatCost(metrics.requests.cost) }}</span>
-                    <span v-if="getModelCacheHitRatio(model) !== null" class="inline-flex items-center py-0.5 px-2 rounded-full bg-[rgba(63,185,80,0.12)] border border-[rgba(63,185,80,0.25)] text-success text-2xs font-semibold">{{ getModelCacheHitRatio(model) }}% cache</span>
+                    <span class="model-stat-pill bg-[rgba(110,118,129,0.12)] border border-[rgba(110,118,129,0.2)] text-text-secondary">{{ metrics.requests?.count || 0 }} reqs</span>
+                    <span v-if="metrics.requests?.cost" class="model-stat-pill bg-[rgba(210,153,34,0.12)] border border-[rgba(210,153,34,0.25)] text-warning">{{ formatCost(metrics.requests.cost) }}</span>
+                    <span v-if="getModelCacheHitRatio(model) !== null" class="model-stat-pill bg-[rgba(63,185,80,0.12)] border border-[rgba(63,185,80,0.25)] text-success">{{ getModelCacheHitRatio(model) }}% cache</span>
                   </div>
                 </div>
                 <div v-if="metrics.usage" class="grid grid-cols-2 gap-2">
-                  <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                    <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Input</span>
-                    <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(getDisplayUsageInputTokens(model)) }}</span>
+                  <div class="usage-metric-cell">
+                    <span class="usage-metric-label">Input</span>
+                    <span class="usage-metric-value">{{ formatTokens(getDisplayUsageInputTokens(model)) }}</span>
                   </div>
-                  <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                    <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Output</span>
-                    <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(metrics.usage.outputTokens || 0) }}</span>
+                  <div class="usage-metric-cell">
+                    <span class="usage-metric-label">Output</span>
+                    <span class="usage-metric-value">{{ formatTokens(metrics.usage.outputTokens || 0) }}</span>
                   </div>
-                  <div v-if="metrics.usage?.cacheReadTokens" class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                    <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Cache Read</span>
-                    <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(metrics.usage.cacheReadTokens) }}</span>
+                  <div v-if="metrics.usage?.cacheReadTokens" class="usage-metric-cell">
+                    <span class="usage-metric-label">Cache Read</span>
+                    <span class="usage-metric-value">{{ formatTokens(metrics.usage.cacheReadTokens) }}</span>
                   </div>
-                  <div v-if="metrics.usage?.cacheWriteTokens" class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                    <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Cache Write</span>
-                    <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(metrics.usage.cacheWriteTokens) }}</span>
+                  <div v-if="metrics.usage?.cacheWriteTokens" class="usage-metric-cell">
+                    <span class="usage-metric-label">Cache Write</span>
+                    <span class="usage-metric-value">{{ formatTokens(metrics.usage.cacheWriteTokens) }}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div v-if="metadata.usage.currentTokens || metadata.usage.systemTokens || metadata.usage.conversationTokens || metadata.usage.toolDefinitionsTokens" class="p-3 bg-[rgba(110,118,129,0.05)] border border-border rounded-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+          <div v-if="metadata.usage.currentTokens || metadata.usage.systemTokens || metadata.usage.conversationTokens || metadata.usage.toolDefinitionsTokens" class="usage-card">
             <div class="flex items-center justify-between gap-2 mb-2.5">
-              <div class="text-2xs font-semibold text-text-muted uppercase tracking-[0.5px] m-0">
+              <div class="usage-card-title">
 Context Window
 </div>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <div v-if="metadata.usage.currentTokens" class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Current</span>
-                <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(metadata.usage.currentTokens) }}</span>
+              <div v-if="metadata.usage.currentTokens" class="usage-metric-cell">
+                <span class="usage-metric-label">Current</span>
+                <span class="usage-metric-value">{{ formatTokens(metadata.usage.currentTokens) }}</span>
               </div>
-              <div v-if="metadata.usage.systemTokens" class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">System</span>
-                <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(metadata.usage.systemTokens) }}</span>
+              <div v-if="metadata.usage.systemTokens" class="usage-metric-cell">
+                <span class="usage-metric-label">System</span>
+                <span class="usage-metric-value">{{ formatTokens(metadata.usage.systemTokens) }}</span>
               </div>
-              <div v-if="metadata.usage.conversationTokens" class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Conversation</span>
-                <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(metadata.usage.conversationTokens) }}</span>
+              <div v-if="metadata.usage.conversationTokens" class="usage-metric-cell">
+                <span class="usage-metric-label">Conversation</span>
+                <span class="usage-metric-value">{{ formatTokens(metadata.usage.conversationTokens) }}</span>
               </div>
-              <div v-if="metadata.usage.toolDefinitionsTokens" class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Tools</span>
-                <span class="text-sm leading-tight font-bold text-text break-all">{{ formatTokens(metadata.usage.toolDefinitionsTokens) }}</span>
+              <div v-if="metadata.usage.toolDefinitionsTokens" class="usage-metric-cell">
+                <span class="usage-metric-label">Tools</span>
+                <span class="usage-metric-value">{{ formatTokens(metadata.usage.toolDefinitionsTokens) }}</span>
               </div>
             </div>
           </div>
 
-          <div v-if="metadata.usage.codeChanges && (metadata.usage.codeChanges.linesAdded > 0 || metadata.usage.codeChanges.linesRemoved > 0)" class="p-3 bg-[rgba(110,118,129,0.05)] border border-border rounded-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+          <div v-if="metadata.usage.codeChanges && (metadata.usage.codeChanges.linesAdded > 0 || metadata.usage.codeChanges.linesRemoved > 0)" class="usage-card">
             <div class="flex items-center justify-between gap-2 mb-2.5">
-              <div class="text-2xs font-semibold text-text-muted uppercase tracking-[0.5px] m-0">
+              <div class="usage-card-title">
 Code Changes
 </div>
             </div>
             <div class="grid grid-cols-3 gap-2">
-              <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Added</span>
+              <div class="usage-metric-cell">
+                <span class="usage-metric-label">Added</span>
                 <span class="text-sm leading-tight font-bold text-success break-all">+{{ metadata.usage.codeChanges.linesAdded }}</span>
               </div>
-              <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Removed</span>
+              <div class="usage-metric-cell">
+                <span class="usage-metric-label">Removed</span>
                 <span class="text-sm leading-tight font-bold text-danger-emphasis break-all">-{{ metadata.usage.codeChanges.linesRemoved }}</span>
               </div>
-              <div class="flex flex-col gap-1 min-w-0 py-[9px] px-2.5 rounded-lg border border-[rgba(48,54,61,0.8)] bg-[rgba(13,17,23,0.5)]">
-                <span class="text-2xs font-bold text-text-muted uppercase tracking-[0.5px]">Files</span>
-                <span class="text-sm leading-tight font-bold text-text break-all">{{ metadata.usage.codeChanges.filesModified?.length || 0 }}</span>
+              <div class="usage-metric-cell">
+                <span class="usage-metric-label">Files</span>
+                <span class="usage-metric-value">{{ metadata.usage.codeChanges.filesModified?.length || 0 }}</span>
               </div>
             </div>
           </div>
@@ -189,11 +189,11 @@ Code Changes
 
     <!-- Tool Calling Summary -->
     <div v-if="toolCallingSummary.length" class="sidebar-section mb-5">
-      <div class="sidebar-section-title text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">
+      <div class="sidebar-section-title">
 Tool Calls
 </div>
       <div class="flex flex-col gap-1">
-        <div v-for="item in toolCallingSummary" :key="item.name" class="relative flex justify-between items-center py-[3px] px-1.5 text-xs rounded-badge overflow-hidden">
+        <div v-for="item in toolCallingSummary" :key="item.name" class="tool-bar-item">
           <div class="absolute left-0 top-0 bottom-0 bg-[rgba(158,106,3,0.15)] rounded-badge transition-[width] duration-300" :style="{ width: (item.count / toolCallingSummary[0].count * 100) + '%' }" />
           <span class="relative text-text-secondary overflow-hidden text-ellipsis whitespace-nowrap min-w-0 flex-1" :title="item.name">{{ item.name }}</span>
           <span class="relative text-warning font-semibold ml-2 shrink-0">{{ item.count }}</span>
@@ -203,7 +203,7 @@ Tool Calls
 
     <!-- Session Tags -->
     <div class="sidebar-section mb-5 mt-4">
-      <div class="sidebar-section-title text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">
+      <div class="sidebar-section-title">
 Tags
 </div>
       <div v-if="!tagsEditing" class="flex flex-wrap gap-1.5 min-h-[28px] items-start">

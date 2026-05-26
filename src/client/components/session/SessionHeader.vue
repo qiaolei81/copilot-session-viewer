@@ -8,10 +8,10 @@
       <span v-if="metadata.sessionStatus === 'wip'" style="font-size: 12px; padding: 2px 8px; border-radius: 3px; background: rgba(210, 153, 34, 0.2); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.4); vertical-align: middle; margin-left: 8px;">🔄 WIP</span>
     </h1>
     <div style="display: flex; gap: 10px;">
-      <router-link :to="'/' + source + '/session/' + sessionId + '/time-analyze'" class="py-1.5 px-3 bg-accent-emphasis border border-accent-emphasis rounded-md text-white no-underline text-sm font-medium transition-all whitespace-nowrap hover:bg-accent-emphasis hover:border-accent">
+      <router-link :to="'/' + source + '/session/' + sessionId + '/time-analyze'" class="header-action-btn bg-accent-emphasis border-accent-emphasis no-underline hover:bg-accent-emphasis hover:border-accent">
 ⏱ Analysis
 </router-link>
-      <button v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)" class="py-1.5 px-3 bg-success-emphasis border border-success-emphasis rounded-md text-white text-sm font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-success-emphasis hover:border-success disabled:opacity-60 disabled:cursor-not-allowed" :disabled="exporting" @click="$emit('export')">
+      <button v-if="!metadata.source || !['vscode', 'modernize'].includes(metadata.source)" class="header-action-btn bg-success-emphasis border-success-emphasis cursor-pointer hover:bg-success-emphasis hover:border-success disabled:opacity-60 disabled:cursor-not-allowed" :disabled="exporting" @click="$emit('export')">
         {{ exporting ? '⏳ Sharing...' : '📤 Share Session' }}
       </button>
     </div>

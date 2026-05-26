@@ -10,43 +10,43 @@
       <!-- Section A: Gantt Chart -->
       <div class="text-base font-semibold text-text mb-3 pb-2 border-b border-border" style="display: flex; align-items: center;">
         Timeline
-        <button class="bg-none border border-border text-text-muted text-2xs py-0.5 px-2 rounded cursor-pointer ml-2 transition-all duration-200 hover:border-accent hover:text-accent" @click="$emit('toggle-legend')">
+        <button class="timeline-action-btn" @click="$emit('toggle-legend')">
           {{ showMarkerLegend ? 'Hide Legend' : 'Show Legend' }}
         </button>
-        <button class="bg-none border border-border text-text-muted text-2xs py-0.5 px-2 rounded cursor-pointer ml-2 transition-all duration-200 hover:border-accent hover:text-accent" @click="$emit('copy-timeline')">
+        <button class="timeline-action-btn" @click="$emit('copy-timeline')">
           {{ copyLabel }}
         </button>
       </div>
 
       <!-- Event Legend -->
       <div v-show="showMarkerLegend" class="flex flex-wrap gap-2.5 py-2.5 px-3.5 bg-surface border border-border rounded-md mb-3">
-        <div class="flex items-center gap-[5px] text-2xs text-text-muted">
-          <span class="w-2 h-2 rounded-sm shrink-0" style="background: rgba(88, 166, 255, 0.5);" />
+        <div class="legend-item">
+          <span class="legend-dot" style="background: rgba(88, 166, 255, 0.5);" />
           <span>User Request</span>
         </div>
-        <div class="flex items-center gap-[5px] text-2xs text-text-muted">
-          <span class="w-2 h-2 rounded-sm shrink-0" style="background: rgba(63, 185, 80, 0.8);" />
+        <div class="legend-item">
+          <span class="legend-dot" style="background: rgba(63, 185, 80, 0.8);" />
           <span>Sub-Agent</span>
         </div>
-        <div class="flex items-center gap-[5px] text-2xs text-text-muted">
-          <span class="w-2 h-2 rounded-sm shrink-0" style="background: rgba(139, 148, 158, 0.3); border: 1px dashed rgba(139, 148, 158, 0.5);" />
+        <div class="legend-item">
+          <span class="legend-dot" style="background: rgba(139, 148, 158, 0.3); border: 1px dashed rgba(139, 148, 158, 0.5);" />
           <span>Main Agent</span>
         </div>
-        <div class="flex items-center gap-[5px] text-2xs text-text-muted">
-          <span class="w-2 h-2 rounded-sm shrink-0" style="background: #d29922;" />
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #d29922;" />
           <span>Tool (no errors)</span>
         </div>
-        <div class="flex items-center gap-[5px] text-2xs text-text-muted">
-          <span class="w-2 h-2 rounded-sm shrink-0" style="background: linear-gradient(to right, #d29922, #f85149);" />
+        <div class="legend-item">
+          <span class="legend-dot" style="background: linear-gradient(to right, #d29922, #f85149);" />
           <span>Tool (error gradient)</span>
         </div>
-        <div class="flex items-center gap-[5px] text-2xs text-text-muted">
-          <span class="w-2 h-2 rounded-sm shrink-0" style="background: #f85149;" />
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #f85149;" />
           <span>Tool Error (100%)</span>
         </div>
         <template v-for="(cat, type) in EVENT_MARKER_CATEGORIES" :key="type">
-          <div v-if="type && !type.startsWith('tool.')" class="flex items-center gap-[5px] text-2xs text-text-muted">
-            <span class="w-2 h-2 rounded-sm shrink-0" :style="{ background: cat.color, borderRadius: cat.shape === 'circle' ? '50%' : cat.shape === 'diamond' ? '1px' : '2px', transform: cat.shape === 'diamond' ? 'rotate(45deg)' : 'none' }" />
+          <div v-if="type && !type.startsWith('tool.')" class="legend-item">
+            <span class="legend-dot" :style="{ background: cat.color, borderRadius: cat.shape === 'circle' ? '50%' : cat.shape === 'diamond' ? '1px' : '2px', transform: cat.shape === 'diamond' ? 'rotate(45deg)' : 'none' }" />
             <span>{{ cat.label }}</span>
           </div>
         </template>
@@ -66,14 +66,14 @@
           </div>
 
           <!-- User Request row -->
-          <div v-else-if="item.rowType === 'user-req'" class="flex items-center gap-3 py-1.5 border-b border-border-subtle last:border-b-0">
-            <div class="min-w-[200px] max-w-[200px] max-md:min-w-[120px] max-md:max-w-[120px] text-sm overflow-hidden text-ellipsis whitespace-nowrap shrink-0 font-semibold text-text" :title="item.message || 'No message'">
+          <div v-else-if="item.rowType === 'user-req'" class="gantt-row">
+            <div class="gantt-label font-semibold text-text" :title="item.message || 'No message'">
               <span class="inline-block py-0.5 px-2 bg-accent-subtle text-accent rounded text-2xs font-semibold font-mono shrink-0 mt-0.5">UserReq {{ item.userReqNumber }}</span>
               <span class="font-normal text-2xs text-text-muted overflow-hidden text-ellipsis ml-1.5">{{ (item.message || '').substring(0, 40) }}{{ (item.message || '').length > 40 ? '...' : '' }}</span>
             </div>
-            <div class="gantt-bar-area flex-1 min-w-[300px] h-6 relative bg-[rgba(110,118,129,0.05)] rounded">
+            <div class="gantt-bar-area">
               <div
-                class="absolute h-full rounded min-w-[3px] flex items-center px-1.5 text-2xs font-medium text-white whitespace-nowrap overflow-visible bg-[rgba(88,166,255,0.35)] border border-[rgba(88,166,255,0.6)]"
+                class="gantt-bar bg-[rgba(88,166,255,0.35)] border border-[rgba(88,166,255,0.6)]"
                 :style="ganttPosition(item.startTime, item.endTime)"
                 :title="'UserReq ' + item.userReqNumber + ' — ' + formatDuration(item.duration)"
               >
@@ -83,8 +83,8 @@
           </div>
 
           <!-- Sub-Agent row -->
-          <div v-else-if="item.rowType === 'subagent'" class="flex items-center gap-3 py-1.5 border-b border-border-subtle last:border-b-0">
-            <div class="min-w-[200px] max-w-[200px] text-sm overflow-hidden text-ellipsis whitespace-nowrap shrink-0 pl-5" :title="item.name">
+          <div v-else-if="item.rowType === 'subagent'" class="gantt-row">
+            <div class="gantt-label pl-5" :title="item.name">
               <router-link
                 :to="'/session/' + sessionId + '?eventType=subagent.started&eventName=' + encodeURIComponent(item.name) + '&eventTimestamp=' + encodeURIComponent(item.startTime || '')"
                 class="text-accent no-underline transition-colors duration-200 hover:text-link hover:underline"
@@ -96,9 +96,9 @@
                 {{ item.name }}
               </router-link>
             </div>
-            <div class="flex-1 min-w-[300px] h-6 relative bg-[rgba(110,118,129,0.05)] rounded">
+            <div class="gantt-bar-area">
               <div
-                class="absolute h-full rounded min-w-[3px] flex items-center px-1.5 text-2xs font-medium text-white whitespace-nowrap overflow-visible"
+                class="gantt-bar"
                 :style="{ ...ganttPosition(item.startTime, item.endTime), background: item.status === 'completed' ? 'rgba(63, 185, 80, 0.8)' : item.status === 'failed' ? 'rgba(248, 81, 73, 0.8)' : 'rgba(210, 153, 34, 0.8)' }"
                 :title="item.name + ' — ' + formatDuration(item.duration)"
               >
@@ -117,15 +117,15 @@
           </div>
 
           <!-- Main Agent gap row (indented) -->
-          <div v-else-if="item.rowType === 'main-agent'" class="flex items-center gap-3 py-1.5 border-b border-border-subtle last:border-b-0">
-            <div class="min-w-[200px] max-w-[200px] text-sm overflow-hidden text-ellipsis whitespace-nowrap shrink-0 pl-5 text-text-dim italic" :title="item.summary">
+          <div v-else-if="item.rowType === 'main-agent'" class="gantt-row">
+            <div class="gantt-label pl-5 text-text-dim italic" :title="item.summary">
               <span class="text-text-muted mr-1">⚙</span>
               <span>Main Agent</span>
               <span class="text-2xs text-text-faint block overflow-hidden text-ellipsis">{{ item.summary }}</span>
             </div>
-            <div class="flex-1 min-w-[300px] h-6 relative bg-[rgba(110,118,129,0.05)] rounded">
+            <div class="gantt-bar-area">
               <div
-                class="absolute h-full rounded min-w-[3px] flex items-center px-1.5 text-2xs font-medium text-white whitespace-nowrap overflow-visible bg-[rgba(139,148,158,0.3)] border border-dashed border-[rgba(139,148,158,0.5)]"
+                class="gantt-bar bg-[rgba(139,148,158,0.3)] border border-dashed border-[rgba(139,148,158,0.5)]"
                 :style="ganttPosition(item.startTime, item.endTime)"
                 :title="'Main Agent — ' + formatDuration(item.duration)"
               >

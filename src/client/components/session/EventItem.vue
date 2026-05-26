@@ -5,13 +5,13 @@
     v-if="item.type === 'assistant.turn_start'"
     :data-type="item.type"
     :data-index="item.virtualIndex"
-    class="turn-divider flex items-center gap-3 py-3 px-3 m-0 bg-transparent"
+    class="turn-divider divider-base"
   >
-    <span class="text-text-dim text-xs font-semibold uppercase tracking-[0.8px] whitespace-nowrap py-0.5 px-2 bg-canvas rounded-[10px] border border-border-subtle m-0 flex items-center gap-1.5">
+    <span class="turn-divider-label">
       UserReq {{ getTurnNumber(item.virtualIndex) }}
       <template v-if="metadata.source === 'vscode'">
-        <span class="text-accent font-medium normal-case tracking-normal">{{ formatTime(item.timestamp) }}</span>
-        <span v-if="getTurnDuration(item.virtualIndex)" class="text-success font-medium normal-case tracking-normal turn-duration">{{ getTurnDuration(item.virtualIndex) }}</span>
+        <span class="turn-time">{{ formatTime(item.timestamp) }}</span>
+        <span v-if="getTurnDuration(item.virtualIndex)" class="turn-time text-success turn-duration">{{ getTurnDuration(item.virtualIndex) }}</span>
       </template>
       <template v-else>Start</template>
     </span>
@@ -22,10 +22,10 @@
     v-else-if="item.type === 'subagent.started' || item.type === 'subagent.completed' || item.type === 'subagent.failed'"
     :data-type="item.type"
     :data-index="item.virtualIndex"
-    :class="['subagent-divider flex items-center gap-3 py-3 px-3 m-0 bg-transparent', item.type.split('.')[1]]"
+    :class="['subagent-divider divider-base', item.type.split('.')[1]]"
     :style="{ '--sa-color': getSubagentColor(item) || '#58a6ff' }"
   >
-    <span class="text-xs font-semibold whitespace-nowrap tracking-[0.8px] py-0.5 px-2 rounded-[10px] border border-accent m-0 uppercase text-accent bg-accent-subtle" :style="{ color: getSubagentColor(item) || '#58a6ff', borderColor: getSubagentColor(item) || '#58a6ff', background: (getSubagentColor(item) || '#58a6ff') + '1a' }">
+    <span class="subagent-divider-label" :style="{ color: getSubagentColor(item) || '#58a6ff', borderColor: getSubagentColor(item) || '#58a6ff', background: (getSubagentColor(item) || '#58a6ff') + '1a' }">
       🤖 {{ item.data?.agentDisplayName || item.data?.agentName || 'SubAgent' }}
       <span v-if="subagentOwnership.subagentInfo.get(item.data?.toolCallId)?.meta?.model" class="font-normal opacity-80 text-2xs">· {{ subagentOwnership.subagentInfo.get(item.data?.toolCallId).meta.model }}</span>
       {{ item.type === 'subagent.started' ? 'Start ▶' : item.type === 'subagent.completed' ? 'Complete ✓' : 'Failed ✗' }}
@@ -35,18 +35,18 @@
   <!-- Regular Event -->
   <div
     v-else
-    :class="['bg-surface border-l-[3px] border-l-border py-1.5 px-3 m-0 rounded-none text-sm even:bg-surface-alt']"
+    :class="['event-row']"
     :data-type="item.type"
     :data-index="item.virtualIndex"
     :style="getSubagentColor(item) ? { borderLeftColor: getSubagentColor(item) } : {}"
   >
     <div class="event-header flex items-center gap-2 mb-1.5">
-      <span :class="['py-0.5 px-2 rounded-badge text-xs font-semibold whitespace-nowrap min-w-[90px] text-center inline-block leading-[1.4]', getBadgeInfo(item.type, item).class]">
+      <span :class="['event-badge', getBadgeInfo(item.type, item).class]">
         {{ getBadgeInfo(item.type, item).label }}
       </span>
       <span
         v-if="getSubagentInfo(item)"
-        class="text-2xs py-px px-1.5 rounded-lg border whitespace-nowrap opacity-[0.85] cursor-pointer transition-opacity duration-150 hover:opacity-100"
+        class="subagent-tag"
         :style="{ borderColor: getSubagentColor(item) || '#58a6ff', color: getSubagentColor(item) || '#58a6ff' }"
         @mouseover="$event.target.style.background = (getSubagentColor(item) || '#58a6ff') + '26'"
         @mouseout="$event.target.style.background = ''"
@@ -57,12 +57,12 @@
     </div>
 
     <!-- Abort event -->
-    <div v-if="item.type === 'abort' && item.data?.reason" class="event-content text-text-secondary text-left text-sm">
+    <div v-if="item.type === 'abort' && item.data?.reason" class="event-content event-content-text">
       <strong>Reason:</strong> {{ item.data.reason }}
     </div>
 
     <!-- Session start -->
-    <div v-else-if="item.type === 'session.start'" class="event-content text-text-secondary text-left text-sm">
+    <div v-else-if="item.type === 'session.start'" class="event-content event-content-text">
       <div v-if="item.data?.type">
 <strong>Type:</strong> {{ item.data.type }}
 </div>
@@ -75,7 +75,7 @@
     </div>
 
     <!-- Session resume -->
-    <div v-else-if="item.type === 'session.resume'" class="event-content text-text-secondary text-left text-sm">
+    <div v-else-if="item.type === 'session.resume'" class="event-content event-content-text">
       <div v-if="item.data?.resumeTime">
 <strong>Resume Time:</strong> {{ formatDateTime(item.data.resumeTime) }}
 </div>
@@ -94,7 +94,7 @@
     </div>
 
     <!-- Session error -->
-    <div v-else-if="item.type === 'session.error' && (item.data?.errorType || item.data?.message)" class="event-content text-text-secondary text-left text-sm">
+    <div v-else-if="item.type === 'session.error' && (item.data?.errorType || item.data?.message)" class="event-content event-content-text">
       <div v-if="item.data?.errorType">
 <strong>Error Type:</strong> {{ item.data.errorType }}
 </div>
@@ -106,15 +106,15 @@
     <!-- Model change -->
     <div v-else-if="item.type === 'session.model_change'" class="event-content mt-1.5 text-text-secondary text-left text-sm">
       <div v-if="item.data?.previousModel && item.data?.newModel" class="text-sm text-text">
-        <span class="text-accent font-semibold font-mono text-sm">{{ item.data.previousModel }}</span>
+        <span class="model-name">{{ item.data.previousModel }}</span>
         <span class="text-text-dim mx-2">→</span>
-        <span class="text-accent font-semibold font-mono text-sm">{{ item.data.newModel }}</span>
+        <span class="model-name">{{ item.data.newModel }}</span>
       </div>
       <div v-else-if="item.data?.newModel" class="text-sm text-text">
-        Switched to <span class="text-accent font-semibold font-mono text-sm">{{ item.data.newModel }}</span>
+        Switched to <span class="model-name">{{ item.data.newModel }}</span>
       </div>
       <div v-else-if="item.data?.model" class="text-sm text-text">
-        Switched to <span class="text-accent font-semibold font-mono text-sm">{{ item.data.model }}</span>
+        Switched to <span class="model-name">{{ item.data.model }}</span>
       </div>
       <div v-else class="text-sm text-text">
 Model changed
@@ -122,12 +122,12 @@ Model changed
     </div>
 
     <!-- System notification -->
-    <div v-else-if="item.type === 'system.notification'" class="event-content text-text-secondary text-left text-sm" style="opacity:0.7">
+    <div v-else-if="item.type === 'system.notification'" class="event-content event-content-text" style="opacity:0.7">
       <span>{{ item.data?.message }}</span>
     </div>
 
     <!-- Session truncation -->
-    <div v-else-if="item.type === 'session.truncation'" class="event-content text-text-secondary text-left text-sm">
+    <div v-else-if="item.type === 'session.truncation'" class="event-content event-content-text">
       <div v-if="item.data?.messagesRemovedDuringTruncation">
 <strong>Messages removed:</strong> {{ item.data.messagesRemovedDuringTruncation }}
 </div>
@@ -146,12 +146,12 @@ Model changed
     </div>
 
     <!-- Compaction start -->
-    <div v-else-if="item.type === 'session.compaction_start'" class="event-content text-text-secondary text-left text-sm">
+    <div v-else-if="item.type === 'session.compaction_start'" class="event-content event-content-text">
 Context compaction started
 </div>
 
     <!-- Compaction complete -->
-    <div v-else-if="item.type === 'session.compaction_complete'" class="event-content text-text-secondary text-left text-sm">
+    <div v-else-if="item.type === 'session.compaction_complete'" class="event-content event-content-text">
       <div v-if="item.data?.success != null">
 <strong>Success:</strong> {{ item.data.success ? '✓' : '✗' }}
 </div>
@@ -189,20 +189,20 @@ Context compaction started
         <span v-if="item.data.hookSuccess === false" style="color: #ff7b72; margin-left: 4px;">✗</span>
       </div>
       <div v-if="item.data.hookArgs && Object.keys(item.data.hookArgs).length > 0" class="mt-1">
-        <div class="cursor-pointer inline-flex items-center gap-1 py-0.5 select-none hover:text-text-secondary" @click="toggleContent('hook-args-' + item.stableId)">
-          <span class="text-text-faint mx-1 inline-flex items-center justify-center w-3 h-3 shrink-0 leading-none -translate-y-px">{{ expandedContent['hook-args-' + item.stableId] ? '▼' : '▶' }}</span>
+        <div class="hook-toggle" @click="toggleContent('hook-args-' + item.stableId)">
+          <span class="expand-arrow">{{ expandedContent['hook-args-' + item.stableId] ? '▼' : '▶' }}</span>
           <span style="color: #8b949e;">Arguments</span>
         </div>
-        <div v-if="expandedContent['hook-args-' + item.stableId]" class="mt-0.5 py-1.5 px-2.5 bg-surface border border-border-subtle rounded overflow-x-auto">
+        <div v-if="expandedContent['hook-args-' + item.stableId]" class="hook-detail-box">
           <pre>{{ JSON.stringify(item.data.hookArgs, null, 2) }}</pre>
         </div>
       </div>
       <div v-if="item.data.hookResult" class="mt-1">
-        <div class="cursor-pointer inline-flex items-center gap-1 py-0.5 select-none hover:text-text-secondary" @click="toggleContent('hook-result-' + item.stableId)">
-          <span class="text-text-faint mx-1 inline-flex items-center justify-center w-3 h-3 shrink-0 leading-none -translate-y-px">{{ expandedContent['hook-result-' + item.stableId] ? '▼' : '▶' }}</span>
+        <div class="hook-toggle" @click="toggleContent('hook-result-' + item.stableId)">
+          <span class="expand-arrow">{{ expandedContent['hook-result-' + item.stableId] ? '▼' : '▶' }}</span>
           <span style="color: #8b949e;">Result</span>
         </div>
-        <div v-if="expandedContent['hook-result-' + item.stableId]" class="mt-0.5 py-1.5 px-2.5 bg-surface border border-border-subtle rounded overflow-x-auto">
+        <div v-if="expandedContent['hook-result-' + item.stableId]" class="hook-detail-box">
           <pre>{{ item.data.hookResult }}</pre>
         </div>
       </div>
@@ -214,7 +214,7 @@ Context compaction started
     <!-- Regular content -->
     <div v-else-if="item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent">
       <div
-        class="event-content text-text-secondary text-left text-sm"
+        class="event-content event-content-text"
         v-html="highlightSearchText(
           renderMarkdown(
             (expandedContent[item.stableId] || !isContentTooLong(item.data?.message || item.data?.text || item.data?.content || item.data?.transformedContent))
@@ -238,7 +238,7 @@ Context compaction started
     </div>
 
     <!-- No content -->
-    <div v-else-if="!hasTools(item) && !item.data?.reasoningText" class="event-content text-text-secondary text-left text-sm" style="color: #7d8590; font-style: italic;">
+    <div v-else-if="!hasTools(item) && !item.data?.reasoningText" class="event-content event-content-text" style="color: #7d8590; font-style: italic;">
       No available message
     </div>
 
@@ -267,15 +267,15 @@ Context compaction started
     <!-- Tool calls -->
     <div v-if="hasTools(item)" class="mt-1.5 pl-0">
       <div v-for="(group, idx) in getToolGroups(item)" :key="idx" class="py-0.5">
-        <div class="text-text-secondary text-sm font-mono cursor-pointer select-none leading-[1.4] flex items-baseline gap-0 py-0.5 flex-wrap hover:text-text-secondary" @click="toggleTool(item.stableId + '-' + idx)">
+        <div class="tool-header" @click="toggleTool(item.stableId + '-' + idx)">
           <span class="text-text-faint mr-0 shrink-0 leading-none">{{ idx === getToolGroups(item).length - 1 ? '└─' : '├─' }}</span>
-          <span class="text-text-faint mx-1 inline-flex items-center justify-center w-3 h-3 shrink-0 leading-none -translate-y-px">{{ expandedTools[item.stableId + '-' + idx] ? '▼' : '▶' }}</span>
+          <span class="expand-arrow">{{ expandedTools[item.stableId + '-' + idx] ? '▼' : '▶' }}</span>
           <span class="text-tool shrink-0 mr-1">🔧&nbsp;{{ group.start?.data?.toolName || group.tool || 'Tool' }}</span>
           <span :class="getToolStatus(group).color" style="margin-left: 4px;">({{ getToolStatus(group).icon }}{{ getToolDuration(group) ? ' ' + getToolDuration(group) : '' }})</span>
           <span v-if="getToolCommand(group)" style="color: #7d8590; margin-left: 8px;">{{ getToolCommand(group) }}</span>
           <span v-if="getToolErrorMessage(group)" style="color: #ff7b72; margin-left: 8px;">{{ getToolErrorMessage(group).length > 80 ? getToolErrorMessage(group).substring(0, 80) + '...' : getToolErrorMessage(group) }}</span>
         </div>
-        <div v-if="expandedTools[item.stableId + '-' + idx]" class="mt-1 p-2 bg-[rgba(110,118,129,0.05)] rounded-badge border border-border text-xs">
+        <div v-if="expandedTools[item.stableId + '-' + idx]" class="tool-detail">
           <div v-if="group.timing.startTime || group.timing.endTime || group.timing.duration" class="mb-1.5">
             <div class="flex flex-wrap gap-x-4 gap-y-1">
               <span v-if="group.timing.startTime"><span class="text-text-muted font-medium mr-[3px]">Start</span> {{ formatToolTime(group.timing.startTime) }}</span>
@@ -284,23 +284,23 @@ Context compaction started
             </div>
           </div>
           <div v-if="group.start?.data?.arguments" class="mb-1.5">
-            <div class="text-text-dim mb-0.5 font-semibold text-xs">
+            <div class="tool-section-label">
 Arguments:
 </div>
             <div class="">
-<pre class="m-0 py-1 px-1.5 bg-canvas rounded-badge overflow-x-auto max-h-[200px] text-xs leading-[1.3] text-text">{{ JSON.stringify(group.start.data.arguments, null, 2) }}</pre>
+<pre class="tool-pre">{{ JSON.stringify(group.start.data.arguments, null, 2) }}</pre>
 </div>
           </div>
           <div v-if="group.complete?.data?.result" class="mb-1.5">
-            <div class="text-text-dim mb-0.5 font-semibold text-xs">
+            <div class="tool-section-label">
 Result:
 </div>
             <div class="">
-<pre class="m-0 py-1 px-1.5 bg-canvas rounded-badge overflow-x-auto max-h-[200px] text-xs leading-[1.3] text-text">{{ JSON.stringify(group.complete.data.result, null, 2) }}</pre>
+<pre class="tool-pre">{{ JSON.stringify(group.complete.data.result, null, 2) }}</pre>
 </div>
           </div>
           <div v-if="getToolErrorMessage(group)" class="mb-1.5 last:mb-0">
-            <div class="text-text-dim mb-0.5 font-semibold text-xs">
+            <div class="tool-section-label">
 Error:
 </div>
             <div class="" style="color: #ff7b72;">

@@ -2,7 +2,7 @@
 <div class="unified-filter-bar bg-canvas border-b border-border shrink-0">
   <div class="filter-bar-row flex items-center gap-2 py-2 px-3 flex-wrap">
     <button
-      class="sidebar-toggle bg-surface-hover border border-border rounded text-text-secondary cursor-pointer py-1 px-2 text-sm transition-all hover:bg-border hover:text-accent"
+      class="filter-bar-toggle"
       :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
       @click="$emit('toggleSidebar')"
     >
@@ -26,7 +26,7 @@
     <select
       v-if="turns.length > 0"
       :value="currentTurnIndex"
-      class="py-1.5 px-3 bg-surface border border-border rounded-md text-text-secondary text-sm cursor-pointer min-w-[260px] transition-colors duration-200 hover:border-accent focus:outline-none focus:border-accent"
+      class="filter-select min-w-[260px]"
       @change="$emit('update:currentTurnIndex', Number($event.target.value)); $emit('jumpToTurn', Number($event.target.value))"
     >
       <optgroup
@@ -77,9 +77,9 @@
 {{ sa.name }}
 </div>
               <div v-if="sa.meta.taskName || sa.meta.agentType || sa.meta.model" class="flex gap-1.5 mt-0.5 flex-wrap">
-                <span v-if="sa.meta.taskName" class="text-2xs text-text-muted bg-surface-hover py-[1px] px-1.5 rounded">{{ sa.meta.taskName }}</span>
-                <span v-if="sa.meta.agentType" class="text-2xs text-text-muted bg-surface-hover py-[1px] px-1.5 rounded opacity-70">{{ sa.meta.agentType }}</span>
-                <span v-if="sa.meta.model" class="text-2xs text-text-muted bg-surface-hover py-[1px] px-1.5 rounded opacity-70">{{ sa.meta.model }}</span>
+                <span v-if="sa.meta.taskName" class="subagent-meta-tag">{{ sa.meta.taskName }}</span>
+                <span v-if="sa.meta.agentType" class="subagent-meta-tag opacity-70">{{ sa.meta.agentType }}</span>
+                <span v-if="sa.meta.model" class="subagent-meta-tag opacity-70">{{ sa.meta.model }}</span>
               </div>
               <div v-if="sa.meta.agentDescription" class="text-2xs text-text-faint mt-[3px] leading-[1.4] line-clamp-2">
 {{ sa.meta.agentDescription }}
@@ -133,17 +133,17 @@ Event Types
 
   <!-- Active filter chips -->
   <div v-if="activeFilterCount > 0" class="flex items-center gap-1.5 py-1 px-3 pb-2 flex-wrap">
-    <span v-if="currentFilter !== 'all'" class="inline-flex items-center gap-1 py-0.5 px-2 bg-accent-subtle border border-[rgba(88,166,255,0.3)] rounded-xl text-xs text-accent whitespace-nowrap">
+    <span v-if="currentFilter !== 'all'" class="filter-chip">
       Type: {{ currentFilter }}
-      <button class="bg-none border-none text-accent cursor-pointer text-sm p-0 px-0.5 leading-none opacity-70 transition-opacity duration-150 hover:opacity-100" title="Remove filter" @click="$emit('setFilter', 'all')">×</button>
+      <button class="filter-chip-remove" title="Remove filter" @click="$emit('setFilter', 'all')">×</button>
     </span>
-    <span v-if="selectedSubagent" class="inline-flex items-center gap-1 py-0.5 px-2 bg-accent-subtle border border-[rgba(88,166,255,0.3)] rounded-xl text-xs text-accent whitespace-nowrap">
+    <span v-if="selectedSubagent" class="filter-chip">
       Agent: {{ subagentList.find(s => s.toolCallId === selectedSubagent)?.name || selectedSubagent }}
-      <button class="bg-none border-none text-accent cursor-pointer text-sm p-0 px-0.5 leading-none opacity-70 transition-opacity duration-150 hover:opacity-100" title="Remove filter" @click="$emit('selectSubagent', null)">×</button>
+      <button class="filter-chip-remove" title="Remove filter" @click="$emit('selectSubagent', null)">×</button>
     </span>
-    <span v-if="searchText.trim()" class="inline-flex items-center gap-1 py-0.5 px-2 bg-accent-subtle border border-[rgba(88,166,255,0.3)] rounded-xl text-xs text-accent whitespace-nowrap">
+    <span v-if="searchText.trim()" class="filter-chip">
       Search: "{{ searchText.length > 20 ? searchText.substring(0, 20) + '…' : searchText }}"
-      <button class="bg-none border-none text-accent cursor-pointer text-sm p-0 px-0.5 leading-none opacity-70 transition-opacity duration-150 hover:opacity-100" title="Remove filter" @click="$emit('update:searchText', '')">×</button>
+      <button class="filter-chip-remove" title="Remove filter" @click="$emit('update:searchText', '')">×</button>
     </span>
     <button class="bg-none border-none text-danger-emphasis cursor-pointer text-xs py-0.5 px-1.5 rounded-badge transition-colors duration-200 hover:bg-danger-subtle" @click="$emit('clearAllFilters')">
 Clear all
