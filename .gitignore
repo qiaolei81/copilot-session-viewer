@@ -33,6 +33,8 @@ ESLINT.md
 
 # Session data (if any test sessions)
 sessions/
+!__tests__/fixtures/sessions/
+!__tests__/fixtures/sessions/**
 *.jsonl
 !__tests__/fixtures/**/*.jsonl
 # CI test sessions

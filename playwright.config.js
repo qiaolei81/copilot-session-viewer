@@ -1,4 +1,18 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'node:path';
+
+const FIXTURES = path.join(__dirname, '__tests__', 'fixtures', 'sessions');
+
+// E2E uses sanitized fixture sessions by default — never the developer's real
+// session directories. Override with env vars if you need to point a single
+// run at real data (e.g. for debugging).
+const FIXTURE_ENV = {
+  COPILOT_SESSION_DIR: process.env.COPILOT_SESSION_DIR || path.join(FIXTURES, 'copilot-cli'),
+  CLAUDE_SESSION_DIR: process.env.CLAUDE_SESSION_DIR || path.join(FIXTURES, 'claude'),
+  PI_MONO_SESSION_DIR: process.env.PI_MONO_SESSION_DIR || path.join(FIXTURES, 'pi-mono'),
+  VSCODE_WORKSPACE_STORAGE_DIR: process.env.VSCODE_WORKSPACE_STORAGE_DIR || path.join(FIXTURES, 'vscode-empty'),
+  MODERNIZE_SESSION_DIR: process.env.MODERNIZE_SESSION_DIR || path.join(FIXTURES, 'modernize-empty'),
+};
 
 export default defineConfig({
   testDir: './__tests__/e2e',
@@ -45,7 +59,8 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 30 * 1000,
     env: {
-      ...process.env, // Inherit all environment variables (HOME, session dirs, etc.)
+      ...process.env, // Inherit HOME etc.
+      ...FIXTURE_ENV,  // Force fixture session dirs (overrides any inherited real dirs)
       PLAYWRIGHT: '1', // Disable rate limiting during E2E tests
     },
   },
