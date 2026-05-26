@@ -41,7 +41,7 @@
     :style="getSubagentColor(item) ? { borderLeftColor: getSubagentColor(item) } : {}"
   >
     <div class="event-header flex items-center gap-2 mb-1.5">
-      <span :class="['event-badge', getBadgeInfo(item.type, item).class]">
+      <span class="event-badge" :style="getBadgeInfo(item.type, item).style">
         {{ getBadgeInfo(item.type, item).label }}
       </span>
       <span

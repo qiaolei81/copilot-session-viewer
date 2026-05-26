@@ -661,31 +661,58 @@ export function useSessionData() {
 
   const getBadgeInfo = (type, item) => {
     if (item?.data?.badgeLabel && item?.data?.badgeClass) {
-      return { label: item.data.badgeLabel, class: item.data.badgeClass };
+      return { label: item.data.badgeLabel, style: badgeClassToStyle(item.data.badgeClass) };
     }
     if (type === 'message' && item?.data?.role === 'toolResult') {
-      return { label: 'TOOL RESULT', class: 'bg-[#9e6a03] text-white' };
+      return { label: 'TOOL RESULT', style: { backgroundColor: '#9e6a03', color: '#fff' } };
     }
-    if (type === 'session.model_change') return { label: 'MODEL CHANGE', class: 'bg-text-faint text-white' };
-    if (type === 'session.truncation') return { label: 'TRUNCATION', class: 'bg-[#e5534b] text-white' };
-    if (type === 'session.compaction_start' || type === 'session.compaction_complete') return { label: 'COMPACTION', class: 'bg-[#c2442d] text-white' };
-    if (type === 'system.notification') return { label: 'SYSTEM', class: 'bg-surface-overlay text-[#adbac7] italic' };
+    if (type === 'session.model_change') return { label: 'MODEL CHANGE', style: { backgroundColor: 'var(--color-text-faint)', color: '#fff' } };
+    if (type === 'session.truncation') return { label: 'TRUNCATION', style: { backgroundColor: '#e5534b', color: '#fff' } };
+    if (type === 'session.compaction_start' || type === 'session.compaction_complete') return { label: 'COMPACTION', style: { backgroundColor: '#c2442d', color: '#fff' } };
+    if (type === 'system.notification') return { label: 'SYSTEM', style: { backgroundColor: 'var(--color-surface-overlay)', color: '#adbac7', fontStyle: 'italic' } };
     const parts = (type || '').split('.');
     const category = parts[0] || 'unknown';
     const badges = {
-      user: { label: 'USER', class: 'bg-accent-emphasis text-white' },
-      assistant: { label: 'ASSISTANT', class: 'bg-success-emphasis text-white' },
-      reasoning: { label: 'REASONING', class: 'bg-purple-light text-white' },
-      turn: { label: 'TURN', class: 'bg-success-emphasis text-white' },
-      tool: { label: 'TOOL', class: 'bg-[#9e6a03] text-white' },
-      subagent: { label: 'SUBAGENT', class: 'bg-[#8957e5] text-white' },
-      skill: { label: 'SKILL', class: 'bg-pink text-white' },
-      session: { label: 'SESSION', class: 'bg-text-faint text-white' },
-      error: { label: 'ERROR', class: 'bg-danger text-white' },
-      abort: { label: 'ABORT', class: 'bg-danger text-white' }
+      user: { label: 'USER', style: { backgroundColor: 'var(--color-accent-emphasis)', color: '#fff' } },
+      assistant: { label: 'ASSISTANT', style: { backgroundColor: 'var(--color-success-emphasis)', color: '#fff' } },
+      reasoning: { label: 'REASONING', style: { backgroundColor: 'var(--color-purple-light)', color: '#fff' } },
+      turn: { label: 'TURN', style: { backgroundColor: 'var(--color-success-emphasis)', color: '#fff' } },
+      tool: { label: 'TOOL', style: { backgroundColor: '#9e6a03', color: '#fff' } },
+      subagent: { label: 'SUBAGENT', style: { backgroundColor: '#8957e5', color: '#fff' } },
+      skill: { label: 'SKILL', style: { backgroundColor: 'var(--color-pink)', color: '#fff' } },
+      session: { label: 'SESSION', style: { backgroundColor: 'var(--color-text-faint)', color: '#fff' } },
+      error: { label: 'ERROR', style: { backgroundColor: 'var(--color-danger)', color: '#fff' } },
+      abort: { label: 'ABORT', style: { backgroundColor: 'var(--color-danger)', color: '#fff' } }
     };
-    return badges[category] || { label: category.toUpperCase(), class: 'bg-accent text-white' };
+    return badges[category] || { label: category.toUpperCase(), style: { backgroundColor: 'var(--color-accent)', color: '#fff' } };
   };
+
+  // Helper: convert legacy badgeClass string to inline style
+  function badgeClassToStyle(cls) {
+    const style = { color: '#fff' };
+    const bgMatch = cls.match(/bg-\[([^\]]+)\]/);
+    if (bgMatch) {
+      style.backgroundColor = bgMatch[1];
+    } else if (cls.includes('bg-accent-emphasis')) {
+      style.backgroundColor = 'var(--color-accent-emphasis)';
+    } else if (cls.includes('bg-success-emphasis')) {
+      style.backgroundColor = 'var(--color-success-emphasis)';
+    } else if (cls.includes('bg-purple-light')) {
+      style.backgroundColor = 'var(--color-purple-light)';
+    } else if (cls.includes('bg-text-faint')) {
+      style.backgroundColor = 'var(--color-text-faint)';
+    } else if (cls.includes('bg-danger')) {
+      style.backgroundColor = 'var(--color-danger)';
+    } else if (cls.includes('bg-surface-overlay')) {
+      style.backgroundColor = 'var(--color-surface-overlay)';
+    } else if (cls.includes('bg-pink')) {
+      style.backgroundColor = 'var(--color-pink)';
+    } else if (cls.includes('bg-accent')) {
+      style.backgroundColor = 'var(--color-accent)';
+    }
+    if (cls.includes('italic')) style.fontStyle = 'italic';
+    return style;
+  }
 
   // ── Tool helpers ──
 
