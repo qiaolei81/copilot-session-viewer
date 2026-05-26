@@ -93,6 +93,18 @@ class SessionController {
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
+      // Aggregate usage data from events
+      try {
+        const events = await this.sessionService.getSessionEvents(sessionId);
+        if (events && events.length > 0) {
+          const usage = this.sessionService.extractUsageData(events);
+          if (usage) {
+            session.usage = usage;
+          }
+        }
+      } catch (usageErr) {
+        console.warn('Failed to extract usage data:', usageErr.message);
+      }
       trackEvent('SessionViewed', { sessionId, source: session.source || 'unknown' });
       res.json(session);
     } catch (err) {
