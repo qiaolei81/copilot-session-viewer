@@ -128,7 +128,11 @@ class SessionController {
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
-      const session = await this.sessionService.getSessionById(sessionId);
+      let dir = req.query.dir || null;
+      if (dir && dir.startsWith('~')) {
+        dir = path.join(os.homedir(), dir.slice(1));
+      }
+      const session = await this.sessionService.getSessionById(sessionId, dir);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
@@ -160,7 +164,10 @@ class SessionController {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      const dir = req.query.dir || null;
+      let dir = req.query.dir || null;
+      if (dir && dir.startsWith('~')) {
+        dir = path.join(os.homedir(), dir.slice(1));
+      }
       const isPaginationRequested = req.query.limit !== undefined || req.query.offset !== undefined;
 
       let limit, offset, result;
