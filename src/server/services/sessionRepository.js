@@ -169,8 +169,25 @@ class SessionRepository {
    * @param {string} sessionId - Session ID
    * @returns {Promise<import('../models/Session')|null>}
    */
-  async findById(sessionId) {
+  async findById(sessionId, customDir = null) {
     if (shouldSkipEntry(sessionId)) return null;
+
+    // If a custom dir is specified, use the source type from the first source
+    // and search directly in that dir
+    if (customDir) {
+      for (const source of this.sources) {
+        const adapter = this.registry.get(source.type);
+        if (!adapter) continue;
+        try {
+          await fs.access(customDir);
+        } catch {
+          continue;
+        }
+        const session = await adapter.findById(sessionId, customDir);
+        if (session) return session;
+      }
+      return null;
+    }
 
     for (const source of this.sources) {
       const adapter = this.registry.get(source.type);

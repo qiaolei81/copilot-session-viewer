@@ -44,12 +44,12 @@ class SessionService {
     };
   }
 
-  async getSessionById(sessionId) {
+  async getSessionById(sessionId, dir = null) {
     if (!isValidSessionId(sessionId)) {
       return null;
     }
 
-    const session = await this.sessionRepository.findById(sessionId);
+    const session = await this.sessionRepository.findById(sessionId, dir);
     if (!session) {
       return undefined;
     }
@@ -57,20 +57,20 @@ class SessionService {
     return typeof session.toJSON === 'function' ? session.toJSON() : session;
   }
 
-  async getSessionEvents(sessionId, options = null) {
+  async getSessionEvents(sessionId, options = null, dir = null) {
     if (!isValidSessionId(sessionId)) {
       return options ? { events: [], total: 0 } : [];
     }
 
     // First, find the session to get its source and type
-    const session = await this.sessionRepository.findById(sessionId);
+    const session = await this.sessionRepository.findById(sessionId, dir);
     if (!session) {
       return options ? { events: [], total: 0 } : [];
     }
 
     const adapter = this._getSourceAdapter(session.source);
     const sourceConfig = this.sessionRepository.sources.find(s => s.type === session.source);
-    let resolvedSourceDir = sourceConfig?.dir || null;
+    let resolvedSourceDir = dir || sourceConfig?.dir || null;
 
     if (!resolvedSourceDir && adapter) {
       resolvedSourceDir = await adapter.resolveDir();

@@ -134,7 +134,7 @@ class SessionController {
       }
       // Aggregate usage data from events
       try {
-        const events = await this.sessionService.getSessionEvents(sessionId);
+        const events = await this.sessionService.getSessionEvents(sessionId, null, dir);
         if (events && events.length > 0) {
           const usage = this.sessionService.extractUsageData(events);
           if (usage) {
@@ -160,6 +160,7 @@ class SessionController {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
+      const dir = req.query.dir || null;
       const isPaginationRequested = req.query.limit !== undefined || req.query.offset !== undefined;
 
       let limit, offset, result;
@@ -176,15 +177,15 @@ class SessionController {
         }
       }
 
-      const session = await this.sessionService.sessionRepository.findById(sessionId);
+      const session = await this.sessionService.sessionRepository.findById(sessionId, dir);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
       }
 
       if (isPaginationRequested) {
-        result = await this.sessionService.getSessionEvents(sessionId, { limit, offset });
+        result = await this.sessionService.getSessionEvents(sessionId, { limit, offset }, dir);
       } else {
-        const events = await this.sessionService.getSessionEvents(sessionId);
+        const events = await this.sessionService.getSessionEvents(sessionId, null, dir);
         result = events;
       }
 

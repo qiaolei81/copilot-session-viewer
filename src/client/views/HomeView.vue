@@ -304,6 +304,7 @@ async function fetchSource(source) {
             const cdData = await cdResp.json();
             for (const s of (cdData.sessions || [])) {
               s._customDirColor = cd.color;
+              s._customDir = cd.dir;
               if (!existingIds.has(s.id)) {
                 existingIds.add(s.id);
                 allSessions.value.push(s);

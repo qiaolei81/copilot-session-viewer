@@ -41,7 +41,7 @@ class CopilotAdapter extends BaseSourceAdapter {
   }
 
   async findById(sessionId, dir) {
-    // Try directory first
+    // Try direct path first (fast path)
     try {
       const dirPath = path.join(dir, sessionId);
       const dirStats = await fs.stat(dirPath);
@@ -52,7 +52,6 @@ class CopilotAdapter extends BaseSourceAdapter {
       // Not a directory
     }
 
-    // Try .jsonl file
     try {
       const filePath = path.join(dir, `${sessionId}.jsonl`);
       const fileStats = await fs.stat(filePath);
@@ -63,6 +62,39 @@ class CopilotAdapter extends BaseSourceAdapter {
       // File not found
     }
 
+    // Recursive search for nested session dirs
+    const result = await this._findByIdRecursive(sessionId, dir, 5, 0);
+    return result;
+  }
+
+  async _findByIdRecursive(sessionId, dir, maxDepth, depth) {
+    if (depth > maxDepth) return null;
+    let entries;
+    try {
+      entries = await fs.readdir(dir);
+    } catch {
+      return null;
+    }
+    for (const entry of entries) {
+      if (shouldSkipEntry(entry)) continue;
+      const fullPath = path.join(dir, entry);
+      let stats;
+      try {
+        stats = await fs.stat(fullPath);
+      } catch {
+        continue;
+      }
+      if (!stats.isDirectory()) continue;
+      if (entry === sessionId) {
+        const hasEvents = await fileExists(path.join(fullPath, 'events.jsonl'));
+        const hasWorkspace = await fileExists(path.join(fullPath, 'workspace.yaml'));
+        if (hasEvents || hasWorkspace) {
+          return this._createDirectorySession(entry, fullPath, stats);
+        }
+      }
+      const found = await this._findByIdRecursive(sessionId, fullPath, maxDepth, depth + 1);
+      if (found) return found;
+    }
     return null;
   }
 
