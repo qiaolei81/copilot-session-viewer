@@ -1,23 +1,23 @@
 <template>
   <div class="max-w-[1400px] w-full text-center mx-auto p-5">
-    <h1 class="text-5xl mb-2.5 text-[#58a6ff]">
+    <h1 class="text-5xl mb-2.5 text-accent">
 🤖 Session Viewer
 </h1>
-    <p class="text-[#c9d1d9] mb-10 text-base">
+    <p class="text-text-secondary mb-10 text-base">
 View session logs from Copilot CLI, Copilot Chat, Claude Code, and Pi-Mono
 </p>
 
     <form @submit.prevent="viewSession">
-      <div class="bg-[#161b22] border-2 border-[#30363d] rounded-xl p-2 flex gap-2 transition-colors focus-within:border-[#58a6ff]">
+      <div class="bg-surface border-2 border-border rounded-xl p-2 flex gap-2 transition-colors focus-within:border-accent">
         <input
           v-model="sessionInput"
           type="text"
-          class="flex-1 py-4 px-5 min-h-11 bg-transparent border-none text-[#c9d1d9] text-base font-mono focus:outline-none placeholder:text-[#6e7681] focus-visible:outline-2 focus-visible:outline-[#58a6ff] focus-visible:outline-offset-2"
+          class="flex-1 py-4 px-5 min-h-11 bg-transparent border-none text-text-secondary text-base font-mono focus:outline-none placeholder:text-text-faint focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
           placeholder="Enter Session ID..."
           autofocus
           required
         >
-        <button type="submit" class="py-4 px-8 min-h-11 bg-[#238636] border-none rounded-lg text-white text-base font-semibold cursor-pointer transition-all hover:bg-[#2ea043] hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-[#58a6ff] focus-visible:outline-offset-2">
+        <button type="submit" class="py-4 px-8 min-h-11 bg-success-emphasis border-none rounded-lg text-white text-base font-semibold cursor-pointer transition-all hover:bg-success-emphasis hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2">
 View
 </button>
       </div>
@@ -25,29 +25,29 @@ View
 
     <div v-if="allSessions.length > 0 || hasLoaded" class="mt-10 text-left">
       <div class="flex items-baseline gap-3 mb-3">
-        <div class="text-[#c9d1d9] text-sm mb-3 uppercase tracking-wider">
+        <div class="text-text-secondary text-sm mb-3 uppercase tracking-wider">
 Sessions
 </div>
-        <a class="text-[#58a6ff] text-sm no-underline cursor-pointer hover:text-[#79c0ff] hover:underline" :style="importLinkStyle" @click.prevent="triggerImport">{{ importLinkText }}</a>
-        <span class="text-[11px] text-[#6e7681] ml-1.5 align-middle">Supports: GitHub Copilot, Claude, Pi-Mono</span>
+        <a class="text-accent text-sm no-underline cursor-pointer hover:text-link hover:underline" :style="importLinkStyle" @click.prevent="triggerImport">{{ importLinkText }}</a>
+        <span class="text-2xs text-text-faint ml-1.5 align-middle">Supports: GitHub Copilot, Claude, Pi-Mono</span>
       </div>
       <div class="flex gap-2 mb-4 flex-wrap">
         <button
           v-for="pill in filterPills"
           :key="pill.source"
           :class="[
-            'py-[6px] px-4 border border-[#30363d] rounded-[20px] text-[#8b949e] text-[13px] font-medium cursor-pointer transition-all duration-200 min-h-[32px] hover:bg-[#30363d] hover:border-[#58a6ff] hover:text-[#c9d1d9] focus-visible:outline-2 focus-visible:outline-[#58a6ff] focus-visible:outline-offset-2',
+            'py-[6px] px-4 border border-border rounded-pill text-text-muted text-sm font-medium cursor-pointer transition-all duration-200 min-h-[32px] hover:bg-border hover:border-accent hover:text-text-secondary focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2',
             currentSourceFilter === pill.source
-              ? 'bg-[#58a6ff] !border-[#58a6ff] !text-white'
-              : 'bg-[#21262d]'
+              ? 'bg-accent !border-accent !text-white'
+              : 'bg-surface-hover'
           ]"
           @click="selectFilter(pill.source)"
         >
 {{ pill.label }}
 </button>
       </div>
-      <p v-if="currentSourceHint" class="hint mt-5 text-[#c9d1d9] text-sm">
-        Sessions from <span class="inline-block bg-[#161b22] py-1 px-2 rounded font-mono text-[13px] text-[#58a6ff]">{{ currentSourceHint }}</span>
+      <p v-if="currentSourceHint" class="hint mt-5 text-text-secondary text-sm">
+        Sessions from <span class="inline-block bg-surface py-1 px-2 rounded font-mono text-sm text-accent">{{ currentSourceHint }}</span>
       </p>
       <input
         ref="fileInputRef"
@@ -57,10 +57,10 @@ Sessions
         @change="handleFileChange"
       >
       <div v-if="importStatusMsg" :class="[
-        'mb-3 py-2.5 px-3 rounded-md text-[13px]',
-        importStatusType === 'success' ? 'bg-[rgba(35,134,54,0.15)] border border-[#238636] text-[#3fb950]' : '',
-        importStatusType === 'error' ? 'bg-[rgba(248,81,73,0.15)] border border-[#f85149] text-[#ff7b72]' : '',
-        importStatusType === 'loading' ? 'bg-[rgba(88,166,255,0.15)] border border-[#58a6ff] text-[#58a6ff]' : ''
+        'mb-3 py-2.5 px-3 rounded-md text-sm',
+        importStatusType === 'success' ? 'bg-success-subtle border border-success-emphasis text-success' : '',
+        importStatusType === 'error' ? 'bg-danger-subtle border border-danger-emphasis text-error-text' : '',
+        importStatusType === 'loading' ? 'bg-accent-subtle border border-accent text-accent' : ''
       ]">
 {{ importStatusMsg }}
 </div>
@@ -72,7 +72,7 @@ No sessions found for this filter.
         </template>
         <template v-else>
           <template v-for="dateKey in sortedDateKeys" :key="dateKey">
-            <div class="text-[#58a6ff] text-lg font-semibold mt-8 mb-4 pb-2 first:mt-0">
+            <div class="text-accent text-lg font-semibold mt-8 mb-4 pb-2 first:mt-0">
 {{ formatDateHeader(groupedSessions[dateKey][0].createdAt) }}
 </div>
             <div class="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-4 md:grid-cols-[repeat(auto-fill,minmax(400px,1fr))] max-md:grid-cols-1">

@@ -18,7 +18,7 @@
     <template v-else-if="marker.shape === 'triangle'">
       <span class="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[7px] border-l-transparent border-r-transparent border-b-current block" :style="{ color: marker.color }" />
     </template>
-    <span class="hidden group-hover:block absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 bg-[#1c2128] border border-[#30363d] rounded-md py-1.5 px-2.5 text-[11px] text-[#c9d1d9] whitespace-nowrap z-[100] pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
+    <span class="hidden group-hover:block absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 bg-surface-alt border border-border rounded-md py-1.5 px-2.5 text-2xs text-text-secondary whitespace-nowrap z-[100] pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
       <template v-if="marker.shape === 'cluster'">{{ marker.count }} events: {{ marker.label }}</template>
       <template v-else>{{ marker.label }}<span v-if="marker.toolName"> ({{ marker.toolName }})</span></template>
     </span>

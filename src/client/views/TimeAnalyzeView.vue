@@ -1,21 +1,21 @@
 <template>
   <div>
-    <div class="py-4 px-5 border-b border-[#30363d] flex items-center gap-4 sticky top-0 bg-[#0d1117] z-10">
-      <router-link :to="'/' + source + '/session/' + sessionId" class="py-1.5 px-3 bg-[#21262d] border border-[#30363d] rounded-md text-[#c9d1d9] no-underline text-sm transition-all hover:bg-[#30363d] hover:border-[#58a6ff]">
+    <div class="py-4 px-5 border-b border-border flex items-center gap-4 sticky top-0 bg-canvas z-10">
+      <router-link :to="'/' + source + '/session/' + sessionId" class="py-1.5 px-3 bg-surface-hover border border-border rounded-md text-text-secondary no-underline text-sm transition-all hover:bg-border hover:border-accent">
 ← Back to Session
 </router-link>
-      <h1 class="text-[#58a6ff] text-xl flex-1">
+      <h1 class="text-accent text-xl flex-1">
 ⏱ Analysis: {{ sessionId }}
         <span v-if="metadata.sessionStatus === 'wip'" style="font-size: 12px; padding: 2px 8px; border-radius: 3px; background: rgba(210, 153, 34, 0.2); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.4); vertical-align: middle; margin-left: 8px;">🔄 WIP</span>
       </h1>
     </div>
 
     <div class="mx-auto px-5">
-      <div v-if="loading" class="text-center p-10 text-[#7d8590] text-sm" style="padding: 60px;">
+      <div v-if="loading" class="text-center p-10 text-text-dim text-sm" style="padding: 60px;">
         ⏳ Loading events...
       </div>
 
-      <div v-else-if="error" class="text-center p-10 text-[#7d8590] text-sm" style="padding: 60px; color: #f85149;">
+      <div v-else-if="error" class="text-center p-10 text-text-dim text-sm" style="padding: 60px; color: #f85149;">
         ❌ {{ error }}
       </div>
 
@@ -43,16 +43,16 @@
         />
 
         <!-- Tabs -->
-        <div class="flex gap-1 mb-4 border-b border-[#30363d]">
+        <div class="flex gap-1 mb-4 border-b border-border">
           <button :class="[
-            'py-2 px-4 bg-none border-none border-b-2 border-transparent text-[#7d8590] text-sm cursor-pointer transition-all duration-200 font-inherit hover:text-[#c9d1d9]',
-            activeTab === 'timeline' ? '!text-[#58a6ff] !border-b-[#58a6ff]' : ''
+            'py-2 px-4 bg-none border-none border-b-2 border-transparent text-text-dim text-sm cursor-pointer transition-all duration-200 font-inherit hover:text-text-secondary',
+            activeTab === 'timeline' ? '!text-accent !border-b-accent' : ''
           ]" @click="activeTab = 'timeline'">
             📊 Timeline
           </button>
           <button :class="[
-            'py-2 px-4 bg-none border-none border-b-2 border-transparent text-[#7d8590] text-sm cursor-pointer transition-all duration-200 font-inherit hover:text-[#c9d1d9]',
-            activeTab === 'insight' ? '!text-[#58a6ff] !border-b-[#58a6ff]' : ''
+            'py-2 px-4 bg-none border-none border-b-2 border-transparent text-text-dim text-sm cursor-pointer transition-all duration-200 font-inherit hover:text-text-secondary',
+            activeTab === 'insight' ? '!text-accent !border-b-accent' : ''
           ]" @click="activeTab = 'insight'">
             💡 Agent Review
           </button>

@@ -666,34 +666,34 @@ export function useSessionData() {
     if (type === 'message' && item?.data?.role === 'toolResult') {
       return { label: 'TOOL RESULT', class: 'bg-[#9e6a03] text-white' };
     }
-    if (type === 'session.model_change') return { label: 'MODEL CHANGE', class: 'bg-[#6e7681] text-white' };
+    if (type === 'session.model_change') return { label: 'MODEL CHANGE', class: 'bg-text-faint text-white' };
     if (type === 'session.truncation') return { label: 'TRUNCATION', class: 'bg-[#e5534b] text-white' };
     if (type === 'session.compaction_start' || type === 'session.compaction_complete') return { label: 'COMPACTION', class: 'bg-[#c2442d] text-white' };
-    if (type === 'system.notification') return { label: 'SYSTEM', class: 'bg-[#444c56] text-[#adbac7] italic' };
+    if (type === 'system.notification') return { label: 'SYSTEM', class: 'bg-surface-overlay text-[#adbac7] italic' };
     const parts = (type || '').split('.');
     const category = parts[0] || 'unknown';
     const badges = {
-      user: { label: 'USER', class: 'bg-[#1f6feb] text-white' },
-      assistant: { label: 'ASSISTANT', class: 'bg-[#238636] text-white' },
-      reasoning: { label: 'REASONING', class: 'bg-[#a371f7] text-white' },
-      turn: { label: 'TURN', class: 'bg-[#238636] text-white' },
+      user: { label: 'USER', class: 'bg-accent-emphasis text-white' },
+      assistant: { label: 'ASSISTANT', class: 'bg-success-emphasis text-white' },
+      reasoning: { label: 'REASONING', class: 'bg-purple-light text-white' },
+      turn: { label: 'TURN', class: 'bg-success-emphasis text-white' },
       tool: { label: 'TOOL', class: 'bg-[#9e6a03] text-white' },
       subagent: { label: 'SUBAGENT', class: 'bg-[#8957e5] text-white' },
-      skill: { label: 'SKILL', class: 'bg-[#bf3989] text-white' },
-      session: { label: 'SESSION', class: 'bg-[#6e7681] text-white' },
-      error: { label: 'ERROR', class: 'bg-[#da3633] text-white' },
-      abort: { label: 'ABORT', class: 'bg-[#da3633] text-white' }
+      skill: { label: 'SKILL', class: 'bg-pink text-white' },
+      session: { label: 'SESSION', class: 'bg-text-faint text-white' },
+      error: { label: 'ERROR', class: 'bg-danger text-white' },
+      abort: { label: 'ABORT', class: 'bg-danger text-white' }
     };
-    return badges[category] || { label: category.toUpperCase(), class: 'bg-[#58a6ff] text-white' };
+    return badges[category] || { label: category.toUpperCase(), class: 'bg-accent text-white' };
   };
 
   // ── Tool helpers ──
 
   const getToolStatus = (group) => {
-    if (!group.complete) return { icon: '⏳', color: 'text-[#d29922]', text: '' };
+    if (!group.complete) return { icon: '⏳', color: 'text-warning', text: '' };
     const completeData = group.complete.data || {};
-    if (completeData.error || completeData.isError) return { icon: '❌', color: 'text-[#da3633]', text: '' };
-    return { icon: '✓', color: 'text-[#238636]', text: '' };
+    if (completeData.error || completeData.isError) return { icon: '❌', color: 'text-danger', text: '' };
+    return { icon: '✓', color: 'text-success-emphasis', text: '' };
   };
 
   const getToolErrorMessage = (group) => {

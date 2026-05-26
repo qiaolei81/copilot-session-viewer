@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-full h-screen flex flex-col p-0 font-sans bg-[#0d1117] text-[#c9d1d9] leading-normal overflow-hidden">
+  <div class="max-w-full h-screen flex flex-col p-0 font-sans bg-canvas text-text-secondary leading-normal overflow-hidden">
     <SessionHeader
       :session-id="sessionId"
       :source="source"
@@ -12,7 +12,7 @@
       <!-- Mobile overlay backdrop -->
       <div
         v-if="!sidebarCollapsed"
-        class="hidden sm:hidden max-sm:block fixed inset-0 bg-black/50 z-[999]"
+        class="hidden sm:hidden max-sm:block fixed inset-0 bg-black/50 z-backdrop"
         @click="sidebarCollapsed = true"
       />
 
@@ -150,11 +150,11 @@
         <div class="h-[max(env(safe-area-inset-bottom,0px),16px)] shrink-0" />
 
         <!-- Floating scroll buttons -->
-        <div class="fixed bottom-6 right-6 flex flex-col gap-2 z-[9999]">
-          <button title="Scroll to top" class="bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 max-sm:w-7 max-sm:h-7 text-[13px] max-sm:text-xs cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToTop">
+        <div class="fixed bottom-6 right-6 flex flex-col gap-2 z-modal">
+          <button title="Scroll to top" class="bg-surface-hover text-text-secondary border border-border rounded-full w-8 h-8 max-sm:w-7 max-sm:h-7 text-sm max-sm:text-xs cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-accent-emphasis hover:border-accent-emphasis hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToTop">
 ▲
 </button>
-          <button title="Scroll to bottom" class="bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-full w-8 h-8 max-sm:w-7 max-sm:h-7 text-[13px] max-sm:text-xs cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-[#388bfd] hover:border-[#388bfd] hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToBottom">
+          <button title="Scroll to bottom" class="bg-surface-hover text-text-secondary border border-border rounded-full w-8 h-8 max-sm:w-7 max-sm:h-7 text-sm max-sm:text-xs cursor-pointer flex items-center justify-center shadow-lg transition-all p-0 opacity-30 hover:bg-accent-emphasis hover:border-accent-emphasis hover:text-white hover:scale-110 hover:opacity-100" @click="scrollToBottom">
 ▼
 </button>
         </div>

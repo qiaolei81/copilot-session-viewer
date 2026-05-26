@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div
       ref="tooltipEl"
-      class="summary-tooltip hidden fixed z-[9999] bg-[#1c2128] border border-[#30363d] rounded-lg px-4 py-3 max-w-[600px] w-max max-h-[400px] overflow-y-auto text-[13px] leading-relaxed text-[#c9d1d9] break-words shadow-[0_8px_24px_rgba(0,0,0,0.5)] pointer-events-none"
+      class="summary-tooltip hidden fixed z-modal bg-surface-alt border border-border rounded-lg px-4 py-3 max-w-[600px] w-max max-h-[400px] overflow-y-auto text-sm leading-relaxed text-text-secondary break-words shadow-[0_8px_24px_rgba(0,0,0,0.5)] pointer-events-none"
       :class="{ visible: isVisible }"
     >
       <div v-html="renderedHtml" />

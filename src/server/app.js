@@ -103,6 +103,18 @@ function createApp(options = {}) {
     res.json(getAllSources());
   });
 
+  // Source hints (directory paths per source type)
+  app.get('/api/source-hints', (req, res) => {
+    const hints = {};
+    const sources = sessionController.sessionService.sessionRepository.sources;
+    if (sources) {
+      for (const src of sources) {
+        hints[src.type] = src.dir;
+      }
+    }
+    res.json(hints);
+  });
+
   // Global tags (no source needed)
   app.get('/api/tags', tagController.getAllTags.bind(tagController));
 

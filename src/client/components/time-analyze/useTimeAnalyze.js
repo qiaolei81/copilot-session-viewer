@@ -1054,16 +1054,16 @@ export function useTimeAnalyze(sessionId, metadata, _source) {
   const BADGE_CLASSES = {
     'badge-subagent': 'bg-[#8957e5] text-white',
     'badge-tool': 'bg-[#9e6a03] text-white',
-    'badge-turn': 'bg-[#238636] text-white',
-    'badge-read': 'bg-[rgba(88,166,255,0.15)] text-[#58a6ff] border border-[rgba(88,166,255,0.3)]',
-    'badge-write': 'bg-[rgba(63,185,80,0.15)] text-[#3fb950] border border-[rgba(63,185,80,0.3)]',
-    'badge-edit': 'bg-[rgba(210,153,34,0.15)] text-[#d29922] border border-[rgba(210,153,34,0.3)]',
-    'badge-create': 'bg-[rgba(63,185,80,0.15)] text-[#3fb950] border border-[rgba(63,185,80,0.3)]',
-    'badge-bash': 'bg-[rgba(139,148,158,0.15)] text-[#8b949e] border border-[rgba(139,148,158,0.3)]',
+    'badge-turn': 'bg-success-emphasis text-white',
+    'badge-read': 'bg-accent-subtle text-accent border border-[rgba(88,166,255,0.3)]',
+    'badge-write': 'bg-[rgba(63,185,80,0.15)] text-success border border-[rgba(63,185,80,0.3)]',
+    'badge-edit': 'bg-warning-subtle text-warning border border-[rgba(210,153,34,0.3)]',
+    'badge-create': 'bg-[rgba(63,185,80,0.15)] text-success border border-[rgba(63,185,80,0.3)]',
+    'badge-bash': 'bg-[rgba(139,148,158,0.15)] text-text-muted border border-[rgba(139,148,158,0.3)]',
     'badge-search': 'bg-[rgba(191,57,137,0.15)] text-[#f778ba] border border-[rgba(191,57,137,0.3)]',
-    'badge-other': 'bg-[rgba(110,118,129,0.15)] text-[#8b949e] border border-[rgba(110,118,129,0.3)]',
+    'badge-other': 'bg-[rgba(110,118,129,0.15)] text-text-muted border border-[rgba(110,118,129,0.3)]',
   };
-  const BADGE_BASE = 'inline-block px-2 py-0.5 rounded-[3px] text-[11px] font-semibold whitespace-nowrap';
+  const BADGE_BASE = 'inline-block px-2 py-0.5 rounded-badge text-2xs font-semibold whitespace-nowrap';
 
   const getToolBadgeClass = (toolName) => {
     const lower = (toolName || '').toLowerCase();
