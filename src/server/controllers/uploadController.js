@@ -44,57 +44,6 @@ class UploadController {
     });
   }
 
-  // Share session (export as zip)
-  async shareSession(req, res) {
-    try {
-      const sessionId = req.params.sessionId || req.params.id;
-
-      if (!isValidSessionId(sessionId)) {
-        return res.status(400).json({ error: 'Invalid session ID' });
-      }
-
-      const sessionPath = path.join(this.SESSION_DIR, sessionId);
-
-      try {
-        await fs.promises.access(sessionPath);
-      } catch (_err) {
-        return res.status(404).json({ error: 'Session not found' });
-      }
-
-      const zipFile = path.join(os.tmpdir(), `session-${sessionId}.zip`);
-
-      const zipProcess = spawn('zip', ['-r', '-q', zipFile, sessionId], {
-        cwd: this.SESSION_DIR
-      });
-
-      processManager.register(zipProcess, { name: `zip-${sessionId}` });
-
-      zipProcess.on('close', (code) => {
-        if (code !== 0) {
-          return res.status(500).json({ error: 'Failed to create zip file' });
-        }
-
-        // Track SessionShared event
-        trackEvent('SessionShared', { sessionId });
-
-        res.download(zipFile, `session-${sessionId}.zip`, (err) => {
-          fs.promises.unlink(zipFile).catch(() => {});
-          if (err) {
-            console.error('Error sending zip:', err);
-          }
-        });
-      });
-
-      zipProcess.on('error', (err) => {
-        console.error('Error creating zip:', err);
-        res.status(500).json({ error: 'Failed to create zip file' });
-      });
-    } catch (err) {
-      console.error('Error sharing session:', err);
-      res.status(500).json({ error: 'Error sharing session' });
-    }
-  }
-
   // Import session from zip (with validation)
   async importSession(req, res) {
     try {

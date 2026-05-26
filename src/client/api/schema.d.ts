@@ -189,23 +189,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/{source}/sessions/{sessionId}/share": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get shareable link for a session */
-        get: operations["shareSession"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -656,33 +639,6 @@ export interface operations {
                         success?: boolean;
                         sessionId?: string;
                         source?: string;
-                    };
-                };
-            };
-        };
-    };
-    shareSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Session source identifier */
-                source: components["parameters"]["source"];
-                sessionId: components["parameters"]["sessionId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Share URL */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: uri */
-                        url?: string;
                     };
                 };
             };
