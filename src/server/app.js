@@ -19,6 +19,9 @@ const SessionController = require('./controllers/sessionController');
 const InsightController = require('./controllers/insightController');
 const UploadController = require('./controllers/uploadController');
 const TagController = require('./controllers/tagController');
+const DirController = require('./controllers/dirController');
+const DirRegistryService = require('./services/dirRegistryService');
+const { isValidUuidV4 } = require('./utils/helpers');
 
 // Source validation middleware
 function validateSource(req, res, next) {
@@ -30,6 +33,14 @@ function validateSource(req, res, next) {
   next();
 }
 
+// :id validation middleware for registered-dir routes
+function validateDirId(req, res, next) {
+  if (!isValidUuidV4(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid dir id' });
+  }
+  next();
+}
+
 function createApp(options = {}) {
   const app = express();
 
@@ -37,10 +48,12 @@ function createApp(options = {}) {
   app.set('etag', false);
 
   // Create controller instances (with optional dependency injection)
-  const sessionController = new SessionController(options.sessionService);
+  const dirRegistryService = options.dirRegistryService || new DirRegistryService();
+  const sessionController = new SessionController(options.sessionService, options.tagService, dirRegistryService);
   const insightController = new InsightController(options.insightService, options.sessionService);
   const uploadController = new UploadController();
   const tagController = new TagController(options.tagService);
+  const dirController = new DirController(dirRegistryService);
 
   // Minimal security headers for local development tool
   // Custom CSP without upgrade-insecure-requests
@@ -118,6 +131,11 @@ function createApp(options = {}) {
 
   // Global tags (no source needed)
   app.get('/api/tags', tagController.getAllTags.bind(tagController));
+
+  // Registered custom directories
+  app.get('/api/dirs', dirController.listDirs.bind(dirController));
+  app.post('/api/dirs', dirController.registerDir.bind(dirController));
+  app.delete('/api/dirs/:id', validateDirId, dirController.removeDir.bind(dirController));
 
   // Import (no source needed — auto-detected)
   app.post('/api/import',

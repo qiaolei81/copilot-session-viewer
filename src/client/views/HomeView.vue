@@ -47,10 +47,10 @@ View
           <button data-testid="add-dir-btn" class="text-accent cursor-pointer hover:text-link bg-transparent border-none p-0 text-sm" title="Add custom directory" @click="addCustomDirectory">＋</button>
           <button data-testid="import-btn" class="text-accent cursor-pointer hover:text-link bg-transparent border-none p-0 text-sm" title="Import session from zip" :style="importLinkStyle" @click="triggerImport">📤</button>
         </div>
-        <div v-for="cd in currentCustomDirs" :key="cd.dir" class="flex items-center gap-2 text-sm text-text-secondary mb-1">
+        <div v-for="cd in currentCustomDirs" :key="cd.id" class="flex items-center gap-2 text-sm text-text-secondary mb-1">
           <span class="inline-block w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: cd.color }"></span>
-          <span class="font-mono">{{ cd.dir }}</span>
-          <button data-testid="remove-dir-btn" class="text-text-faint hover:text-error-text bg-transparent border-none cursor-pointer p-0 text-xs" @click="removeCustomDir(cd.dir)">×</button>
+          <span class="font-mono">{{ cd.path }}</span>
+          <button data-testid="remove-dir-btn" class="text-text-faint hover:text-error-text bg-transparent border-none cursor-pointer p-0 text-xs" @click="removeCustomDir(cd.id)">×</button>
         </div>
       </div>
       <p v-if="currentSourceFilter" class="hint mt-5 text-text-secondary text-sm">
@@ -115,6 +115,7 @@ import SessionCard from '../components/home/SessionCard.vue';
 import SummaryTooltip from '../components/home/SummaryTooltip.vue';
 import BottomSheet from '../components/home/BottomSheet.vue';
 import { toUrlSource } from '../utils/sourceMapping.js';
+import { listDirs, registerDir, removeDir } from '../api/dirs.js';
 
 const router = useRouter();
 const sessionInput = ref('');
@@ -150,25 +151,33 @@ try {
   }
 } catch (_e) { /* ignore */ }
 
-// Custom directory management
+// Custom directory management (UUID-registered, V2 schema)
 const DIR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
-const CUSTOM_DIRS_KEY = 'customDirs';
+const CUSTOM_DIRS_KEY = 'customDirsV2';
+const LEGACY_CUSTOM_DIRS_KEY = 'customDirs';
+
+// One-shot wipe of legacy schema
+try {
+  if (localStorage.getItem(LEGACY_CUSTOM_DIRS_KEY) !== null) {
+    localStorage.removeItem(LEGACY_CUSTOM_DIRS_KEY);
+  }
+} catch (_e) { /* ignore */ }
 
 function loadCustomDirs() {
   try {
-    return JSON.parse(localStorage.getItem(CUSTOM_DIRS_KEY) || '{}');
-  } catch (_e2) { return {}; }
+    const raw = JSON.parse(localStorage.getItem(CUSTOM_DIRS_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (_e2) { return []; }
 }
 
-function saveCustomDirs(data) {
-  try { localStorage.setItem(CUSTOM_DIRS_KEY, JSON.stringify(data)); } catch (_e2) { /* ignore */ }
+function saveCustomDirs(list) {
+  try { localStorage.setItem(CUSTOM_DIRS_KEY, JSON.stringify(list)); } catch (_e2) { /* ignore */ }
   customDirsVersion.value++;
 }
 
 function getCustomDirs(source) {
   customDirsVersion.value; // reactive dependency
-  const all = loadCustomDirs();
-  return all[source] || [];
+  return loadCustomDirs().filter(e => e.source === source);
 }
 
 const customDirsVersion = ref(0);
@@ -180,28 +189,46 @@ const currentSourceHintDir = computed(() => {
   return hint ? hint.dir : null;
 });
 
-function addCustomDirectory() {
-  const dir = prompt('Enter absolute directory path (e.g. /home/user/sessions):');
-  if (!dir || (!dir.startsWith('/') && !dir.startsWith('~'))) {
-    if (dir) alert('Path must be absolute (start with / or ~)');
+async function addCustomDirectory() {
+  const dirInput = prompt('Enter absolute directory path (e.g. /home/user/sessions):');
+  if (!dirInput || (!dirInput.startsWith('/') && !dirInput.startsWith('~'))) {
+    if (dirInput) alert('Path must be absolute (start with / or ~)');
     return;
   }
   const source = currentSourceFilter.value;
-  const all = loadCustomDirs();
-  if (!all[source]) all[source] = [];
-  if (all[source].some(d => d.dir === dir)) return;
-  const colorIdx = all[source].length % DIR_COLORS.length;
-  all[source].push({ dir, color: DIR_COLORS[colorIdx] });
-  saveCustomDirs(all);
+  const list = loadCustomDirs();
+  // Avoid duplicate (by path within same source)
+  if (list.some(e => e.source === source && e.path === dirInput)) return;
+
+  let entry;
+  try {
+    entry = await registerDir(dirInput);
+  } catch (err) {
+    alert(`Could not add directory: ${err.message}`);
+    return;
+  }
+  const colorIdx = list.filter(e => e.source === source).length % DIR_COLORS.length;
+  list.push({
+    id: entry.id,
+    label: entry.label,
+    path: entry.path,
+    color: DIR_COLORS[colorIdx],
+    addedAt: entry.addedAt,
+    source
+  });
+  saveCustomDirs(list);
   reloadCurrentSource();
 }
 
-function removeCustomDir(dir) {
-  const source = currentSourceFilter.value;
-  const all = loadCustomDirs();
-  if (!all[source]) return;
-  all[source] = all[source].filter(d => d.dir !== dir);
-  saveCustomDirs(all);
+async function removeCustomDir(id) {
+  try {
+    await removeDir(id);
+  } catch (err) {
+    // log but still drop locally
+    console.error('Failed to remove dir on server:', err);
+  }
+  const list = loadCustomDirs().filter(e => e.id !== id);
+  saveCustomDirs(list);
   reloadCurrentSource();
 }
 
@@ -304,12 +331,12 @@ async function fetchSource(source) {
       const customDirs = getCustomDirs(source);
       for (const cd of customDirs) {
         try {
-          const cdResp = await fetch(`/api/${encodeURIComponent(toUrlSource(source))}/sessions?dir=${encodeURIComponent(cd.dir)}`);
+          const cdResp = await fetch(`/api/${encodeURIComponent(toUrlSource(source))}/sessions?dirId=${encodeURIComponent(cd.id)}`);
           if (cdResp.ok) {
             const cdData = await cdResp.json();
             for (const s of (cdData.sessions || [])) {
               s._customDirColor = cd.color;
-              s._customDir = cd.dir;
+              s._customDirId = cd.id;
               if (!existingIds.has(s.id)) {
                 existingIds.add(s.id);
                 allSessions.value.push(s);
@@ -318,7 +345,7 @@ async function fetchSource(source) {
             }
           }
         } catch (e) {
-          console.error('Failed to load custom dir sessions:', cd.dir, e);
+          console.error('Failed to load custom dir sessions:', cd.path, e);
         }
       }
 
@@ -483,6 +510,33 @@ onMounted(async () => {
       sourceHints.value = await resp.json();
     }
   } catch (_e) { /* ignore */ }
+
+  // Bootstrap sync: reconcile localStorage with server-registered dirs
+  try {
+    const serverDirs = await listDirs();
+    const serverById = new Map(serverDirs.map(d => [d.id, d]));
+    const local = loadCustomDirs();
+    // Drop local entries no longer on server
+    let next = local.filter(e => serverById.has(e.id));
+    const localIds = new Set(next.map(e => e.id));
+    // Add server entries not in local (default source = copilot)
+    for (const d of serverDirs) {
+      if (!localIds.has(d.id)) {
+        const colorIdx = next.length % DIR_COLORS.length;
+        next.push({
+          id: d.id,
+          label: d.label,
+          path: d.path,
+          color: DIR_COLORS[colorIdx],
+          addedAt: d.addedAt,
+          source: 'copilot'
+        });
+      }
+    }
+    saveCustomDirs(next);
+  } catch (e) {
+    console.error('Failed to sync registered dirs:', e);
+  }
 
   // Initial load for the current source filter
   await fetchSource(currentSourceFilter.value);

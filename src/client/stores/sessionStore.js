@@ -24,12 +24,12 @@ export const useSessionStore = defineStore('session', () => {
     return entry;
   }
 
-  async function fetchMetadata(sessionId, source, dir = null) {
+  async function fetchMetadata(sessionId, source, dirId = null) {
     const cached = cache.value[sessionId];
     if (cached?.metadata) return cached.metadata;
 
     let url = `/api/${encodeURIComponent(source)}/sessions/${encodeURIComponent(sessionId)}`;
-    if (dir) url += `?dir=${encodeURIComponent(dir)}`;
+    if (dirId) url += `?dirId=${encodeURIComponent(dirId)}`;
     const resp = await fetch(url);
     if (!resp.ok) return null;
     const data = await resp.json();
@@ -43,12 +43,12 @@ export const useSessionStore = defineStore('session', () => {
     return data;
   }
 
-  async function fetchEvents(sessionId, source, dir = null) {
+  async function fetchEvents(sessionId, source, dirId = null) {
     const cached = cache.value[sessionId];
     if (cached?.events) return cached.events;
 
     let url = `/api/${encodeURIComponent(source)}/sessions/${encodeURIComponent(sessionId)}/events`;
-    if (dir) url += `?dir=${encodeURIComponent(dir)}`;
+    if (dirId) url += `?dirId=${encodeURIComponent(dirId)}`;
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`Failed to load events: ${resp.statusText}`);
     const data = await resp.json();

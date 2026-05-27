@@ -60,8 +60,8 @@ const urlSource = computed(() => toUrlSource(props.session.source || 'copilot'))
 
 const sessionLink = computed(() => {
   const base = `/${urlSource.value}/session/${props.session.id}`;
-  if (props.session._customDir) {
-    return `${base}?dir=${encodeURIComponent(props.session._customDir)}`;
+  if (props.session._customDirId) {
+    return `${base}?dirId=${encodeURIComponent(props.session._customDirId)}`;
   }
   return base;
 });

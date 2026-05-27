@@ -28,7 +28,7 @@ export function useSessionData() {
   const route = useRoute();
   const sessionId = computed(() => route.params.id);
   const source = computed(() => route.params.source);
-  const customDir = computed(() => route.query.dir || null);
+  const customDirId = computed(() => route.query.dirId || null);
   const metadata = ref({});
 
   const isMobile = () => window.innerWidth <= 640;
@@ -399,7 +399,7 @@ export function useSessionData() {
     // Load metadata (from store cache or API)
     const sessionStore = (await import('../../stores/sessionStore.js')).useSessionStore();
     try {
-      const metaData = await sessionStore.fetchMetadata(sessionId.value, source.value, customDir.value);
+      const metaData = await sessionStore.fetchMetadata(sessionId.value, source.value, customDirId.value);
       if (metaData) {
         metadata.value = metaData;
       }
@@ -409,7 +409,7 @@ export function useSessionData() {
 
     // Load events (from store cache or API)
     try {
-      loadedEvents.value = await sessionStore.fetchEvents(sessionId.value, source.value, customDir.value);
+      loadedEvents.value = await sessionStore.fetchEvents(sessionId.value, source.value, customDirId.value);
 
       // Update 'Updated' time from last event timestamp
       if (loadedEvents.value.length > 0) {

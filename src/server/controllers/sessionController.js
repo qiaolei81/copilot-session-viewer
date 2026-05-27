@@ -5,9 +5,9 @@ const { trackEvent } = require('../telemetry');
 const AdmZip = require('adm-zip');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const crypto = require('crypto');
 const TagService = require('../services/tagService');
+const DirRegistryService = require('../services/dirRegistryService');
 
 // Cache of realpath'd source dirs so symlink trickery cannot defeat containment check
 const _resolvedSourceDirCache = new Map();
@@ -28,14 +28,25 @@ async function _getResolvedSourceDirs(sources) {
 }
 
 class SessionController {
-  constructor(sessionService = null, tagService = null) {
+  constructor(sessionService = null, tagService = null, dirRegistryService = null) {
     this.sessionService = sessionService || new SessionService();
     this.tagService = tagService || new TagService();
+    this.dirRegistryService = dirRegistryService || new DirRegistryService();
   }
 
   // ── Helper to get sessionId from either new or legacy param ──
   _getSessionId(req) {
     return req.params.sessionId || req.params.id;
+  }
+
+  // Resolve registered dir from req.query.dirId. Returns { dir, error }.
+  // If no dirId present, returns { dir: null }. If dirId present but unknown, error.
+  async _resolveDirId(req) {
+    const dirId = req.query.dirId || null;
+    if (!dirId) return { dir: null };
+    const entry = await this.dirRegistryService.getById(dirId);
+    if (!entry) return { dir: null, error: 'Unknown dirId' };
+    return { dir: entry.path };
   }
 
   // API: Get sessions with optional pagination
@@ -47,39 +58,20 @@ class SessionController {
         ? resolveSource(sourceParam)
         : (req.query.source || null);
 
-      // Custom directory scanning
-      const customDir = req.query.dir || null;
+      // Registered custom directory scanning via UUID lookup
+      const { dir: customDir, error: dirErr } = await this._resolveDirId(req);
+      if (dirErr) {
+        return res.status(400).json({ error: dirErr });
+      }
       if (customDir) {
-        try {
-          // Validate and resolve
-          let resolvedDir = customDir;
-          if (resolvedDir.startsWith('~')) {
-            resolvedDir = path.join(os.homedir(), resolvedDir.slice(1));
-          }
-          resolvedDir = path.resolve(resolvedDir);
-
-          // Security: reject path traversal
-          if (customDir.includes('..')) {
-            return res.status(400).json({ error: 'Path traversal not allowed' });
-          }
-
-          // Verify exists
-          await fs.promises.access(resolvedDir);
-
-          const repo = this.sessionService.sessionRepository;
-          const sessions = await repo.scanSource({ type: sourceFilter, dir: resolvedDir });
-          const sorted = sessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-          return res.json({
-            sessions: sorted,
-            hasMore: false,
-            totalSessions: sorted.length
-          });
-        } catch (err) {
-          if (err.code === 'ENOENT' || err.code === 'EACCES') {
-            return res.status(400).json({ error: `Directory not accessible: ${customDir}` });
-          }
-          throw err;
-        }
+        const repo = this.sessionService.sessionRepository;
+        const sessions = await repo.scanSource({ type: sourceFilter, dir: customDir });
+        const sorted = sessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        return res.json({
+          sessions: sorted,
+          hasMore: false,
+          totalSessions: sorted.length
+        });
       }
 
       const offset = req.query.offset !== undefined ? parseInt(req.query.offset) : null;
@@ -146,9 +138,9 @@ class SessionController {
       if (!isValidSessionId(sessionId)) {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
-      let dir = req.query.dir || null;
-      if (dir && dir.startsWith('~')) {
-        dir = path.join(os.homedir(), dir.slice(1));
+      const { dir, error: dirErr } = await this._resolveDirId(req);
+      if (dirErr) {
+        return res.status(400).json({ error: dirErr });
       }
       const session = await this.sessionService.getSessionById(sessionId, dir);
       if (!session) {
@@ -182,9 +174,9 @@ class SessionController {
         return res.status(400).json({ error: 'Invalid session ID' });
       }
 
-      let dir = req.query.dir || null;
-      if (dir && dir.startsWith('~')) {
-        dir = path.join(os.homedir(), dir.slice(1));
+      const { dir, error: dirErr } = await this._resolveDirId(req);
+      if (dirErr) {
+        return res.status(400).json({ error: dirErr });
       }
       const isPaginationRequested = req.query.limit !== undefined || req.query.offset !== undefined;
 

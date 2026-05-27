@@ -71,6 +71,8 @@ export default defineConfig({
       ...process.env, // Inherit HOME etc.
       ...FIXTURE_ENV,  // Force fixture session dirs when E2E_USE_FIXTURES=1
       PLAYWRIGHT: '1', // Disable rate limiting during E2E tests
+      CUSTOM_DIRS_REGISTRY: process.env.CUSTOM_DIRS_REGISTRY
+        || path.join(__dirname, '__tests__', 'fixtures', '.e2e-registered-dirs.json'),
     },
   },
 });

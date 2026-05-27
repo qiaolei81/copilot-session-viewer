@@ -41,7 +41,18 @@ function isValidSessionId(sessionId) {
          sessionId.length < 256;
 }
 
+/**
+ * Validate UUID v4 format
+ * @param {string} id
+ * @returns {boolean}
+ */
+function isValidUuidV4(id) {
+  return typeof id === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 module.exports = {
   buildMetadata,
-  isValidSessionId
+  isValidSessionId,
+  isValidUuidV4
 };

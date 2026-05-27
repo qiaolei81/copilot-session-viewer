@@ -40,8 +40,11 @@ __tests__/fixtures/sessions/**/*.lock
 __tests__/fixtures/sessions/**/*.tmp
 __tests__/fixtures/sessions/**/tags.json
 __tests__/fixtures/sessions/**/*.tags.json
-__tests__/fixtures/sessions/**/*.agent-review.md*
+__tests__/fixtures/sessions/**/*.agent-review.md
+__tests__/fixtures/sessions/**/*.agent-review.md.*
 __tests__/fixtures/sessions/**/.output/
+# E2E dir registry fixture
+__tests__/fixtures/.e2e-registered-dirs.json
 *.jsonl
 !__tests__/fixtures/**/*.jsonl
 # CI test sessions
