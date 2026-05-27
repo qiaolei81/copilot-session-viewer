@@ -3,7 +3,7 @@ const { test, expect, getJsonWithRetry } = require('./fixtures');
 const path = require('path');
 
 const CUSTOM_DIR = path.resolve(__dirname, '../fixtures/custom-dir');
-const NESTED_SESSION_ID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+const NESTED_SESSION_ID = 'b7c5d3e2-4a1f-4b8c-9d2e-1234567890ab';
 
 async function registerCustomDir(request, dirPath) {
   const resp = await request.post('/api/dirs', { data: { path: dirPath } });
@@ -83,7 +83,7 @@ test.describe('Custom Directory Support', () => {
 
       await expect(page.locator('.font-mono', { hasText: 'custom-dir' }).first()).toBeVisible({ timeout: 10000 });
 
-      const sessionCard = page.locator('[data-testid="session-card"]').filter({ hasText: /Placeholder task/i });
+      const sessionCard = page.locator('[data-testid="session-card"]').filter({ hasText: /demo-greeter/i });
       await expect(sessionCard.first()).toBeVisible({ timeout: 10000 });
     });
 
@@ -105,7 +105,7 @@ test.describe('Custom Directory Support', () => {
         await page.waitForLoadState('networkidle');
       }
 
-      const sessionCard = page.locator('[data-testid="session-card"]').filter({ hasText: /Placeholder task/i }).first();
+      const sessionCard = page.locator('[data-testid="session-card"]').filter({ hasText: /demo-greeter/i }).first();
       await expect(sessionCard).toBeVisible({ timeout: 10000 });
       const href = await sessionCard.getAttribute('href');
       expect(href).toContain('dirId=');
