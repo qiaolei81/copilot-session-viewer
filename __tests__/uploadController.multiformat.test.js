@@ -413,73 +413,12 @@ describe('UploadController - Multi-Format Support', () => {
     });
   });
 
-  describe('Export Multi-Format Sessions', () => {
-    it('should find and export Copilot session', async () => {
-      const sessionId = 'test-copilot-export';
-      const sessionPath = path.join(tmpSessionDirs.copilot, sessionId);
-      await fs.promises.mkdir(sessionPath);
-      await fs.promises.writeFile(path.join(sessionPath, 'events.jsonl'), '{"type":"session.start"}');
-
-      const sessionInfo = await controller._findSessionLocation(sessionId, 'copilot');
-
-      expect(sessionInfo).toBeDefined();
-      expect(sessionInfo.source).toBe('copilot');
-      expect(sessionInfo.sessionId).toBe(sessionId);
-    });
-
-    it('should find and export Claude session', async () => {
-      const sessionId = 'test-claude-export';
-      const projectPath = path.join(tmpSessionDirs.claude, 'test-project');
-      await fs.promises.mkdir(projectPath, { recursive: true });
-      await fs.promises.writeFile(path.join(projectPath, `${sessionId}.jsonl`), '{"type":"user"}');
-
-      const sessionInfo = await controller._findSessionLocation(sessionId);
-
-      expect(sessionInfo).toBeDefined();
-      expect(sessionInfo.source).toBe('claude');
-      expect(sessionInfo.sessionId).toBe(sessionId);
-    });
-
-    it('should find and export Pi-Mono session', async () => {
-      const sessionId = 'test-pi-mono-export';
-      const projectPath = path.join(tmpSessionDirs['pi-mono'], 'test-project');
-      await fs.promises.mkdir(projectPath, { recursive: true });
-      const piMonoFile = `2026-02-09T11-24-27-935Z_${sessionId}.jsonl`;
-      await fs.promises.writeFile(path.join(projectPath, piMonoFile), '{"type":"session"}');
-
-      const sessionInfo = await controller._findSessionLocation(sessionId);
-
-      expect(sessionInfo).toBeDefined();
-      expect(sessionInfo.source).toBe('pi-mono');
-      expect(sessionInfo.sessionId).toBe(sessionId);
-      expect(sessionInfo.fileName).toBe(piMonoFile);
-    });
-
-    it('should return null for non-existent session', async () => {
-      const sessionInfo = await controller._findSessionLocation('nonexistent-id');
-
-      expect(sessionInfo).toBeNull();
-    });
-
-    it('should prefer specified source when searching', async () => {
-      const sessionId = 'duplicate-session';
-
-      // Create session in both Copilot and Claude
-      const copilotPath = path.join(tmpSessionDirs.copilot, sessionId);
-      await fs.promises.mkdir(copilotPath);
-      await fs.promises.writeFile(path.join(copilotPath, 'events.jsonl'), '{"type":"session.start"}');
-
-      const claudeProjectPath = path.join(tmpSessionDirs.claude, 'test-project');
-      await fs.promises.mkdir(claudeProjectPath, { recursive: true });
-      await fs.promises.writeFile(path.join(claudeProjectPath, `${sessionId}.jsonl`), '{"type":"user"}');
-
-      // Prefer Claude
-      const sessionInfo = await controller._findSessionLocation(sessionId, 'claude');
-
-      expect(sessionInfo).toBeDefined();
-      expect(sessionInfo.source).toBe('claude');
-    });
-  });
+  // NOTE: The `controller._findSessionLocation()` helper was removed during the
+  // multi-adapter refactor. Export now resolves paths via `session.directory` /
+  // `session.filePath` on the Session model (see sessionController.exportSession),
+  // with adapter-level `findSessionLocation` as a future extension point on
+  // BaseSourceAdapter. The export endpoint is covered end-to-end in
+  // `api-routes.test.js` (GET /api/:source/sessions/:sessionId/export).
 
   describe('End-to-End Import Tests', () => {
     it('should handle invalid session ID in archive', async () => {

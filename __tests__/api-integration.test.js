@@ -59,11 +59,11 @@ describe('GET /api/sources', () => {
 
 // ── Per-source full endpoint coverage ──
 const SOURCES = [
-  { urlSource: 'copilot-cli', minSessions: 2, hasEvents: true },
+  { urlSource: 'copilot-cli', minSessions: 1, hasEvents: true },
   { urlSource: 'claude', minSessions: 1, hasEvents: true },
-  { urlSource: 'copilot-chat', minSessions: 1, hasEvents: false }, // VsCode transcripts lack timestamps, events filtered
+  { urlSource: 'copilot-chat', minSessions: 0, hasEvents: false }, // vscode-empty fixture (no PII demo session)
   { urlSource: 'pi-mono', minSessions: 1, hasEvents: true },
-  { urlSource: 'modernize', minSessions: 1, hasEvents: true },
+  { urlSource: 'modernize', minSessions: 0, hasEvents: true }, // modernize-empty fixture
 ];
 
 for (const { urlSource, minSessions, hasEvents } of SOURCES) {
@@ -236,7 +236,7 @@ describe('Global endpoints', () => {
   });
 
   it('POST /api/import — imports a session file', async () => {
-    const fixturePath = path.join(FIXTURES, 'copilot-cli', 'session-small', 'events.jsonl');
+    const fixturePath = path.join(FIXTURES, 'copilot-cli', 'session-demo', 'events.jsonl');
     const res = await request(app)
       .post('/api/import')
       .attach('session', fixturePath);

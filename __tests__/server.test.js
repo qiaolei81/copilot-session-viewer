@@ -73,11 +73,9 @@ describe('Server API Endpoints', () => {
         .expect(404);
     });
 
-    it('should return 404 for /session/:id/export', async () => {
-      await request(app)
-        .get('/session/some-id/export')
-        .expect(404);
-    });
+    // Note: GET /session/:id/* is intentionally served by the SPA fallback
+    // (Vue router handles client-side navigation), so it returns 200 + index.html
+    // rather than 404. Legacy server-side handler is verified absent via POST above.
   });
 
   describe('GET /api/sources', () => {
