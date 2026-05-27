@@ -39,7 +39,7 @@ npm run dev
 
 The development server will start at `http://localhost:3838` with:
 - **Auto-reload** - Server restarts on file changes
-- **Template hot-reload** - EJS templates update without restart
+- **Vite HMR** - Vue components hot-reload without page refresh
 - **Verbose logging** - Detailed debug information
 
 ---
@@ -67,10 +67,16 @@ copilot-session-viewer/
 │   │   └── processManager.js   # Process management
 │   ├── app.js                  # Express app configuration
 │   └── config.js               # Configuration management
-├── 📁 views/                   # EJS templates
-│   ├── index.ejs              # Homepage with session list
-│   ├── session-vue.ejs        # Vue.js session detail view
-│   └── time-analyze.ejs       # Time analysis dashboard
+├── 📁 client/                  # Vue 3 SPA (built by Vite)
+│   ├── 📁 components/         # Reusable components (home/, session/, time-analyze/)
+│   ├── 📁 views/              # Route-level views (HomeView, SessionView, TimeAnalyzeView)
+│   ├── 📁 router/             # Vue Router (hash mode)
+│   ├── 📁 stores/             # Pinia stores
+│   ├── 📁 api/                # Fetch wrappers
+│   ├── 📁 utils/              # Client utilities
+│   ├── 📁 styles/             # Global styles
+│   ├── App.vue                # Root component
+│   └── main.js                # Entry point
 ├── 📁 __tests__/              # Test suite
 │   ├── 📁 e2e/                # End-to-end tests (Playwright)
 │   ├── server.test.js         # API endpoint tests
@@ -151,7 +157,7 @@ function getSessionList(req,res){
 
 **Formatting Rules:**
 - **Indentation**: 2 spaces (no tabs)
-- **Quotes**: Single quotes for JavaScript, double quotes for HTML/EJS
+- **Quotes**: Single quotes for JavaScript, double quotes for HTML/Vue templates
 - **Semicolons**: Always required
 - **Line length**: 100 characters max
 - **Async/Await**: Preferred over Promises
@@ -300,7 +306,7 @@ DEBUG=copilot-viewer:* npm run dev
 
 **Browser debugging:**
 ```javascript
-// Add breakpoints in EJS templates
+// Add breakpoints in Vue components or use Vue DevTools
 <script>
   console.log('Session data:', sessions);
   debugger; // Browser will pause here when DevTools is open
@@ -443,11 +449,11 @@ This project uses [Semantic Versioning](https://semver.org/):
 - ✅ Large middleware ecosystem
 - ✅ Easy deployment
 
-**Frontend: EJS + Vue 3**
-- ✅ Server-side rendering for SEO
-- ✅ Progressive enhancement
-- ✅ Vue 3 for complex interactions
-- ✅ No build process for simple templates
+**Frontend: Vue 3 SPA + Vite**
+- ✅ Composition API + Pinia for state management
+- ✅ Vue Router (hash mode) for client-side navigation
+- ✅ Vite for fast HMR in development and optimized builds for production
+- ✅ Virtual scrolling for large session event lists
 
 **Data: File System**
 - ✅ No database setup required

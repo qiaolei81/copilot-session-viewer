@@ -44,7 +44,7 @@ Complete documentation for Copilot Session Viewer.
 ## 🏗️ Architecture Overview
 
 ```
-Frontend (Vue 3 + EJS) ↔ Backend (Node.js + Express) ↔ File System
+Frontend (Vue 3 SPA + Vite) ↔ Backend (Node.js + Express) ↔ File System
 ```
 
 **Data Flow:**

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project overview
-Web UI for viewing and analyzing GitHub Copilot CLI session logs. Built with Express.js, EJS templates, and vanilla JavaScript (Vue 3 for session detail view).
+Web UI for viewing and analyzing AI coding-agent session logs (GitHub Copilot CLI, Claude Code, Pi-Mono, VSCode, Modernize). Built with Express.js backend and a Vue 3 SPA frontend (Vite + Pinia + Vue Router).
 
 ## Setup commands
 - Install deps: `npm install`
@@ -20,21 +20,37 @@ Web UI for viewing and analyzing GitHub Copilot CLI session logs. Built with Exp
 
 ## File structure
 ```
-server.js                    # Main Express app
+server.js                          # Entry: telemetry init + app.listen
 src/
-  config.js                  # Configuration constants
-  session.js                 # Session data model
-  sessionRepository.js       # Session loading/caching
-  insightService.js          # Copilot-based analysis
-  processManager.js          # Background process tracking
-  fileUtils.js              # File operations
-  helpers.js                # Utility functions
-views/
-  index.ejs                 # Session list (main page)
-  session-vue.ejs           # Session detail (Vue 3)
-  time-analyze.ejs          # Timeline analysis
-__tests__/                  # Jest unit tests
-__tests__/e2e/              # Playwright e2e tests
+  server/
+    app.js                         # Express app factory (middleware, routes)
+    config.js                      # Configuration constants
+    telemetry.js                   # App Insights init (must load first)
+    controllers/                   # Route handlers (session, dir, tag, insight, upload, ...)
+    middleware/                    # Express middleware (rate limit, validation, ...)
+    services/                      # sessionService, sessionRepository, insightService,
+                                   #   eventNormalizer, dirRegistryService, tagService, ...
+    adapters/                      # Per-source session adapters (Copilot, Claude, Pi-Mono,
+                                   #   VSCode, Modernize) — extend BaseSourceAdapter
+    models/                        # Session domain model
+    schemas/                       # Zod schemas (unified event schema)
+    utils/                         # fileUtils, helpers, processManager, sourceMapping
+  client/                          # Vue 3 SPA (built by Vite, served from dist/client)
+    main.js, App.vue
+    router/                        # Vue Router (hash mode)
+    stores/                        # Pinia stores
+    api/                           # fetch wrappers
+    views/                         # Route-level views (HomeView, SessionView, TimeAnalyzeView)
+    components/                    # Reusable components (home/, session/, time-analyze/)
+    utils/, styles/
+lib/parsers/                       # Legacy parser stack used by ClaudeAdapter via ParserFactory
+__tests__/                         # Jest unit tests
+__tests__/e2e/                     # Playwright e2e tests
+__tests__/fixtures/sessions/       # Synthetic CLI-generated session fixtures (E2E_USE_FIXTURES=1)
+public/                            # Static assets served by Express
+dist/                              # Vite build output (client/) + bundled server.min.js
+index.html                         # Vite entry HTML
+vite.config.js                     # Vite config (Vue plugin, build targets)
 ```
 
 ## Testing instructions
@@ -48,21 +64,22 @@ __tests__/e2e/              # Playwright e2e tests
 ## Common tasks
 
 ### Adding a new route
-1. Add route handler in `server.js`
-2. Create corresponding view in `views/`
-3. Add E2E test in `__tests__/e2e/`
-4. Update README if user-facing
+1. Add route handler in `src/server/controllers/<area>Controller.js` (create if new area)
+2. Wire it up in `src/server/app.js`
+3. If user-facing, add a Vue view in `src/client/views/` and route in `src/client/router/`
+4. Add E2E test in `__tests__/e2e/`
+5. Update README if user-facing
 
 ### Modifying session parsing
-1. Edit `src/session.js` or `src/fileUtils.js`
+1. Edit the relevant adapter in `src/server/adapters/` or shared logic in `src/server/services/sessionService.js` / `eventNormalizer.js`
 2. Run unit tests: `npm test`
-3. Test with real sessions from `~/.copilot/session-state/`
+3. Test with real sessions from `~/.copilot/session-state/` (or set `COPILOT_SESSION_DIR`)
 
 ### UI changes
-- Main page: edit `views/index.ejs` (vanilla JS)
-- Session detail: edit `views/session-vue.ejs` (Vue 3 CDN)
-- Time analysis: edit `views/time-analyze.ejs` (vanilla JS)
-- Restart server to see changes: `npm run dev` (auto-reload)
+- Vue components live under `src/client/components/` (home/, session/, time-analyze/)
+- Route-level views: `src/client/views/`
+- State: Pinia stores in `src/client/stores/`
+- Dev mode: `npm run dev` (Vite HMR + Express auto-reload)
 
 ## Important constraints
 
@@ -100,7 +117,8 @@ __tests__/e2e/              # Playwright e2e tests
 - Vue 3 templates auto-unwrap refs - don't use `.value` in templates
 - `filteredEvents` vs `flatEvents` - use correct one for virtual scroller indices
 - Platform-specific paths: always rely on system PATH, never hardcode `/opt/homebrew` etc.
-- EJS escaping: use `<%- %>` for trusted HTML, `<%= %>` for user input
+- Hash router: navigation is client-side `#/...`; E2E tests must wait on actual API responses (`waitForResponse('/sessions'|'/events')`), not `waitForLoadState('networkidle')`
+- E2E fixtures: `npm run test:e2e` sets `E2E_USE_FIXTURES=1`, forcing all source adapters to read from `__tests__/fixtures/sessions/` — never touches the developer's real session dirs
 
 ## PR instructions
 - Title format: `<type>: <description>` (e.g., `feat: add brand colors for model badges`)

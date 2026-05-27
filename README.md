@@ -170,9 +170,9 @@ GitHub Actions workflow includes:
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  Frontend (Vue 3 + EJS Templates)               │
+│  Frontend (Vue 3 SPA + Vite + Pinia)            │
 │  • Virtual Scroller (vue-virtual-scroller)      │
-│  • Infinite Scroll (JavaScript)                 │
+│  • Infinite Scroll + Hash Router                │
 │  • GitHub-inspired Dark Theme                   │
 │  • XSS Protection (DOMPurify)                   │
 └─────────────────────────────────────────────────┘
@@ -299,10 +299,10 @@ MIT License - see [LICENSE](LICENSE) file for details
 **Built with AI assistance** - This project was developed using GitHub Copilot and Claude AI for code generation, documentation, and architectural decisions.
 
 **Key Dependencies:**
-- [Vue 3](https://vuejs.org/) - Reactive frontend framework
+- [Vue 3](https://vuejs.org/) - Reactive SPA framework (Composition API + Pinia + Vue Router)
+- [Vite](https://vitejs.dev/) - Frontend build tool and dev server
 - [vue-virtual-scroller](https://github.com/Akryum/vue-virtual-scroller) - High-performance virtual scrolling
 - [Express.js](https://expressjs.com/) - Web application framework
-- [EJS](https://ejs.co/) - Templating engine
 - [DOMPurify](https://github.com/cure53/DOMPurify) - XSS protection
 - [Playwright](https://playwright.dev/) - E2E testing
 

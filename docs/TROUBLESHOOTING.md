@@ -358,7 +358,7 @@ echo "DEFAULT_LIMIT=10" >> .env
 
 **Solution:**
 1. **Close other browser tabs**
-2. **Reduce virtual scroll buffer** (edit session-vue.ejs)
+2. **Reduce virtual scroll buffer** (edit `src/client/components/session/` virtual scroller props)
 3. **Use pagination instead of infinite scroll**
 4. **Split large sessions** into smaller files
 
@@ -427,7 +427,7 @@ EOF
 
 ### Hot Reload Not Working
 
-**Issue:** Changes to EJS templates don't reflect immediately
+**Issue:** Changes to Vue components don't reflect immediately
 
 **Solution:**
 ```bash
