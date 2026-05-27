@@ -72,12 +72,24 @@ test.describe('Custom Directory Support', () => {
         ]));
       }, entry);
 
-      await page.reload();
+      await Promise.all([
+        page.waitForResponse(
+          r => r.url().includes('/sessions'),
+          { timeout: 5000 }
+        ).catch(() => null),
+        page.reload()
+      ]);
       await page.waitForLoadState('networkidle');
 
       const copilotPill = page.locator('[data-testid="source-pill"]', { hasText: /copilot/i }).first();
       if (await copilotPill.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await copilotPill.click();
+        await Promise.all([
+          page.waitForResponse(
+            r => r.url().includes('/sessions') && r.url().includes('dirId='),
+            { timeout: 5000 }
+          ).catch(() => null),
+          copilotPill.click()
+        ]);
         await page.waitForLoadState('networkidle');
       }
 
@@ -96,12 +108,24 @@ test.describe('Custom Directory Support', () => {
         ]));
       }, entry);
 
-      await page.reload();
+      await Promise.all([
+        page.waitForResponse(
+          r => r.url().includes('/sessions'),
+          { timeout: 5000 }
+        ).catch(() => null),
+        page.reload()
+      ]);
       await page.waitForLoadState('networkidle');
 
       const copilotPill = page.locator('[data-testid="source-pill"]', { hasText: /copilot/i }).first();
       if (await copilotPill.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await copilotPill.click();
+        await Promise.all([
+          page.waitForResponse(
+            r => r.url().includes('/sessions') && r.url().includes('dirId='),
+            { timeout: 5000 }
+          ).catch(() => null),
+          copilotPill.click()
+        ]);
         await page.waitForLoadState('networkidle');
       }
 
@@ -138,12 +162,24 @@ test.describe('Custom Directory Support', () => {
         ]));
       }, entry);
 
-      await page.reload();
+      await Promise.all([
+        page.waitForResponse(
+          r => r.url().includes('/sessions'),
+          { timeout: 5000 }
+        ).catch(() => null),
+        page.reload()
+      ]);
       await page.waitForLoadState('networkidle');
 
       const copilotPill = page.locator('[data-testid="source-pill"]', { hasText: /copilot/i }).first();
       if (await copilotPill.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await copilotPill.click();
+        await Promise.all([
+          page.waitForResponse(
+            r => r.url().includes('/sessions') && r.url().includes('dirId='),
+            { timeout: 5000 }
+          ).catch(() => null),
+          copilotPill.click()
+        ]);
         await page.waitForLoadState('networkidle');
       }
 

@@ -203,7 +203,13 @@ test.describe('Infinite Scroll', () => {
     await page.waitForFunction(() => window.location.hash.match(/^#\/.*\/session\/.+/));
 
     // Go back to homepage
-    await page.goBack();
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/sessions'),
+        { timeout: 5000 }
+      ).catch(() => null),
+      page.goBack()
+    ]);
     await page.waitForLoadState('networkidle');
 
     // Check if sessions are still loaded

@@ -360,7 +360,13 @@ test.describe('Session Detail Page', () => {
   test('should expand and collapse tool details', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/events'),
+        { timeout: 10000 }
+      ).catch(() => null),
+      page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`)
+    ]);
     await page.waitForLoadState('networkidle');
 
     // Wait for events to load via deterministic helper
@@ -394,7 +400,13 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should toggle content visibility', async ({ page }) => {
-    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/events'),
+        { timeout: 10000 }
+      ).catch(() => null),
+      page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`)
+    ]);
     await page.waitForLoadState('networkidle');
     await waitForEventsToRender(page).catch(() => null);
 
@@ -432,7 +444,13 @@ test.describe('Session Detail Page', () => {
   test('should toggle sidebar', async ({ page }) => {
     test.skip(!EVENTFUL_SESSION_ID, 'No session with events available for testing');
 
-    await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/events'),
+        { timeout: 10000 }
+      ).catch(() => null),
+      page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`)
+    ]);
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 }).catch(() => null);
 

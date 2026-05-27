@@ -68,7 +68,13 @@ test.describe('Tagging Feature', () => {
                          SESSION_SOURCE === 'pi-mono' ? 'Pi' :
                          SESSION_SOURCE === 'modernize' ? 'Modernize CLI' :
                          SESSION_SOURCE === 'vscode' ? 'Copilot Chat' : 'Copilot CLI';
-        await page.locator('.filter-pill').filter({ hasText: pillText }).click();
+        await Promise.all([
+          page.waitForResponse(
+            r => r.url().includes('/sessions'),
+            { timeout: 5000 }
+          ).catch(() => null),
+          page.locator('.filter-pill').filter({ hasText: pillText }).click()
+        ]);
         await page.waitForLoadState('networkidle');
       }
 
