@@ -1,7 +1,18 @@
 const { test, expect } = require('./fixtures');
 
 test.describe('Infinite Scroll', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    // Ensure no registered custom dirs leak in from sibling specs — HomeView's
+    // bootstrap sync would otherwise pull them into localStorage and add their
+    // sessions to the list, inflating session-card counts and breaking the
+    // post-navigation preservation assertion.
+    try {
+      const list = await request.get('/api/dirs').then(r => r.ok() ? r.json() : []);
+      for (const d of list) {
+        await request.delete(`/api/dirs/${d.id}`).catch(() => {});
+      }
+    } catch { /* server might be warming up; goto below will retry */ }
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
   });
