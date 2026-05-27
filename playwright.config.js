@@ -61,11 +61,15 @@ export default defineConfig({
     },
   ],
 
-  // Run your local dev server before starting the tests
+  // Run your local dev server before starting the tests.
+  // reuseExistingServer is disabled when E2E_USE_FIXTURES=1 (the default
+  // for `npm run test:e2e`) so we never accidentally reuse a stray dev
+  // server that has the user's real home dirs configured instead of the
+  // synthetic fixture env vars. CI sets reuseExistingServer:false too.
   webServer: {
     command: 'npm start',
     url: 'http://localhost:3838',
-    reuseExistingServer: true,
+    reuseExistingServer: process.env.E2E_USE_FIXTURES !== '1' && !process.env.CI,
     timeout: 30 * 1000,
     env: {
       ...process.env, // Inherit HOME etc.
