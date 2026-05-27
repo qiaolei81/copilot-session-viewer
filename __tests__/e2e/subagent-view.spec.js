@@ -68,7 +68,7 @@ test.describe('Subagent View', () => {
       return loadingEl === null || window.getComputedStyle(loadingEl).display === 'none';
     }, { timeout: 30000 });
 
-    await page.waitForTimeout(2000);
+    await expect(page.locator('.event-header').first()).toBeVisible({ timeout: 10000 });
 
     const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const count = await dropdown.count();
@@ -95,7 +95,7 @@ test.describe('Subagent View', () => {
       return loadingEl === null || window.getComputedStyle(loadingEl).display === 'none';
     }, { timeout: 30000 });
 
-    await page.waitForTimeout(2000);
+    await expect(page.locator('.event-header').first()).toBeVisible({ timeout: 10000 });
 
     const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const count = await dropdown.count();
@@ -116,17 +116,16 @@ test.describe('Subagent View', () => {
     }, { timeout: 30000 });
 
     await page.waitForSelector('.event-header', { timeout: 10000 });
-    await page.waitForTimeout(1000);
 
     const getAllCount = async () => {
       const toggle = page.locator('[data-testid="filter-type-toggle"]');
       if (await toggle.count() === 0) return 0;
       await toggle.click();
-      await page.waitForTimeout(200);
-      const allItem = page.locator('[data-testid="filter-type-item"]').first();
-      const countText = await allItem.locator('.filter-type-menu-count').textContent();
+      const firstItem = page.locator('[data-testid="filter-type-item"]').first();
+      await expect(firstItem).toBeVisible();
+      const countText = await firstItem.locator('.filter-type-menu-count').textContent();
       await toggle.click();
-      await page.waitForTimeout(100);
+      await expect(firstItem).toBeHidden();
       return parseInt(countText) || 0;
     };
 
@@ -141,6 +140,7 @@ test.describe('Subagent View', () => {
       const value = await secondOption.getAttribute('value');
       await dropdown.selectOption(value);
 
+      // debounce: Vue re-render after subagent filter selection
       await page.waitForTimeout(500);
 
       const filteredCount = await getAllCount();
@@ -159,7 +159,7 @@ test.describe('Subagent View', () => {
       return loadingEl === null || window.getComputedStyle(loadingEl).display === 'none';
     }, { timeout: 30000 });
 
-    await page.waitForTimeout(1000);
+    await expect(page.locator('.event-header').first()).toBeVisible({ timeout: 10000 });
 
     const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const options = dropdown.locator('option');
@@ -172,8 +172,6 @@ test.describe('Subagent View', () => {
       const secondOption = options.nth(1);
       const value = await secondOption.getAttribute('value');
       await dropdown.selectOption(value);
-
-      await page.waitForTimeout(500);
 
       await expect(usageBadge).toBeVisible();
       await expect(usageBadge).toContainText('events');
@@ -192,17 +190,16 @@ test.describe('Subagent View', () => {
     }, { timeout: 30000 });
 
     await page.waitForSelector('.event-header', { timeout: 10000 });
-    await page.waitForTimeout(1000);
 
     const getAllCount = async () => {
       const toggle = page.locator('[data-testid="filter-type-toggle"]');
       if (await toggle.count() === 0) return 0;
       await toggle.click();
-      await page.waitForTimeout(200);
-      const allItem = page.locator('[data-testid="filter-type-item"]').first();
-      const countText = await allItem.locator('.filter-type-menu-count').textContent();
+      const firstItem = page.locator('[data-testid="filter-type-item"]').first();
+      await expect(firstItem).toBeVisible();
+      const countText = await firstItem.locator('.filter-type-menu-count').textContent();
       await toggle.click();
-      await page.waitForTimeout(100);
+      await expect(firstItem).toBeHidden();
       return parseInt(countText) || 0;
     };
 
@@ -216,9 +213,11 @@ test.describe('Subagent View', () => {
       const secondOption = options.nth(1);
       const value = await secondOption.getAttribute('value');
       await dropdown.selectOption(value);
+      // debounce: Vue re-render after subagent filter selection
       await page.waitForTimeout(500);
 
       await dropdown.selectOption('');
+      // debounce: Vue re-render after clearing subagent filter
       await page.waitForTimeout(500);
 
       const restoredCount = await getAllCount();
@@ -238,7 +237,6 @@ test.describe('Subagent View', () => {
     }, { timeout: 30000 });
 
     await page.waitForSelector('.event-header', { timeout: 10000 });
-    await page.waitForTimeout(1000);
 
     const dropdown = page.locator('[data-testid="subagent-dropdown"]');
     const options = dropdown.locator('option');
@@ -250,12 +248,13 @@ test.describe('Subagent View', () => {
       const secondOption = options.nth(1);
       const value = await secondOption.getAttribute('value');
       await dropdown.selectOption(value);
+      // debounce: Vue re-render after subagent filter selection
       await page.waitForTimeout(500);
 
       await toggle.click();
-      await page.waitForTimeout(200);
-
       const items = page.locator('[data-testid="filter-type-item"]');
+      await expect(items.first()).toBeVisible();
+
       const typeCount = await items.count();
       if (typeCount <= 1) {
         await toggle.click();
@@ -265,7 +264,6 @@ test.describe('Subagent View', () => {
       const typeItem = items.nth(1);
       const selectedTypeLabel = (await typeItem.locator('.filter-type-menu-label').textContent()).trim();
       await typeItem.click();
-      await page.waitForTimeout(300);
 
       const chipBar = page.locator('[data-testid="active-filters"]');
       await expect(chipBar).toBeVisible();
@@ -273,7 +271,6 @@ test.describe('Subagent View', () => {
       const agentChipRemoveBtn = chipBar.locator('.filter-chip').filter({ hasText: 'Agent:' }).locator('.filter-chip-remove');
       await expect(agentChipRemoveBtn).toBeVisible();
       await agentChipRemoveBtn.click();
-      await page.waitForTimeout(300);
 
       await expect(toggle).toContainText(selectedTypeLabel);
       await expect(chipBar.locator('.filter-chip')).toContainText(['Type:']);

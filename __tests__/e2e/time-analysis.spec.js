@@ -68,7 +68,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
       await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
 
       // Wait for data to load
-      await page.waitForTimeout(2000);
+      await page.waitForSelector('[data-testid="summary-grid"]', { timeout: 30000 });
 
       // Check for turns card
       const turnsCard = page.locator('.summary-card').filter({
@@ -89,8 +89,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     test('should display tools summary card', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
-
-      await page.waitForTimeout(2000);
+      await page.waitForSelector('[data-testid="summary-grid"]', { timeout: 30000 });
 
       const toolsCard = page.locator('.summary-card').filter({
         has: page.locator('.summary-label:has-text("Tools")')
@@ -107,8 +106,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     test('should display duration summary card', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
-
-      await page.waitForTimeout(2000);
+      await page.waitForSelector('[data-testid="summary-grid"]', { timeout: 30000 });
 
       const durationCard = page.locator('.summary-card').filter({
         has: page.locator('.summary-label:has-text("Duration")')
@@ -138,8 +136,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     test('should display timeline chart container', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
-
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
 
       const timelineChart = page.locator('.gantt-row, [data-testid="time-analyze"]');
 
@@ -151,8 +148,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     test('should render turn bars in timeline', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
-
-      await page.waitForTimeout(3000);
+      await page.waitForLoadState('networkidle');
 
       const turnBars = page.locator('.gantt-row, .turn-bar, .gantt-bar, [class*="turn"]');
 
@@ -165,8 +161,7 @@ test.describe('Time Analysis and Timeline Tests', () => {
     test('should display timeline with correct structure', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
-
-      await page.waitForTimeout(3000);
+      await page.waitForLoadState('networkidle');
 
       const timelineRows = page.locator('.gantt-row');
 
@@ -178,17 +173,13 @@ test.describe('Time Analysis and Timeline Tests', () => {
   });
 
   test.describe('Tool Summary Section', () => {
-    test('should display tool summary items sorted by count descending', async ({ page }, testInfo) => {
+    test('should display tool summary items sorted by count descending', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('[data-testid="time-analyze"]', { timeout: 10000 });
-
-      await page.waitForTimeout(3000);
+      await page.waitForLoadState('networkidle');
 
       const toolSummaryHeading = page.locator('h3:has-text("Tool Summary")');
-      if (await toolSummaryHeading.count() === 0) {
-        testInfo.skip(true, 'No Tool Summary section found in this session');
-        return;
-      }
+      await expect(toolSummaryHeading).toBeVisible({ timeout: 10000 });
 
       const toolItems = page.locator('text=/\\d+ calls?/');
       const itemCount = await toolItems.count();
@@ -231,23 +222,16 @@ test.describe('Time Analysis and Timeline Tests', () => {
     test('should switch between Timeline and Agent Review tabs', async ({ page }) => {
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}/time-analyze`);
       await page.waitForSelector('[data-testid="tabs"]', { timeout: 60000 });
-
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
 
       // Click Agent Review tab
       const agentReviewTab = page.locator('[data-testid="tabs"] button:has-text("Agent Review")');
       await agentReviewTab.click();
-      await page.waitForTimeout(500);
-
-      // Verify Agent Review tab is active (has accent border)
       await expect(agentReviewTab).toHaveClass(/border-b-accent/);
 
       // Switch back to Timeline tab
       const timelineTab = page.locator('[data-testid="tabs"] button:has-text("Timeline")');
       await timelineTab.click();
-      await page.waitForTimeout(500);
-
-      // Verify Timeline tab is active
       await expect(timelineTab).toHaveClass(/border-b-accent/);
     });
   });

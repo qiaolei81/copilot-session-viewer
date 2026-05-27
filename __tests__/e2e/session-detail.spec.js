@@ -262,17 +262,17 @@ test.describe('Session Detail Page', () => {
 
     await page.goto(`/#/${CLAUDE_DEDUP_SOURCE}/session/${CLAUDE_DEDUP_SESSION_ID}`);
     await waitForEventsToRender(page);
-    await page.waitForTimeout(1000);
 
     const toggle = page.locator('[data-testid="filter-type-toggle"]');
     await toggle.click();
-    await page.waitForTimeout(200);
+    const dedupMenu = page.locator('[data-testid="filter-type-menu"]');
+    await expect(dedupMenu).toBeVisible();
 
     const allItem = page.locator('[data-testid="filter-type-item"]').first();
     const countText = await allItem.locator('span.text-text-dim').textContent();
 
     await toggle.click();
-    await page.waitForTimeout(100);
+    await expect(dedupMenu).not.toBeVisible();
 
       expect(countText).not.toBeNull();
 
@@ -289,19 +289,17 @@ test.describe('Session Detail Page', () => {
 
     await waitForEventsToRender(page);
 
-    // Wait for virtual scroller to stabilize
-    await page.waitForTimeout(1000);
-
     // Get initial event count from type dropdown toggle text
     const getEventCount = async () => {
       const toggle = page.locator('[data-testid="filter-type-toggle"]');
       await toggle.click();
-      await page.waitForTimeout(200);
+      const menu = page.locator('[data-testid="filter-type-menu"]');
+      await expect(menu).toBeVisible();
       const allItem = page.locator('[data-testid="filter-type-item"]').first();
       const countText = await allItem.locator('span.text-text-dim').textContent();
       // Close dropdown
       await toggle.click();
-      await page.waitForTimeout(100);
+      await expect(menu).not.toBeVisible();
       return parseInt(countText) || 0;
     };
 
@@ -312,7 +310,7 @@ test.describe('Session Detail Page', () => {
     const searchInput = page.locator('input[placeholder="🔍 Search events..."]');
     await searchInput.fill('assistant.message');
 
-    // Wait for debounce + search to complete
+    // debounce: search input has a debounce timer before filtering is applied
     await page.waitForTimeout(800);
 
     const filteredCount = await getEventCount();
@@ -327,17 +325,15 @@ test.describe('Session Detail Page', () => {
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
 
-    // Wait for virtual scroller to stabilize
-    await page.waitForTimeout(1000);
-
     const getEventCount = async () => {
       const toggle = page.locator('[data-testid="filter-type-toggle"]');
       await toggle.click();
-      await page.waitForTimeout(200);
+      const menu = page.locator('[data-testid="filter-type-menu"]');
+      await expect(menu).toBeVisible();
       const allItem = page.locator('[data-testid="filter-type-item"]').first();
       const countText = await allItem.locator('span.text-text-dim').textContent();
       await toggle.click();
-      await page.waitForTimeout(100);
+      await expect(menu).not.toBeVisible();
       return parseInt(countText) || 0;
     };
 
@@ -345,12 +341,14 @@ test.describe('Session Detail Page', () => {
 
     // Search for something specific
     await searchInput.fill('assistant.message');
+    // debounce: search input
     await page.waitForTimeout(800);
 
     const filteredCount = await getEventCount();
 
     // Clear search
     await searchInput.clear();
+    // debounce: search input
     await page.waitForTimeout(800);
 
     const clearedCount = await getEventCount();
@@ -365,14 +363,8 @@ test.describe('Session Detail Page', () => {
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
 
-    // Wait for page content to load
-    const _pageLoaded = await Promise.race([
-      page.waitForSelector('[data-testid="session-layout"]', { timeout: 5000 }).catch(() => null),
-      page.waitForSelector('body', { timeout: 5000 })
-    ]);
-
-    // Wait for events to load
-    await page.waitForTimeout(2000);
+    // Wait for events to load via deterministic helper
+    await waitForEventsToRender(page).catch(() => null);
 
     // Find tool calls - try different possible selectors
     const toolSelectors = ['.tool-name', '.turn-content', '.event-item', 'button[data-testid="expand-button"]'];
@@ -390,6 +382,7 @@ test.describe('Session Detail Page', () => {
       try {
         const clickableElement = toolElement.locator('..').first();
         await clickableElement.click({ timeout: 3000 });
+        // debounce: allow expand/collapse animation to settle before logging
         await page.waitForTimeout(500);
         console.log('Successfully clicked tool element for expand/collapse test');
       } catch (error) {
@@ -401,17 +394,9 @@ test.describe('Session Detail Page', () => {
   });
 
   test('should toggle content visibility', async ({ page }) => {
-    test.skip(true, 'Flaky: virtual scroller recycles DOM nodes, making nth-based locators unreliable after click');
-
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
-
-    const _pageLoaded = await Promise.race([
-      page.waitForSelector('[data-testid="session-layout"]', { timeout: 5000 }).catch(() => null),
-      page.waitForSelector('body', { timeout: 5000 })
-    ]);
-
-    await page.waitForTimeout(2000);
+    await waitForEventsToRender(page).catch(() => null);
 
     // Find an event with "Show more" button
     const showMoreButtons = page.locator('button').filter({ hasText: 'Show more ▼' });
@@ -419,27 +404,25 @@ test.describe('Session Detail Page', () => {
     if (await showMoreButtons.count() > 0) {
       const firstShowMore = showMoreButtons.first();
       await firstShowMore.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(300);
 
-      // Get the event-row index that contains this button
-      const eventRowIndex = await firstShowMore.evaluate(el => {
+      // Capture the stable data-index of the row containing this button.
+      // Virtual scroller recycles DOM nodes, but data-index is bound to the
+      // underlying event, so re-querying by [data-index="N"] is stable.
+      const dataIndex = await firstShowMore.evaluate(el => {
         const row = el.closest('.event-row');
-        const allRows = [...document.querySelectorAll('.event-row')];
-        return allRows.indexOf(row);
+        return row?.getAttribute('data-index');
       });
 
       await firstShowMore.click({ force: true });
-      await page.waitForTimeout(500);
 
-      // Use nth event-row (stable after text change)
-      const eventRow = page.locator('.event-row').nth(eventRowIndex);
+      // Re-locate the row by its stable data-index attribute
+      const eventRow = page.locator(`.event-row[data-index="${dataIndex}"]`);
 
       // After click, button text changes to "Show less ▲"
       const showLessBtn = eventRow.locator('button').filter({ hasText: 'Show less ▲' }).first();
       await expect(showLessBtn).toBeVisible({ timeout: 5000 });
 
       await showLessBtn.click({ force: true });
-      await page.waitForTimeout(500);
 
       // Should revert to "Show more ▼"
       await expect(eventRow.locator('button').filter({ hasText: 'Show more ▼' }).first()).toBeVisible({ timeout: 5000 });
@@ -451,11 +434,7 @@ test.describe('Session Detail Page', () => {
 
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await page.waitForLoadState('networkidle');
-
-    const _pageLoaded = await Promise.race([
-      page.waitForSelector('[data-testid="session-layout"]', { timeout: 5000 }).catch(() => null),
-      page.waitForSelector('body', { timeout: 5000 })
-    ]);
+    await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 }).catch(() => null);
 
     const sidebarSelectors = ['.sidebar', '.side-panel', '[data-testid="sidebar"]', '.filter-panel'];
     let sidebarElement = null;
@@ -480,8 +459,8 @@ test.describe('Session Detail Page', () => {
 
     if (sidebarElement && toggleElement) {
       try {
-        await page.waitForTimeout(500);
         await toggleElement.click({ force: true, timeout: 3000 });
+        // debounce: allow CSS transition for sidebar collapse animation
         await page.waitForTimeout(500);
         console.log('Successfully toggled sidebar');
       } catch (error) {
@@ -497,7 +476,11 @@ test.describe('Session Detail Page', () => {
 
     // Wait for Vue to mount and try to load the session
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    // Wait for either error message or session layout to appear
+    await Promise.race([
+      page.locator('.error-message').waitFor({ state: 'visible', timeout: 10000 }).catch(() => null),
+      page.locator('[data-testid="session-layout"]').waitFor({ state: 'visible', timeout: 10000 }).catch(() => null)
+    ]);
 
     // In the Vue SPA, an invalid session should show an error message
     const errorEl = page.locator('.error-message');
@@ -516,7 +499,6 @@ test.describe('Session Detail Page', () => {
 
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
-    await page.waitForTimeout(1000);
 
     // Click the type filter toggle
     const toggle = page.locator('[data-testid="filter-type-toggle"]');
@@ -556,7 +538,6 @@ test.describe('Session Detail Page', () => {
 
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
-    await page.waitForTimeout(1000);
 
     // Initially no active filters bar
     const chipBar = page.locator('[data-testid="active-filters"]');
@@ -565,6 +546,7 @@ test.describe('Session Detail Page', () => {
     // Type in search
     const searchInput = page.locator('input[placeholder="🔍 Search events..."]');
     await searchInput.fill('test');
+    // debounce: search input debounce before filter chip appears
     await page.waitForTimeout(400);
 
     // Filter chip should appear for search
@@ -575,7 +557,6 @@ test.describe('Session Detail Page', () => {
     const clearBtn = chipBar.locator('[data-testid="clear-all-filters"]');
     await expect(clearBtn).toBeVisible();
     await clearBtn.click();
-    await page.waitForTimeout(400);
 
     // Filter chips should be gone
     await expect(chipBar).not.toBeVisible();
@@ -589,27 +570,23 @@ test.describe('Session Detail Page', () => {
 
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
-    await page.waitForTimeout(1000);
 
     // Select a type filter via dropdown
     const toggle = page.locator('[data-testid="filter-type-toggle"]');
     await toggle.click();
-    await page.waitForTimeout(200);
+    const dropdownMenu = page.locator('[data-testid="filter-type-menu"]');
+    await expect(dropdownMenu).toBeVisible();
 
     const items = page.locator('[data-testid="filter-type-item"]');
     const count = await items.count();
     if (count > 1) {
       await items.nth(1).click();
-      await page.waitForTimeout(300);
-
-      // Chip should be visible
       const chipBar = page.locator('[data-testid="active-filters"]');
       await expect(chipBar).toBeVisible();
 
       // Remove the type filter chip
       const removeBtn = chipBar.locator('.filter-chip .filter-chip-remove').first();
       await removeBtn.click();
-      await page.waitForTimeout(300);
 
       // Toggle should reset to "All Types"
       await expect(toggle).toContainText('All Types');
@@ -621,7 +598,6 @@ test.describe('Session Detail Page', () => {
 
     await page.goto(`/#/${EVENTFUL_SOURCE}/session/${EVENTFUL_SESSION_ID}`);
     await waitForEventsToRender(page);
-    await page.waitForTimeout(1000);
 
     // Open dropdown
     const toggle = page.locator('[data-testid="filter-type-toggle"]');
@@ -631,7 +607,6 @@ test.describe('Session Detail Page', () => {
 
     // Click outside (on the content area)
     await page.locator('[data-testid="session-layout"]').click({ position: { x: 10, y: 200 } });
-    await page.waitForTimeout(200);
 
     // Menu should be closed
     await expect(menu).not.toBeVisible();

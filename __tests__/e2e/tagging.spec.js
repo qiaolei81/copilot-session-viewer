@@ -69,7 +69,7 @@ test.describe('Tagging Feature', () => {
                          SESSION_SOURCE === 'modernize' ? 'Modernize CLI' :
                          SESSION_SOURCE === 'vscode' ? 'Copilot Chat' : 'Copilot CLI';
         await page.locator('.filter-pill').filter({ hasText: pillText }).click();
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
       }
 
       // Find the target session card by its link
@@ -157,9 +157,6 @@ test.describe('Tagging Feature', () => {
       const editButton = page.locator('[data-testid="tags-edit-btn"]');
       await editButton.click();
 
-      // Wait for dropdown to appear
-      await page.waitForTimeout(300);
-
       // Check for input field
       const input = page.locator('[data-testid="tag-input"]');
       await expect(input).toBeVisible();
@@ -179,23 +176,26 @@ test.describe('Tagging Feature', () => {
       // Click edit button
       const editButton = page.locator('[data-testid="tags-edit-btn"]');
       await editButton.click();
-      await page.waitForTimeout(500);
+      const input = page.locator('[data-testid="tag-input"]');
+      await expect(input).toBeVisible();
 
       // Type tag name
-      const input = page.locator('[data-testid="tag-input"]');
       await input.fill('ui-test-tag');
 
       // Press Enter to add tag
       await input.press('Enter');
-      await page.waitForTimeout(500);
-
-      // Check that tag appears in the editing view
       const tagChip = page.locator('[data-testid="tag-input-chip"]').filter({ hasText: 'ui-test-tag' });
       await expect(tagChip).toBeVisible();
 
       // Tab away from input to trigger blur and save
-      await page.keyboard.press('Tab');
-      await page.waitForTimeout(1000);
+      // Race the PUT /tags response against a short timeout; blur-save isn't reliable in headless
+      await Promise.race([
+        page.waitForResponse(
+          r => r.url().includes('/tags') && r.request().method() === 'PUT',
+          { timeout: 2000 }
+        ).catch(() => null),
+        page.keyboard.press('Tab').then(() => new Promise(resolve => setTimeout(resolve, 1000)))
+      ]);
 
       // Verify tag-input-chip still shows the tag (editing view confirms add worked)
       // Note: blur-triggered save may not work reliably in headless Chromium
@@ -213,8 +213,6 @@ test.describe('Tagging Feature', () => {
       // Reload to verify tag display
       await page.reload();
       await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
-      await page.waitForTimeout(2000);
-
       const displayedTag = page.locator('[data-testid="tag-label"]').filter({ hasText: 'ui-test-tag' });
       await expect(displayedTag).toBeAttached({ timeout: 10000 });
     });
@@ -229,8 +227,6 @@ test.describe('Tagging Feature', () => {
       // Navigate to session detail page
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
-      await page.waitForTimeout(2000);
-
       // Verify tag is in the DOM
       const tagLabel = page.locator('[data-testid="tag-label"]').filter({ hasText: testTag });
       await expect(tagLabel).toBeAttached({ timeout: 10000 });
@@ -238,8 +234,6 @@ test.describe('Tagging Feature', () => {
       // Reload page
       await page.reload();
       await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
-      await page.waitForTimeout(2000);
-
       // Verify tag persists after reload
       await expect(tagLabel).toBeAttached({ timeout: 10000 });
     });
@@ -263,14 +257,14 @@ test.describe('Tagging Feature', () => {
       // Open tag editor
       const editButton = page.locator('[data-testid="tags-edit-btn"]');
       await editButton.click();
-      await page.waitForTimeout(300);
+      const input = page.locator('[data-testid="tag-input"]');
+      await expect(input).toBeVisible();
 
       // Type partial tag name
-      const input = page.locator('[data-testid="tag-input"]');
       await input.fill('auto');
 
-      // Wait for autocomplete to appear
-      await page.waitForTimeout(500);
+      // Debounce for autocomplete suggestions (no deterministic signal available)
+      await page.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
 
       // Autocomplete UI removed in Vue SPA - skip check
       const autocompleteVisible = false;
@@ -292,24 +286,18 @@ test.describe('Tagging Feature', () => {
       // Open editor
       const editButton = page.locator('[data-testid="tags-edit-btn"]');
       await editButton.click();
-      await page.waitForTimeout(300);
+      const input = page.locator('[data-testid="tag-input"]');
+      await expect(input).toBeVisible();
 
       // Add a tag
-      const input = page.locator('[data-testid="tag-input"]');
       await input.fill('removable-tag');
       await input.press('Enter');
-      await page.waitForTimeout(300);
-
-      // Verify tag is added
       let tagChip = page.locator('[data-testid="tag-input-chip"]').filter({ hasText: 'removable-tag' });
       await expect(tagChip).toBeVisible();
 
       // Click remove button (×)
       const removeButton = tagChip.locator('button');
       await removeButton.click();
-      await page.waitForTimeout(300);
-
-      // Verify tag is removed from editing view
       tagChip = page.locator('[data-testid="tag-input-chip"]').filter({ hasText: 'removable-tag' });
       await expect(tagChip).not.toBeVisible();
     });
@@ -324,9 +312,6 @@ test.describe('Tagging Feature', () => {
 
       await page.goto(`/#/${SESSION_SOURCE}/session/${SESSION_ID}`);
       await page.waitForSelector('[data-testid="session-layout"]', { timeout: 10000 });
-
-      // Wait for Vue to mount and load tags
-      await page.waitForTimeout(2000);
 
       // Wait for at least one tag to appear (with longer timeout)
       try {
@@ -363,10 +348,10 @@ test.describe('Tagging Feature', () => {
       // Open editor
       const editButton = page.locator('[data-testid="tags-edit-btn"]');
       await editButton.click();
-      await page.waitForTimeout(300);
+      const input = page.locator('[data-testid="tag-input"]');
+      await expect(input).toBeVisible();
 
       // Try to type more than 30 characters
-      const input = page.locator('[data-testid="tag-input"]');
       const longString = 'a'.repeat(35);
       await input.fill(longString);
 

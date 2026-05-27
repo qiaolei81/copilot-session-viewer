@@ -26,13 +26,14 @@ test.describe('Infinite Scroll', () => {
       return;
     }
 
-    // Scroll near bottom to trigger infinite scroll
-    await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight - 400);
-    });
-
-    // Wait for potential loading
-    await page.waitForTimeout(3000);
+    // Scroll near bottom to trigger infinite scroll; wait for the batch XHR (if any)
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/sessions') && (r.url().includes('offset=') || r.url().includes('limit=')),
+        { timeout: 3000 }
+      ).catch(() => null),
+      page.evaluate(() => window.scrollTo(0, document.body.scrollHeight - 400))
+    ]);
 
     // Count sessions after scrolling
     const newSessionCount = await page.locator('[data-testid="session-card"]').count();
@@ -51,9 +52,13 @@ test.describe('Infinite Scroll', () => {
     }
 
     // Scroll near bottom to trigger loading
-    await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight - 400);
-    });
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/sessions') && (r.url().includes('offset=') || r.url().includes('limit=')),
+        { timeout: 3000 }
+      ).catch(() => null),
+      page.evaluate(() => window.scrollTo(0, document.body.scrollHeight - 400))
+    ]);
 
     // Check for loading indicator (may appear briefly)
     const loadingSpinner = page.locator('.loading-spinner');
@@ -61,20 +66,21 @@ test.describe('Infinite Scroll', () => {
 
     console.log('Loading state visible during scroll:', hasLoadingState);
 
-    // Wait for completion
-    await page.waitForTimeout(3000);
+    // Wait for spinner to disappear (load complete)
+    await loadingSpinner.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => null);
   });
 
   test('should trigger infinite scroll when scrolling near bottom', async ({ page }) => {
     const initialSessionCount = await page.locator('[data-testid="session-card"]').count();
 
-    // Scroll to bottom of page
-    await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight - 600);
-    });
-
-    // Wait for potential loading
-    await page.waitForTimeout(3000);
+    // Scroll to bottom of page; wait for any session batch XHR
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/sessions') && (r.url().includes('offset=') || r.url().includes('limit=')),
+        { timeout: 3000 }
+      ).catch(() => null),
+      page.evaluate(() => window.scrollTo(0, document.body.scrollHeight - 600))
+    ]);
 
     // Check if more sessions were loaded
     const newSessionCount = await page.locator('[data-testid="session-card"]').count();
@@ -98,12 +104,19 @@ test.describe('Infinite Scroll', () => {
     while (attempts < maxAttempts) {
       const previousCount = currentCount;
 
-      // Scroll to bottom
-      await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-      });
-
-      await page.waitForTimeout(2000);
+      // Scroll to bottom; await batch XHR (or no-op if no more pages)
+      await Promise.all([
+        page.waitForResponse(
+          r => r.url().includes('/sessions') && (r.url().includes('offset=') || r.url().includes('limit=')),
+          { timeout: 2000 }
+        ).catch(() => null),
+        page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+      ]);
+      // Allow DOM to settle after response
+      await expect.poll(
+        () => page.locator('[data-testid="session-card"]').count(),
+        { timeout: 2000 }
+      ).toBeGreaterThanOrEqual(previousCount);
       currentCount = await page.locator('[data-testid="session-card"]').count();
 
       if (currentCount === previousCount) {
@@ -134,13 +147,14 @@ test.describe('Infinite Scroll', () => {
       return;
     }
 
-    // Scroll to trigger infinite scroll
-    await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight - 400);
-    });
-
-    // Wait for potential error handling
-    await page.waitForTimeout(2000);
+    // Scroll to trigger infinite scroll; wait for the (intercepted) 500 response
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/sessions') && (r.url().includes('offset=') || r.url().includes('limit=')),
+        { timeout: 3000 }
+      ).catch(() => null),
+      page.evaluate(() => window.scrollTo(0, document.body.scrollHeight - 400))
+    ]);
 
     // Check that page is still functional
     await expect(page.locator('h1')).toContainText('Session Viewer');
@@ -160,10 +174,13 @@ test.describe('Infinite Scroll', () => {
     }
 
     // Scroll to potentially load more
-    await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight - 400);
-    });
-    await page.waitForTimeout(2000);
+    await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/sessions') && (r.url().includes('offset=') || r.url().includes('limit=')),
+        { timeout: 2000 }
+      ).catch(() => null),
+      page.evaluate(() => window.scrollTo(0, document.body.scrollHeight - 400))
+    ]);
 
     const sessionsAfterScroll = await page.locator('[data-testid="session-card"]').count();
 
@@ -176,7 +193,7 @@ test.describe('Infinite Scroll', () => {
 
     // Go back to homepage
     await page.goBack();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
 
     // Check if sessions are still loaded
     await page.waitForSelector('[data-testid="session-card"]', { timeout: 5000 });

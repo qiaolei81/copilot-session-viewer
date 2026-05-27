@@ -115,7 +115,11 @@ test.describe('Custom Directory Support', () => {
       const entry = await registerCustomDir(request, CUSTOM_DIR);
       await page.goto(`/#/copilot-cli/session/${NESTED_SESSION_ID}?dirId=${entry.id}`);
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(3000);
+      // Wait for either the session content to render or an error to appear (deterministic, no fixed sleep)
+      await Promise.race([
+        page.locator('text=Session not found').waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
+        page.waitForFunction(() => (document.body.textContent || '').length > 100, null, { timeout: 5000 }).catch(() => null)
+      ]);
 
       const errorText = page.locator('text=Session not found');
       const hasError = await errorText.isVisible().catch(() => false);
