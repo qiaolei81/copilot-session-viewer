@@ -1,17 +1,38 @@
 /**
  * API Integration Tests — real server, real adapters, fixture data.
- * No mocks. Each adapter's env var points to __tests__/fixtures/sessions/<source>.
+ * No mocks. Each adapter's env var points to a per-run temp copy of
+ * __tests__/fixtures/sessions/<source> so that import tests (which write
+ * to the configured session dir) don't pollute the checked-in fixtures
+ * or the subsequent E2E run.
  */
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const request = require('supertest');
 
-// Point adapters at fixture directories BEFORE requiring the app
-const FIXTURES = path.resolve(__dirname, 'fixtures/sessions');
+const SRC_FIXTURES = path.resolve(__dirname, 'fixtures/sessions');
+const TMP_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'csv-api-integration-'));
+
+function copyDir(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name);
+    const d = path.join(dest, entry.name);
+    if (entry.isDirectory()) copyDir(s, d);
+    else fs.copyFileSync(s, d);
+  }
+}
+
+// Snapshot each source fixture into the temp dir so writes are isolated.
+const FIXTURES = path.join(TMP_ROOT, 'sessions');
+copyDir(SRC_FIXTURES, FIXTURES);
+
+// Point adapters at temp-copy fixture directories BEFORE requiring the app
 process.env.COPILOT_SESSION_DIR = path.join(FIXTURES, 'copilot-cli');
 process.env.CLAUDE_SESSION_DIR = path.join(FIXTURES, 'claude');
-process.env.VSCODE_WORKSPACE_STORAGE_DIR = path.join(FIXTURES, 'vscode');
+process.env.VSCODE_WORKSPACE_STORAGE_DIR = path.join(FIXTURES, 'vscode-empty');
 process.env.PI_MONO_SESSION_DIR = path.join(FIXTURES, 'pi-mono');
-process.env.MODERNIZE_SESSION_DIR = path.join(FIXTURES, 'modernize');
+process.env.MODERNIZE_SESSION_DIR = path.join(FIXTURES, 'modernize-empty');
 
 const createApp = require('../src/server/app');
 
@@ -19,6 +40,10 @@ let app;
 
 beforeAll(() => {
   app = createApp();
+});
+
+afterAll(() => {
+  try { fs.rmSync(TMP_ROOT, { recursive: true, force: true }); } catch { /* ignore */ }
 });
 
 // Helper: extract sessions array from response
